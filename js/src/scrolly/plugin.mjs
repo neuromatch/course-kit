@@ -15,7 +15,7 @@
 //
 // nma_kit.scrolly is the Python side. These must stay in sync:
 //   isScrolly <-> is_scrolly, cellKey <-> cell_key, parseParams <-> parse_params
-// (shared fixtures in fixtures/scrolly/).
+// (shared fixtures in tests/fixtures/scrolly/).
 
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';

@@ -6,6 +6,7 @@ build-backend = "hatchling.build"
 name = "neuromatch-course-kit"
 version = "0.1.0"
 description = "Neuromatch course kit: notebook generation, content checks and site preparation for MyST courses"
+readme = "README.md"
 license = "BSD-3-Clause"
 requires-python = ">=3.10"
 dependencies = [
@@ -26,3 +27,7 @@ nma-kit = "nma_kit.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/nma_kit"]
+
+[project.urls]
+Homepage = "https://github.com/neuromatch/course-kit"
+Issues = "https://github.com/neuromatch/course-kit/issues"

@@ -8,7 +8,7 @@ from nma_kit.convert import make_badge_html
 from nma_kit.feedback import FORMAT_ERROR, config_errors
 from nma_kit.solutions import solution_url
 
-FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 CASES = json.loads((FIXTURES / "config" / "settings.json").read_text())["cases"]
 
 

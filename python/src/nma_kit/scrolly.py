@@ -28,8 +28,8 @@ Interactive demos use Colab form syntax, one assignment per line:
 
 The website side is js/src/scrolly/plugin.mjs. These rules must match it:
   - is_scrolly()     <-> isScrolly()
-  - cell_key()       <-> cellKey()       (fixture fixtures/scrolly/cell_keys.json)
-  - parse_params()   <-> parseParams()   (fixture fixtures/scrolly/params.json)
+  - cell_key()       <-> cellKey()       (fixture tests/fixtures/scrolly/cell_keys.json)
+  - parse_params()   <-> parseParams()   (fixture tests/fixtures/scrolly/params.json)
   - render file path _build/scrolly/<relDir>/<stem>.json
 """
 

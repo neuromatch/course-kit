@@ -10,7 +10,7 @@ import { assetUrl } from '../../js/src/shared/assets.mjs';
 import { cellKey, canonicalCode, parseParams, isScrolly, exercisePairs, buildScrolly } from '../../js/src/scrolly/plugin.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const fixtures = join(here, '..', '..', 'fixtures', 'scrolly');
+const fixtures = join(here, '..', 'fixtures', 'scrolly');
 const load = (name) => JSON.parse(readFileSync(join(fixtures, name), 'utf8'));
 
 // The same fixtures are checked in tests/test_nma_scrolly.py.
@@ -274,12 +274,12 @@ test('earlier unfinished exercises run their solution', () => {
 });
 
 test("the example course's myst.yml sets nma.scrolly.pyodide_url", () => {
-  const text = readFileSync(join(here, '..', '..', 'example-course', 'myst.yml'), 'utf8');
+  const text = readFileSync(join(here, '..', 'example-course', 'myst.yml'), 'utf8');
   assert.match(readNmaConfig(text).scrolly?.pyodide_url ?? '', /^https:\/\/.+\/$/);
 });
 
 test('the how-to page: only its real exercise is paired, examples are ignored', () => {
-  const text = readFileSync(join(here, '..', '..', 'fixtures', 'scrolly', 'doc_page.md'), 'utf8');
+  const text = readFileSync(join(here, '..', 'fixtures', 'scrolly', 'doc_page.md'), 'utf8');
   assert.ok(isScrolly(text));
   const pairs = exercisePairs(text);
   assert.equal(pairs.length, 1);

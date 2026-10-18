@@ -1,6 +1,6 @@
 // Where a course page and its generated files live.
 // Twins in Python: nma_kit.config.page_location, nma_kit.convert.make_badge_html,
-// nma_kit.solutions.solution_url; shared fixtures in fixtures/config/.
+// nma_kit.solutions.solution_url; shared fixtures in tests/fixtures/config/.
 
 import { readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';

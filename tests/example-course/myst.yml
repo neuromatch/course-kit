@@ -4,10 +4,10 @@ project:
   github: https://github.com/neuromatch/course-kit
   jupyter:
     lite: true
-  # The kit's dev bundle (cd ../js && npm run build:dev). Real courses use
+  # The kit's dev bundle (cd ../../js && npm run build:dev). Real courses use
   # `extend: https://cdn.jsdelivr.net/npm/@neuromatch/course-kit@0.1/dist/nma.yml`.
   plugins:
-    - ../js/dist/nma.mjs
+    - ../../js/dist/nma.mjs
   toc:
     - file: tutorials/intro.md
     - title: Getting started

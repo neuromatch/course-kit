@@ -12,7 +12,7 @@ import {
 } from '../../js/src/cells/src/model.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const fixtures = join(here, '..', '..', 'fixtures', 'cells');
+const fixtures = join(here, '..', 'fixtures', 'cells');
 
 // The same fixture is checked in tests/test_nma_cells.py.
 for (const c of JSON.parse(readFileSync(join(fixtures, 'runtime.json'), 'utf8'))) {

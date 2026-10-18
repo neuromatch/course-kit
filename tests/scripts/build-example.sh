@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Build example-course/ with the kit's dev bundle, the way a course's CI does.
+# Build tests/example-course/ with the kit's dev bundle, the way a course's CI does.
 # Needs: node (npm ci already run in js/), and nma-kit + myst on PATH (or a
-# venv at python/.venv). Leaves the site in example-course/_build/html.
+# venv at python/.venv). Leaves the site in tests/example-course/_build/html.
 set -euo pipefail
 
 KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -11,7 +11,7 @@ fi
 
 (cd "$KIT/js" && npm run build:dev)
 
-cd "$KIT/example-course"
+cd "$KIT/tests/example-course"
 # prepare-site edits the pages in place; never leave that behind.
 trap 'git checkout -- tutorials myst.yml' EXIT
 nma-kit check

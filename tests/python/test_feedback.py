@@ -17,8 +17,8 @@ from nma_kit.feedback import (
     validate,
 )
 
-FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "nma_config"
-EXAMPLE_COURSE = Path(__file__).resolve().parents[2] / "example-course"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "nma_config"
+EXAMPLE_COURSE = Path(__file__).resolve().parents[1] / "example-course"
 CONFIG = FeedbackConfig("https://example.org/klab", "neuromatch_cn", "y1x3mpx5")
 
 PAGE = """---

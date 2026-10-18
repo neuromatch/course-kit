@@ -1,7 +1,7 @@
 """Editable cells: the `runtime:` frontmatter key (Python side).
 
 `runtime_of` has a JavaScript twin, `runtimeOf` in js/src/cells/src/model.mjs.
-Both are tested against fixtures/cells/runtime.json.
+Both are tested against tests/fixtures/cells/runtime.json.
 """
 
 import re

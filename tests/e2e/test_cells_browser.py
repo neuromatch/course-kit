@@ -13,7 +13,7 @@ from nma_kit.solutions import FALLBACK_NOTE  # noqa: E402
 # The course whose built site is under test (its .md sources are read to
 # count cells). Default: the kit's example course. The template sets
 # NMA_E2E_COURSE to its own root.
-ROOT = Path(os.environ.get("NMA_E2E_COURSE") or Path(__file__).resolve().parents[2] / "example-course")
+ROOT = Path(os.environ.get("NMA_E2E_COURSE") or Path(__file__).resolve().parents[1] / "example-course")
 TUTORIAL1 = "/tutorials/w2d1-examples/w2d1-tutorial1/"
 TUTORIAL1_MD = (ROOT / "tutorials/W2D1_Examples/W2D1_Tutorial1.md").read_text()
 DONE = re.compile(r"^\[\s*\d*\] (✓|✗)")
