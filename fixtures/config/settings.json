@@ -1,0 +1,50 @@
+{
+  "_doc": "Shared by tests/python/test_config.py and tests/js/config.test.mjs. Each case: a course myst.yml, a page path relative to the course root, and what both sides must compute for it (null = page is outside the tutorials dir).",
+  "cases": [
+    {
+      "name": "defaults without an nma block",
+      "myst": "version: 1\nproject:\n  github: https://github.com/neuromatch/course-template\n",
+      "page": "tutorials/W2D1_Examples/W2D1_Tutorial1.md",
+      "expect": {
+        "relDir": "W2D1_Examples",
+        "stem": "W2D1_Tutorial1",
+        "notebook": "notebooks/W2D1_Examples/W2D1_Tutorial1.ipynb",
+        "colab": "https://colab.research.google.com/github/neuromatch/course-template/blob/notebooks-branch/notebooks/W2D1_Examples/W2D1_Tutorial1.ipynb",
+        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/neuromatch/course-template/notebooks-branch/notebooks/W2D1_Examples/W2D1_Tutorial1.ipynb",
+        "solution1": "https://github.com/neuromatch/course-template/blob/notebooks-branch/notebooks/W2D1_Examples/solutions/W2D1_Tutorial1_Solution_1.py"
+      }
+    },
+    {
+      "name": "custom tutorials dir and notebooks branch",
+      "myst": "version: 1\nproject:\n  github: 'https://github.com/org/my-course/'\nnma:\n  paths:\n    tutorials: content\n  notebooks:\n    branch: nb\n",
+      "page": "content/Day1/T1.md",
+      "expect": {
+        "relDir": "Day1",
+        "stem": "T1",
+        "notebook": "notebooks/Day1/T1.ipynb",
+        "colab": "https://colab.research.google.com/github/org/my-course/blob/nb/notebooks/Day1/T1.ipynb",
+        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/org/my-course/nb/notebooks/Day1/T1.ipynb",
+        "solution1": "https://github.com/org/my-course/blob/nb/notebooks/Day1/solutions/T1_Solution_1.py"
+      }
+    },
+    {
+      "name": "page at the top of the tutorials dir",
+      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  feedback:\n    url: https://example.org\n",
+      "page": "tutorials/intro.md",
+      "expect": {
+        "relDir": "",
+        "stem": "intro",
+        "notebook": "notebooks/intro.ipynb",
+        "colab": "https://colab.research.google.com/github/o/r/blob/notebooks-branch/notebooks/intro.ipynb",
+        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/o/r/notebooks-branch/notebooks/intro.ipynb",
+        "solution1": "https://github.com/o/r/blob/notebooks-branch/notebooks/solutions/intro_Solution_1.py"
+      }
+    },
+    {
+      "name": "page outside the custom tutorials dir",
+      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  paths:\n    tutorials: content\n",
+      "page": "tutorials/W1D1/T1.md",
+      "expect": null
+    }
+  ]
+}

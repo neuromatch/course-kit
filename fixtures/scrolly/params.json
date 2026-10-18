@@ -1,0 +1,85 @@
+[
+ {
+  "name": "float slider",
+  "code": "a = -0.5   # @param {type:\"slider\", min:-2.5, max:1.5, step:0.25}\nplot(a)",
+  "params": [
+   {"name": "a", "kind": "slider", "value": -0.5, "min": -2.5, "max": 1.5, "step": 0.25, "options": null}
+  ]
+ },
+ {
+  "name": "int slider, quoted keys, step defaults to 1",
+  "code": "n = 3 #@param {\"type\": \"slider\", \"min\": 1, \"max\": 10}",
+  "params": [
+   {"name": "n", "kind": "slider", "value": 3, "min": 1, "max": 10, "step": 1, "options": null}
+  ]
+ },
+ {
+  "name": "two sliders and a dropdown",
+  "code": "a = -0.5   # @param {type:\"slider\", min:-2.5, max:1.5, step:0.25}\ndt = 0.001 # @param {type:\"slider\", min:0.001, max:1.0, step:0.001}\noption = 1   # @param [1, 2, 3, 4]\nx = a * dt",
+  "params": [
+   {"name": "a", "kind": "slider", "value": -0.5, "min": -2.5, "max": 1.5, "step": 0.25, "options": null},
+   {"name": "dt", "kind": "slider", "value": 0.001, "min": 0.001, "max": 1.0, "step": 0.001, "options": null},
+   {"name": "option", "kind": "dropdown", "value": 1, "min": null, "max": null, "step": null, "options": [1, 2, 3, 4]}
+  ]
+ },
+ {
+  "name": "string dropdown with commas in quotes",
+  "code": "mode = 'b, c'  # @param ['a', \"b, c\", 'd']",
+  "params": [
+   {"name": "mode", "kind": "dropdown", "value": "b, c", "min": null, "max": null, "step": null, "options": ["a", "b, c", "d"]}
+  ]
+ },
+ {
+  "name": "booleans, None and scientific notation",
+  "code": "flag = True  # @param [True, False, None]\nlr = 1e-3  # @param {type:\"slider\", min:1e-4, max:1e-2, step:1e-4}",
+  "params": [
+   {"name": "flag", "kind": "dropdown", "value": true, "min": null, "max": null, "step": null, "options": [true, false, null]},
+   {"name": "lr", "kind": "slider", "value": 0.001, "min": 0.0001, "max": 0.01, "step": 0.0001, "options": null}
+  ]
+ },
+ {
+  "name": "no params",
+  "code": "x = 1  # an ordinary comment\nprint('# @param is just text in a string?')",
+  "params": []
+ },
+ {
+  "name": "error: unsupported Colab type",
+  "code": "s = 'hi'  # @param {type:\"string\"}",
+  "error": "line 1"
+ },
+ {
+  "name": "error: indented param",
+  "code": "def f():\n    a = 1  # @param [1, 2]",
+  "error": "line 2"
+ },
+ {
+  "name": "error: slider without max",
+  "code": "a = 1  # @param {type:\"slider\", min:0}",
+  "error": "line 1"
+ },
+ {
+  "name": "error: unknown slider key",
+  "code": "a = 1  # @param {type:\"slider\", min:0, max:2, color:1}",
+  "error": "line 1"
+ },
+ {
+  "name": "error: value not a number",
+  "code": "a = b  # @param {type:\"slider\", min:0, max:2}",
+  "error": "line 1"
+ },
+ {
+  "name": "error: dropdown value not in options",
+  "code": "a = 5  # @param [1, 2]",
+  "error": "line 1"
+ },
+ {
+  "name": "error: not an assignment",
+  "code": "plot(a)  # @param [1, 2]",
+  "error": "line 1"
+ },
+ {
+  "name": "error: empty dropdown",
+  "code": "a = 1  # @param []",
+  "error": "line 1"
+ }
+]

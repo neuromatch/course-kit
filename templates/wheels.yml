@@ -1,0 +1,18 @@
+# Optional. Copy to .github/workflows/wheels.yml to build browser (Pyodide)
+# wheels for packages that only publish source distributions.
+name: Build Pyodide wheels
+
+on:
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: Space-separated PyPI package names
+        required: true
+
+jobs:
+  wheels:
+    uses: neuromatch/course-kit/.github/workflows/course-wheels.yml@v0.1
+    with:
+      packages: ${{ inputs.packages }}
+    permissions:
+      contents: write

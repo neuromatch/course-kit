@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "neuromatch-course-kit"
+version = "0.1.0"
+description = "Neuromatch course kit: notebook generation, content checks and site preparation for MyST courses"
+license = "BSD-3-Clause"
+requires-python = ">=3.10"
+dependencies = [
+  "mystmd==1.11.0",
+  "jupytext>=1.16",
+  "nbclient",
+  "nbformat",
+  "ipykernel",
+  "pyyaml",
+]
+
+[project.optional-dependencies]
+# matplotlib, numpy, ipywidgets: the render tests execute plotting cells.
+test = ["pytest", "pytest-rerunfailures", "playwright", "matplotlib", "numpy", "ipywidgets"]
+
+[project.scripts]
+nma-kit = "nma_kit.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nma_kit"]

@@ -1,0 +1,71 @@
+/* Page-level rules for editable cells. runtime-widget.mjs copies this file into <head>. */
+.nma-cells-runtime { display: none; }
+
+/* Floating "Run all" control (runtime-widget.mjs). Brand-coloured via the theme
+   variables set in _static/custom.css, with safe fallbacks. */
+.nma-run-all-bar {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.35rem;
+  border-radius: 999px;
+  background: var(--myst-color-surface, #f3f4f6);
+  border: 1px solid var(--myst-color-border-strong, #d1d5db);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  font: 600 0.85rem/1 var(--nma-font-sans, ui-sans-serif, system-ui, sans-serif);
+}
+.nma-run-all-bar .nma-run-all {
+  cursor: pointer;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  font: inherit;
+  color: #fff;
+  background: var(--myst-color-primary, #008cbf);
+}
+.nma-run-all-bar .nma-run-all:hover:not(:disabled) { background: var(--myst-color-primary-hover, #006b8f); }
+.nma-run-all-bar .nma-run-all:disabled { opacity: 0.6; cursor: default; }
+.nma-run-all-bar .nma-run-all-status {
+  color: var(--myst-color-text-secondary, #4b5563);
+  white-space: nowrap;
+  font-weight: 400;
+}
+/* The output area is slotted into the panel, so it needs a little air only when it has content. */
+.nma-cell-out { margin: 0; padding: 0; }
+.nma-cell-out:not(:empty) { padding: 0.65rem 1.1rem 0.8rem; }
+.nma-cell-out .nma-hint { margin: 0; opacity: 0.7; font-size: 0.85rem; font-style: italic; }
+.nma-cell-out.is-stale { opacity: 0.55; }
+.nma-cell-out.is-stale::before { content: 'Edited · run to update'; display: block; font-size: 0.75rem; margin-bottom: 0.3rem; }
+
+/* Output text: follow the page theme, not MyST's dark <pre> blocks or thebe's pink stderr. */
+.nma-cell-out .jp-OutputPrompt { display: none; }
+.nma-cell-out .jp-RenderedText { background: transparent !important; }
+.nma-cell-out .jp-RenderedText[data-mime-type='application/vnd.jupyter.stderr'] {
+  background: rgba(220, 53, 69, 0.07) !important;
+  border-left: 3px solid rgba(220, 53, 69, 0.55);
+  padding-left: 0.6rem;
+}
+.nma-cell-out pre {
+  margin: 0;
+  padding: 0;
+  background: transparent !important;
+  color: inherit !important;
+  border: 0;
+  font: 0.82rem/1.55 ui-monospace, 'Cascadia Code', SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 50vh;
+}
+.nma-cell-out .jp-RenderedImage img, .nma-cell-out img { max-width: 100%; height: auto; border-radius: 6px; background: #fff; }
+/* ANSI colours (tracebacks) are tuned for light pages; lift them on dark ones. */
+html.dark .nma-cell-out .ansi-red-fg { color: #ff8a8a; }
+html.dark .nma-cell-out .ansi-green-fg { color: #5edba0; }
+html.dark .nma-cell-out .ansi-blue-fg { color: #8ab8ff; }
+html.dark .nma-cell-out .ansi-yellow-fg { color: #f0c36a; }
+html.dark .nma-cell-out .ansi-magenta-fg { color: #d9a6ff; }
+html.dark .nma-cell-out .ansi-cyan-fg { color: #6fe0e8; }
+html.dark .nma-cell-out .ansi-black-fg, html.dark .nma-cell-out .ansi-white-fg { color: inherit; }

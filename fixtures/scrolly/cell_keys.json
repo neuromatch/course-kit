@@ -1,0 +1,44 @@
+[
+ {
+  "name": "simple",
+  "code": "print('hi')",
+  "canonical": "print('hi')",
+  "key": "c2d0a5e0790d97a0"
+ },
+ {
+  "name": "crlf and trailing spaces",
+  "code": "x = 1  \r\ny = 2\t\r\n",
+  "canonical": "x = 1\ny = 2",
+  "key": "9af816430225a200"
+ },
+ {
+  "name": "outer blank lines",
+  "code": "\n\n\nx = 1\ny = 2\n\n",
+  "canonical": "x = 1\ny = 2",
+  "key": "9af816430225a200"
+ },
+ {
+  "name": "inner blank lines kept",
+  "code": "def f():\n    return 1\n\n\nf()",
+  "canonical": "def f():\n    return 1\n\n\nf()",
+  "key": "547b890f012b6be5"
+ },
+ {
+  "name": "indentation kept",
+  "code": "  x = 1\n    y = 2",
+  "canonical": "  x = 1\n    y = 2",
+  "key": "98cd82430ac8d6c6"
+ },
+ {
+  "name": "unicode",
+  "code": "print('α → β')",
+  "canonical": "print('α → β')",
+  "key": "a5474362fd439401"
+ },
+ {
+  "name": "empty",
+  "code": "\n  \n",
+  "canonical": "",
+  "key": "e3b0c44298fc1c14"
+ }
+]

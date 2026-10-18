@@ -1,0 +1,36 @@
+version: 1
+project:
+  title: Course Kit Example Course
+  github: https://github.com/neuromatch/course-kit
+  jupyter:
+    lite: true
+  # The kit's dev bundle (cd ../js && npm run build:dev). Real courses use
+  # `extend: https://cdn.jsdelivr.net/npm/@neuromatch/course-kit@0.1/dist/nma.yml`.
+  plugins:
+    - ../js/dist/nma.mjs
+  toc:
+    - file: tutorials/intro.md
+    - title: Getting started
+      children:
+        - file: tutorials/W1D1_GettingStarted/W1D1_Tutorial1.md
+        - file: tutorials/W1D1_GettingStarted/W1D1_Tutorial2.md
+        - file: tutorials/W1D1_GettingStarted/W1D1_Tutorial3.md
+    - title: Examples
+      children:
+        - file: tutorials/W2D1_Examples/W2D1_Tutorial1.md
+        - file: tutorials/W2D1_Examples/W2D1_Tutorial2.md
+        - file: tutorials/W2D1_Examples/W2D1_Tutorial3.md
+site:
+  template: book-theme
+  options:
+    folders: true   # URLs keep the folder, like the template (/tutorials/w2d1-examples/...)
+    style: _static/custom.css   # holds the toolbar rule every course needs
+
+# Course kit settings (read by the kit's plugin and the nma-kit CLI).
+nma:
+  feedback:
+    url: https://pmyvdlilci.execute-api.us-east-1.amazonaws.com/klab
+    project: neuromatch_cn
+    user_key: y1x3mpx5
+  scrolly:
+    pyodide_url: https://cdn.jsdelivr.net/pyodide/v314.0.7/full/

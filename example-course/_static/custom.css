@@ -1,0 +1,5 @@
+/* Required by the course kit: editable cells replace JupyterLite's power
+   button site-wide (a plugin can't add site-wide CSS, so every course keeps
+   this rule in its own stylesheet). Hide the whole toolbar wrapper, not just
+   the power button: the wrapper otherwise leaves a small ghost dot. */
+.myst-jp-nb-toolbar { display: none !important; }

@@ -1,0 +1,13 @@
+version: 1
+# Neuromatch settings
+nma:   # ours, not MyST's
+  # feedback widget
+  feedback:
+    url: "https://example.org/klab"   # API base
+    project: 'neuromatch_cn'
+
+    user_key: y1x3mpx5 # not a secret
+site:
+  template: book-theme
+  options:
+    project: not-ours

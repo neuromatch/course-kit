@@ -1,0 +1,120 @@
+# Reusable: publish a course on push to main. One job chain, each step gated
+# on the previous one: check, notebooks (pushed to the notebooks branch, which
+# is created if missing), scrolly render, site build, GitHub Pages deploy.
+#
+#   jobs:
+#     publish:
+#       uses: neuromatch/course-kit/.github/workflows/course-publish.yml@v0.1
+#       permissions: { contents: write, pages: write, id-token: write }
+#
+# Pages: Settings -> Pages -> Source: GitHub Actions. A custom domain is set
+# there too (no CNAME file needed).
+name: Course publish
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        type: string
+        default: "3.12"
+      requirements:
+        description: The course's own Python packages (relative to working-directory). Skipped if missing.
+        type: string
+        default: requirements.txt
+      kit-version:
+        description: Override the kit version (an exact version or `latest`). Default is this release.
+        type: string
+        default: ""
+      working-directory:
+        description: The course root (the folder with myst.yml).
+        type: string
+        default: "."
+      kit-source:
+        description: "`pypi` (courses) or `local` (the kit's own CI: install ./python and build ./js)."
+        type: string
+        default: pypi
+
+env:
+  KIT_VERSION: 0.1.0 # x-release-please-version
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the notebooks branch
+    # One publish at a time per repository, so notebook pushes never race.
+    concurrency:
+      group: course-publish-${{ github.repository }}
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/requirements*.txt"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install the course kit and the course's packages
+        env:
+          REQUIREMENTS: ${{ inputs.requirements }}
+          KIT_SOURCE: ${{ inputs.kit-source }}
+          REQUESTED: ${{ inputs.kit-version }}
+        run: |
+          uv venv --python "${{ inputs.python-version }}"
+          reqs=(); [ -f "$REQUIREMENTS" ] && reqs=(-r "$REQUIREMENTS")
+          if [ "$KIT_SOURCE" = local ]; then
+            uv pip install "${reqs[@]}" "$GITHUB_WORKSPACE/python"
+            (cd "$GITHUB_WORKSPACE/js" && npm ci --no-audit --no-fund && npm run build:dev)
+          else
+            version="${REQUESTED:-$KIT_VERSION}"
+            if [ "$version" = latest ]; then spec=neuromatch-course-kit; else spec="neuromatch-course-kit==$version"; fi
+            uv pip install "${reqs[@]}" "$spec"
+          fi
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Check content
+        run: nma-kit check
+
+      - name: Generate notebooks
+        run: nma-kit notebooks
+
+      - name: Push notebooks to the notebooks branch
+        run: nma-kit publish-notebooks
+
+      - name: Pre-render scrolly pages
+        run: nma-kit render-scrolly
+
+      # Badges, run-all fallback cells and the pinned kit URL, in this
+      # throwaway checkout only.
+      - name: Prepare pages
+        run: nma-kit prepare-site
+
+      - name: Build the site
+        run: myst build --html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ inputs.working-directory }}/_build/html
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages-${{ github.repository }}
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

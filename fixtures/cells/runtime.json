@@ -1,0 +1,37 @@
+[
+  {
+    "name": "no_runtime",
+    "text": "---\ntitle: T\n---\n",
+    "runtime": "browser"
+  },
+  {
+    "name": "colab",
+    "text": "---\nruntime: colab\n---\n",
+    "runtime": "colab"
+  },
+  {
+    "name": "quoted_comment",
+    "text": "---\nruntime: 'colab'  # heavy\n---\n",
+    "runtime": "colab"
+  },
+  {
+    "name": "browser",
+    "text": "---\nruntime: browser\n---\n",
+    "runtime": "browser"
+  },
+  {
+    "name": "invalid_case",
+    "text": "---\nruntime: Colab\n---\n",
+    "runtime": "Colab"
+  },
+  {
+    "name": "not_in_frontmatter",
+    "text": "---\ntitle: T\n---\nruntime: colab\n",
+    "runtime": "browser"
+  },
+  {
+    "name": "nested",
+    "text": "---\nsite:\n  runtime: colab\n---\n",
+    "runtime": "browser"
+  }
+]

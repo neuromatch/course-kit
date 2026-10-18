@@ -1,0 +1,9 @@
+# Course kit @VERSION@. Courses add this file with
+#   extend: https://cdn.jsdelivr.net/npm/@neuromatch/course-kit@0.1/dist/nma.yml
+# and `nma-kit prepare-site` pins that URL to the CLI's exact version on CI.
+version: 1
+project:
+  jupyter:
+    lite: true
+  plugins:
+    - https://cdn.jsdelivr.net/npm/@neuromatch/course-kit@@VERSION@/dist/nma.mjs

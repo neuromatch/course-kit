@@ -1,0 +1,5 @@
+# Packages the example pages import (render-scrolly executes them).
+numpy
+matplotlib
+ipywidgets
+scipy

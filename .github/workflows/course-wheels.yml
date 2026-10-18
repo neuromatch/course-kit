@@ -1,0 +1,62 @@
+# Reusable: build pure-Python wheels for packages that only publish source
+# distributions on PyPI, and commit them to the course's _wheels/ folder.
+# micropip installs them in the browser from raw.githubusercontent.com, which
+# sends CORS headers (GitHub Release downloads don't).
+#
+#   on:
+#     workflow_dispatch:
+#       inputs:
+#         packages: { description: "Space-separated PyPI names", required: true }
+#   jobs:
+#     wheels:
+#       uses: neuromatch/course-kit/.github/workflows/course-wheels.yml@v0.1
+#       with: { packages: "${{ inputs.packages }}" }
+#       permissions: { contents: write }
+name: Course wheels
+
+on:
+  workflow_call:
+    inputs:
+      packages:
+        description: Space-separated PyPI package names
+        type: string
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  wheels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Build wheels into _wheels/
+        env:
+          PACKAGES: ${{ inputs.packages }}
+        run: |
+          uv venv
+          uv pip install build pip
+          mkdir -p _wheels /tmp/sdists
+          for pkg in $PACKAGES; do
+            uv run pip download "$pkg" --no-deps --no-binary :all: -d /tmp/sdists
+            tarball=$(ls /tmp/sdists/"${pkg}"-*.tar.gz)
+            uv run python -m build --wheel "$tarball" --outdir _wheels
+          done
+          ls -la _wheels/
+
+      - name: Commit the wheels
+        env:
+          PACKAGES: ${{ inputs.packages }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add _wheels
+          if git diff --cached --quiet; then
+            echo "No new wheels."
+          else
+            git commit -m "chore: build Pyodide wheels for $PACKAGES"
+            git push
+          fi

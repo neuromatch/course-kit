@@ -1,0 +1,67 @@
+/* Runnable Python panel (inside the widget's shadow DOM).
+   Colours come from the --nm-* variables set on .scrolly in scrolly.css. */
+:host { display: block; width: 100%; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+.fl-codebox {
+  width: 100%;
+  background: #14131f;
+  border: 1px solid rgba(185, 184, 255, 0.28);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 34px rgba(8, 7, 30, 0.5);
+  color: #ecebff;
+  font-family: var(--nm-font-body, system-ui, sans-serif);
+  text-align: left;
+}
+.fl-codehead { display: flex; justify-content: space-between; padding: 0.45rem 1rem; background: #22214a; font: 600 0.72rem var(--nm-font-head, system-ui, sans-serif); letter-spacing: 0.1em; text-transform: uppercase; color: var(--nm-lilac, #b9b8ff); }
+
+.fl-params { display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; padding: 0.55rem 1rem; background: #1b1a36; border-bottom: 1px solid rgba(185, 184, 255, 0.2); }
+.fl-params label { display: flex; align-items: center; gap: 0.5rem; font: 600 0.8rem ui-monospace, Consolas, monospace; color: var(--nm-lilac, #b9b8ff); }
+.fl-params input[type=range] { width: 9rem; accent-color: var(--nm-mint, #5efbd7); }
+.fl-params output { min-width: 4ch; color: var(--nm-mint, #5efbd7); text-align: right; }
+.fl-params select { font: inherit; background: #14131f; color: var(--nm-mint, #5efbd7); border: 1px solid rgba(185, 184, 255, 0.4); border-radius: 6px; padding: 0.15rem 0.4rem; }
+
+.fl-editor { position: relative; max-height: 46vh; overflow: auto; }
+.fl-editor .fl-hl, .fl-editor .fl-ta {
+  margin: 0;
+  padding: 0.9rem 1.1rem;
+  font: 0.85rem/1.6 ui-monospace, "Cascadia Code", Consolas, monospace;
+  white-space: pre;
+  tab-size: 4;
+}
+.fl-editor .fl-hl { color: #ecebff; overflow: hidden; pointer-events: none; }
+.fl-editor .fl-ta {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  color: transparent; caret-color: var(--nm-mint, #5efbd7); background: transparent; border: 0; outline: 0; resize: none; overflow: hidden;
+}
+.fl-editor .fl-ta::selection { background: rgba(94, 251, 215, 0.28); }
+.fl-editor:focus-within { box-shadow: inset 0 0 0 2px rgba(94, 251, 215, 0.55); }
+
+.fl-actions { display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 1rem; background: #1b1a36; border-top: 1px solid rgba(185, 184, 255, 0.2); }
+.mode-output .fl-actions { border-top: 0; background: transparent; padding: 0.35rem 0.6rem; }
+.fl-actions button { font: 600 0.78rem var(--nm-font-head, system-ui, sans-serif); border: 0; border-radius: 999px; padding: 0.3rem 0.95rem; cursor: pointer; }
+.fl-run { background: var(--nm-mint, #5efbd7); color: var(--nm-indigo, #2a2952); }
+.fl-run:disabled { opacity: 0.55; cursor: progress; }
+.fl-reset, .fl-toggle { background: transparent; color: var(--nm-lilac, #b9b8ff); border: 1px solid rgba(185, 184, 255, 0.5) !important; }
+.fl-status { font-size: 0.76rem; color: var(--nm-muted, #b4b3e6); }
+
+.fl-out { border-top: 1px solid rgba(185, 184, 255, 0.2); background: #0e0d18; padding: 0.55rem 1.1rem 0.75rem; }
+.mode-output .fl-out { border-top: 0; }
+.fl-out pre { margin: 0.25rem 0 0; font: 0.84rem/1.55 ui-monospace, "Cascadia Code", Consolas, monospace; color: #c9f5ea; white-space: pre-wrap; max-height: 30vh; overflow: auto; }
+.fl-figs img { display: block; max-width: 100%; max-height: 48vh; margin: 0.5rem auto 0; border-radius: 8px; background: #fff; }
+.fl-err { color: var(--nm-salmon, #fb7a7a); font-size: 0.86rem; margin-top: 0.3rem; }
+.fl-err details { margin-top: 0.25rem; color: var(--nm-muted, #b4b3e6); }
+.fl-err pre { font: 0.74rem/1.5 ui-monospace, Consolas, monospace; color: #f5c1c1; }
+.fl-note { margin: 0 0 0.3rem; font-size: 0.78rem; color: var(--nm-salmon, #fb7a7a); }
+.fl-empty { margin: 0; font-size: 0.8rem; color: var(--nm-muted, #b4b3e6); font-style: italic; }
+
+.tk-c { color: #8b8ac7; font-style: italic; }
+.tk-s { color: var(--nm-mint, #5efbd7); font-style: normal; }
+.tk-k { color: var(--nm-salmon, #fb7a7a); font-style: normal; }
+.tk-n { color: var(--nm-lilac, #b9b8ff); font-style: normal; }
+.tk-f { color: #7cc4ff; font-style: normal; }
+.tk-b { font-style: normal; color: #fff; background: rgba(251, 122, 122, 0.35); border-radius: 4px; }
+
+.is-collapsed .fl-editor { display: none; }

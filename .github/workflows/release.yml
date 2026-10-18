@@ -1,0 +1,88 @@
+# Releases. release-please keeps a release PR open that bumps the single kit
+# version (js/package.json, python/pyproject.toml, nma_kit.__version__ and
+# KIT_VERSION in the reusable workflows) and the changelog. Merging it tags
+# vX.Y.Z, then this workflow publishes npm + PyPI (trusted publishing, no
+# tokens) and moves the floating tags vX.Y and vX.
+#
+# One-time setup: see README.md, "Releasing".
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      created: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+      major: ${{ steps.release.outputs.major }}
+      minor: ${{ steps.release.outputs.minor }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  npm:
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing + provenance
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest # trusted publishing needs npm >= 11.5
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build && npm test
+      - run: npm publish --provenance --access public
+
+  pypi:
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write # PyPI trusted publishing
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+      - uses: astral-sh/setup-uv@v5
+      - run: uv build --out-dir dist python
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+
+  floating-tags:
+    needs: [release-please, npm, pypi]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+      - name: Move vMAJOR.MINOR and vMAJOR to this release
+        env:
+          MAJOR: ${{ needs.release-please.outputs.major }}
+          MINOR: ${{ needs.release-please.outputs.minor }}
+        run: |
+          git tag -f "v$MAJOR.$MINOR"
+          git tag -f "v$MAJOR"
+          git push -f origin "v$MAJOR.$MINOR" "v$MAJOR"

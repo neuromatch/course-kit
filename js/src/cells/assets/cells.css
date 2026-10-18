@@ -1,0 +1,121 @@
+/* Editable cell panel (in each panel's shadow root).
+   Layout: header, editor, action bar, output. Colours follow the site theme.
+   Public tokens, set on :root / html.dark in _static/custom.css:
+   --nma-cell-{bg,fg}-{light,dark}, --nma-cell-head-{bg,fg}-{light,dark},
+   --nma-cell-bar-bg-{light,dark}, --nma-cell-out-bg-{light,dark},
+   --nma-cell-gutter-{bg,fg}-{light,dark}, --nma-cell-active-line-{light,dark},
+   --nma-cell-border-{light,dark}, --nma-cell-radius,
+   --nma-cell-accent-{light,dark}, --nma-cell-exercise-accent-{light,dark},
+   --nma-cell-font-family, --nma-cell-font-size-value,
+   --nma-tok-{keyword,string,number,comment,function,definition}-{light,dark}. */
+:host {
+  display: block;
+  margin: 1.25rem 0;
+  --_bg: var(--nma-cell-bg-light, #fafafd);
+  --_fg: var(--nma-cell-fg-light, #1f1d3a);
+  --_head-bg: var(--nma-cell-head-bg-light, #f0f0f7);
+  --_head-fg: var(--nma-cell-head-fg-light, #55537e);
+  --_bar-bg: var(--nma-cell-bar-bg-light, #f5f5fa);
+  --_out-bg: var(--nma-cell-out-bg-light, #ffffff);
+  --_border: var(--nma-cell-border-light, #d9d9e8);
+  --_gutter-bg: var(--nma-cell-gutter-bg-light, #f5f5fa);
+  --_gutter-fg: var(--nma-cell-gutter-fg-light, #9a98b8);
+  --_active: var(--nma-cell-active-line-light, rgba(79, 70, 229, 0.06));
+  --_accent: var(--nma-cell-accent-light, #4f46e5);
+  --_accent-fg: #ffffff;
+  --_exercise: var(--nma-cell-exercise-accent-light, #c77d0a);
+  --_keyword: var(--nma-tok-keyword-light, #7c3aed);
+  --_string: var(--nma-tok-string-light, #0b7a5a);
+  --_number: var(--nma-tok-number-light, #b4540b);
+  --_comment: var(--nma-tok-comment-light, #7a7897);
+  --_function: var(--nma-tok-function-light, #1c5fb8);
+  --_definition: var(--nma-tok-definition-light, #1c5fb8);
+}
+:host([data-theme='dark']) {
+  --_bg: var(--nma-cell-bg-dark, #1b1a2e);
+  --_fg: var(--nma-cell-fg-dark, #e8e7ff);
+  --_head-bg: var(--nma-cell-head-bg-dark, #232240);
+  --_head-fg: var(--nma-cell-head-fg-dark, #b4b3dc);
+  --_bar-bg: var(--nma-cell-bar-bg-dark, #201f38);
+  --_out-bg: var(--nma-cell-out-bg-dark, #151424);
+  --_border: var(--nma-cell-border-dark, #36345c);
+  --_gutter-bg: var(--nma-cell-gutter-bg-dark, #201f38);
+  --_gutter-fg: var(--nma-cell-gutter-fg-dark, #7f7da8);
+  --_active: var(--nma-cell-active-line-dark, rgba(185, 184, 255, 0.07));
+  --_accent: var(--nma-cell-accent-dark, #7c7bff);
+  --_exercise: var(--nma-cell-exercise-accent-dark, #f0b35a);
+  --_keyword: var(--nma-tok-keyword-dark, #c3a6ff);
+  --_string: var(--nma-tok-string-dark, #5efbd7);
+  --_number: var(--nma-tok-number-dark, #ffb86b);
+  --_comment: var(--nma-tok-comment-dark, #8b89b3);
+  --_function: var(--nma-tok-function-dark, #8ab8ff);
+  --_definition: var(--nma-tok-definition-dark, #8ab8ff);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+.cell {
+  --nma-cell-bg: var(--_bg);
+  --nma-cell-fg: var(--_fg);
+  --nma-cell-gutter-bg: var(--_gutter-bg);
+  --nma-cell-gutter-fg: var(--_gutter-fg);
+  --nma-cell-active-line: var(--_active);
+  --nma-tok-keyword: var(--_keyword);
+  --nma-tok-string: var(--_string);
+  --nma-tok-number: var(--_number);
+  --nma-tok-comment: var(--_comment);
+  --nma-tok-function: var(--_function);
+  --nma-tok-definition: var(--_definition);
+  --nma-cell-font: var(--nma-cell-font-family, ui-monospace, 'Cascadia Code', SFMono-Regular, Menlo, Consolas, monospace);
+  --nma-cell-font-size: var(--nma-cell-font-size-value, 0.85rem);
+  --nma-cell-accent: var(--_accent);
+  --_mark: var(--_accent);
+  border: 1px solid var(--_border);
+  border-radius: var(--nma-cell-radius, 10px);
+  overflow: hidden;
+  background: var(--_bg);
+  color: var(--_fg);
+  text-align: left;
+  font-family: system-ui, sans-serif;
+}
+.cell.is-exercise { --_mark: var(--_exercise); --nma-cell-accent: var(--_exercise); }
+.cell.is-exercise { border-left: 4px solid var(--_exercise); }
+
+.head {
+  display: flex; align-items: center;
+  padding: 0.4rem 1rem; background: var(--_head-bg); color: var(--_head-fg);
+  border-bottom: 1px solid var(--_border);
+  font: 600 0.78rem system-ui, sans-serif; letter-spacing: 0.02em;
+}
+.cell.is-exercise .head { color: var(--_exercise); }
+
+.editor .cm-editor { max-height: 60vh; }
+.editor .cm-scroller { overflow: auto; line-height: 1.6; }
+.editor .cm-content { padding: 0.6rem 0; }
+.editor .cm-line { padding: 0 1.1rem 0 0.5rem; }
+.editor .cm-gutters { padding-left: 0.4rem; }
+.editor .cm-editor.cm-focused { outline: none; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--_mark) 55%, transparent); }
+
+.actions {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
+  padding: 0.45rem 1rem; background: var(--_bar-bg);
+  border-top: 1px solid var(--_border);
+}
+.actions button {
+  box-sizing: border-box; height: 1.9rem; min-width: 5rem; padding: 0 0.95rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  font: 600 0.78rem system-ui, sans-serif; line-height: 1; white-space: nowrap;
+  border-radius: 6px; cursor: pointer;
+  background: transparent; color: var(--_fg); border: 1px solid var(--_border);
+  transition: background 0.12s, border-color 0.12s;
+}
+.actions button:hover { background: color-mix(in srgb, var(--_fg) 8%, transparent); border-color: color-mix(in srgb, var(--_fg) 35%, var(--_border)); }
+.actions button:focus-visible { outline: 2px solid var(--_mark); outline-offset: 2px; }
+.actions button.run { background: var(--_accent); border-color: var(--_accent); color: var(--_accent-fg); }
+.cell.is-exercise .actions button.run { background: var(--_exercise); border-color: var(--_exercise); }
+.actions button.run:hover { filter: brightness(1.1); }
+.status { font: 500 0.78rem ui-monospace, Consolas, monospace; color: var(--_head-fg); margin-left: auto; }
+
+.output { background: var(--_out-bg); border-top: 1px solid var(--_border); }
+.output:has(slot[name='out']) { min-height: 0; }
+slot[name='out'] { display: block; }

@@ -1,0 +1,24 @@
+# Copy to .github/workflows/course.yml in your course repo.
+# Pull requests are checked; pushes to main publish the notebooks and the site.
+# @v0.1 = the newest 0.1.x release (compatible updates, applied on every build).
+# Pin an exact version (e.g. @v0.1.3) to freeze a finished course.
+name: Course
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    uses: neuromatch/course-kit/.github/workflows/course-check.yml@v0.1
+
+  publish:
+    if: github.event_name != 'pull_request'
+    uses: neuromatch/course-kit/.github/workflows/course-publish.yml@v0.1
+    permissions:
+      contents: write
+      pages: write
+      id-token: write

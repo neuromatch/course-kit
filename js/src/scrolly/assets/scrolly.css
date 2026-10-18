@@ -1,0 +1,173 @@
+/* Scrollytelling page layout (plugins/scrolly/).
+   Attached to the engine widget so MyST bundles it; engine.mjs copies it
+   into <head>. Without JavaScript the page is a plain linear document; the
+   pinned layout switches on when the engine sets data-ready.
+
+   The section sits between the book theme's menus: the TOC sidebar
+   (col-margin-left, from 1280px) and the "On this page" outline
+   (col-margin-right, from 1024px). Its layout follows its own width
+   (container queries), not the viewport's: stage beside the cards when there
+   is room, stage above the cards otherwise. */
+
+/* ---- placement in the article grid ----
+   Default: between the menus. Each menu a page hides (frontmatter
+   `site: hide_outline: true`, recommended, or `hide_toc: true`) gives the
+   section its space. Scrolly pages keep the TOC: with hide_toc the theme
+   leaves it out of the page and readers can't navigate mid-story. */
+.article-grid > .scrolly-col { grid-column: page; container: scrolly / inline-size; }
+@media (min-width: 1024px) {
+  .article-grid > .scrolly-col { grid-column: page-start / body-end; }
+  .article-grid:not(:has(> .lg\:col-margin-right)) > .scrolly-col { grid-column: screen-inset; }
+}
+@media (min-width: 1280px) {
+  .article-grid > .scrolly-col { grid-column: body; }
+  .article-grid:not(:has(> .lg\:col-margin-right)) > .scrolly-col { grid-column: body-start / page-end; }
+  body:has(.myst-primary-sidebar.lg\:hidden) .article-grid > .scrolly-col { grid-column: page-start / body-end; }
+  body:has(.myst-primary-sidebar.lg\:hidden) .article-grid:not(:has(> .lg\:col-margin-right)) > .scrolly-col { grid-column: screen-inset; }
+}
+
+.scrolly {
+  --scrolly-top: 60px;
+  --nm-indigo: #2a2952;
+  --nm-indigo-deep: #1c1b3e;
+  --nm-purple: #45429c;
+  --nm-blue: #008cbf;
+  --nm-salmon: #fa7a7a;
+  --nm-mint: #5efbd7;
+  --nm-lilac: #b9b8ff;
+  --nm-cream: #f3f0ec;
+  --nm-ink: #161922;
+  --nm-muted: #b4b3e6;
+  --nm-text: #f3f0ec;
+  --nm-font-body: inherit;
+  --nm-font-head: inherit;
+  position: relative;
+  margin-block: 1.5rem;
+  color: var(--nm-text);
+  background: var(--nm-indigo-deep);
+  border-radius: 12px;
+  padding: 1rem;
+}
+.scrolly *, .scrolly *::before, .scrolly *::after { box-sizing: border-box; }
+.scrolly-engine { display: block; }
+.scrolly-stage { margin-bottom: 1.5rem; }
+.scrolly-view { margin: 0 0 1.5rem; }
+.scrolly-step { margin: 0 0 1.5rem; }
+.scrolly-step.is-hero { display: none; }
+
+/* JupyterLite is not used on scrolly pages: the panels run their own Python. */
+body:has(.scrolly) .myst-jp-nb-toolbar-power { display: none !important; }
+
+/* ---- pinned layout ----
+   Engine (HUD), stage and steps share one grid cell instead of overlapping
+   through negative margins. A sticky element stops when its margin box reaches
+   the end of its parent; with `margin-bottom: -height` that box is 0px tall,
+   so the stage would stick for a whole screen past the section and cover the
+   page footer (prev/next links). In the grid each one has its real height. */
+.scrolly[data-ready="true"] { padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+.scrolly[data-ready="true"] > :is(.scrolly-engine, .scrolly-stage, .scrolly-steps) { grid-area: 1 / 1; min-width: 0; }
+.scrolly[data-ready="true"] .scrolly-engine { align-self: start; position: sticky; top: var(--scrolly-top); height: 52px; z-index: 6; pointer-events: none; }
+.scrolly[data-ready="true"] .scrolly-stage {
+  align-self: start;
+  position: sticky;
+  top: var(--scrolly-top);
+  height: calc(100vh - var(--scrolly-top));
+  margin: 0;
+  overflow: hidden;
+  z-index: 0;
+  border-radius: 12px;
+  background:
+    radial-gradient(ellipse 60% 50% at 78% 20%, rgba(68, 67, 156, 0.55), transparent 70%),
+    radial-gradient(ellipse 40% 40% at 10% 95%, rgba(0, 137, 247, 0.16), transparent 70%);
+}
+.scrolly[data-ready="true"] .scrolly-view {
+  position: absolute;
+  inset: 52px 28px 28px 42%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  gap: 14px;
+  overflow: auto;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+}
+.scrolly[data-ready="true"] .scrolly-view.is-active { opacity: 1; visibility: visible; }
+.scrolly[data-ready="true"] .scrolly-view.is-hero { left: 28px; }
+.scrolly[data-ready="true"] .scrolly-steps { position: relative; z-index: 1; pointer-events: none; }
+.scrolly[data-ready="true"] .scrolly-step { min-height: 90vh; width: 40%; display: flex; align-items: center; margin: 0; padding-left: max(20px, 3cqi); padding-right: 12px; }
+.scrolly[data-ready="true"] .scrolly-step.is-hero { display: block; width: 100%; min-height: 105vh; padding: 0; }
+
+/* ---- cards ---- */
+.scrolly-card {
+  pointer-events: auto;
+  max-width: 32rem;
+  min-width: 0; /* flex item in .scrolly-step: don't grow to the widest code line */
+  background: var(--nm-cream);
+  color: var(--nm-ink);
+  border-radius: 14px;
+  border-left: 6px solid var(--nm-salmon);
+  padding: 1.1rem 1.35rem 1.25rem;
+  box-shadow: 0 14px 40px rgba(8, 7, 30, 0.45);
+  line-height: 1.6;
+}
+.scrolly[data-ready="true"] .scrolly-card { opacity: 0.32; transform: translateX(-10px) scale(0.985); transition: opacity 0.35s, transform 0.35s; }
+.scrolly[data-ready="true"] .scrolly-step.is-active .scrolly-card { opacity: 1; transform: none; }
+.scrolly-card > :first-child { margin-top: 0; }
+.scrolly-card > :last-child { margin-bottom: 0; }
+.scrolly-card :is(h1, h2, h3, h4, h5, h6) { display: block; border: 0; padding: 0; margin: 0.2rem 0 0.45rem; font-weight: 600; font-size: 1.35rem; line-height: 1.2; color: var(--nm-indigo); }
+.scrolly-card p { margin: 0 0 0.6rem; font-size: 1rem; }
+.scrolly-card :is(p, li, strong, em, span, b, i, td, th) { color: var(--nm-ink); }
+.scrolly-card code { background: #e4e0f7; color: var(--nm-indigo); padding: 0.05em 0.4em; border-radius: 5px; font-size: 0.88em; }
+.scrolly-card a { color: var(--nm-purple); }
+.scrolly-card .katex-display { overflow-x: auto; overflow-y: hidden; }
+.scrolly-card details { margin: 0.5rem 0; }
+.scrolly-card pre { max-width: 100%; overflow-x: auto; }
+.scrolly-card .nma-solution-link p { margin: 0.4rem 0; }
+.scrolly-kicker { margin: 0 0 0.1rem; }
+.scrolly-kicker p { margin: 0; font-weight: 600; font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--nm-purple) !important; }
+
+/* ---- stage content ---- */
+.scrolly-view { color: var(--nm-text); }
+.scrolly-view :is(p, li, strong, em, span) { color: inherit; }
+.scrolly-view :is(h1, h2, h3, h4) { display: block; border: 0; padding: 0; color: #fff; }
+.scrolly-view a { color: var(--nm-mint); }
+.scrolly-view img { max-width: 100%; max-height: 70vh; width: auto; height: auto; border-radius: 10px; background: #fff; margin: 0 auto; display: block; }
+.scrolly-view video { max-width: 100%; max-height: 70vh; border-radius: 10px; margin: 0 auto; display: block; }
+.scrolly-view figure { margin: 0; }
+.scrolly-view figcaption, .scrolly-view figcaption * { color: var(--nm-muted); }
+.scrolly-view iframe { width: 100%; aspect-ratio: 16 / 9; height: auto; border: 0; border-radius: 10px; background: #000; }
+.scrolly-view .nma-video p, .scrolly-view .nma-slides p { margin: 0.3rem 0; font-size: 0.85rem; }
+.scrolly-view .nma-video [role="tab"] { color: var(--nm-lilac); }
+.scrolly-view .scrolly-runnable { width: 100%; }
+.scrolly-view.is-list ol, .scrolly-view.is-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; counter-reset: chip; }
+.scrolly-view.is-list li { counter-increment: chip; display: grid; grid-template-columns: 2.6rem 1fr; align-items: center; gap: 0.9rem; font-size: 1.05rem; line-height: 1.45; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(185, 184, 255, 0.2); border-radius: 12px; padding: 0.75rem 1rem; margin: 0; }
+.scrolly-view.is-list li::before { content: counter(chip); display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 50%; background: var(--nm-mint); color: var(--nm-indigo); font-weight: 700; font-size: 1.1rem; }
+.scrolly-view.is-list li > p { margin: 0; }
+.scrolly-view.is-list :is(h2, h3, h4) { margin: 0 0 0.5rem; font-size: clamp(1.4rem, 4cqi, 2.2rem); font-weight: 700; }
+
+/* ---- hero (title and closing screens) ----
+   MyST re-levels headings, so the title is styled by position, not by tag. */
+.scrolly-view.is-hero { max-width: 72rem; margin-inline: auto; padding: 0 clamp(0.5rem, 5cqi, 4rem); }
+.scrolly-view.is-hero .scrolly-kicker p { font-size: 0.85rem; letter-spacing: 0.32em; color: var(--nm-mint) !important; margin-bottom: 0.6rem; }
+.scrolly-view.is-hero :is(h1, h2, h3, h4, h5, h6) { display: block; margin: 0; padding: 0; border: 0; }
+.scrolly-view.is-hero :is(h1, h2, h3, h4, h5, h6):not(:is(h1, h2, h3, h4, h5, h6) ~ *) { font-weight: 700; font-size: clamp(2rem, 8cqi, 4.6rem); line-height: 1.05; color: #fff; }
+.scrolly-view.is-hero :is(h1, h2, h3, h4, h5, h6) ~ :is(h1, h2, h3, h4, h5, h6) { font-weight: 500; font-size: 1.15rem; color: var(--nm-lilac); margin: 0.9rem 0 0.3rem; }
+.scrolly-view.is-hero :is(h1, h2, h3, h4, h5, h6) em { font-style: normal; background: linear-gradient(90deg, var(--nm-salmon), var(--nm-mint)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.scrolly-view.is-hero p { margin: 0.5rem 0; font-size: 0.98rem; line-height: 1.5; max-width: 52rem; }
+.scrolly-view.is-hero p strong { color: var(--nm-salmon); }
+
+/* ---- narrow sections: stage on top, cards below it ----
+   Keep the 760px breakpoint in sync with WIDE in engine.mjs. */
+@container scrolly (max-width: 759.98px) {
+  .scrolly[data-ready="true"] .scrolly-stage { height: 55vh; }
+  .scrolly[data-ready="true"] .scrolly-view, .scrolly[data-ready="true"] .scrolly-view.is-hero { inset: 46px 12px 10px 12px; }
+  .scrolly[data-ready="true"] .scrolly-step { width: 100%; min-height: 70vh; display: block; padding: calc(55vh + 12px) 12px 0; }
+  .scrolly[data-ready="true"] .scrolly-step + .scrolly-step { padding-top: 0; }
+  .scrolly[data-ready="true"] .scrolly-step.is-hero { min-height: 100vh; padding: 0; }
+  .scrolly[data-ready="true"] .scrolly-card { position: sticky; top: calc(var(--scrolly-top) + 55vh + 12px); max-height: calc(45vh - var(--scrolly-top) - 24px); overflow: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scrolly-view, .scrolly-card { transition: none !important; }
+}

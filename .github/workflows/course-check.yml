@@ -1,0 +1,86 @@
+# Reusable: check a course on pull requests (content rules, notebooks dry run,
+# scrolly render, full site build). Nothing is published.
+#
+#   jobs:
+#     check:
+#       uses: neuromatch/course-kit/.github/workflows/course-check.yml@v0.1
+name: Course check
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        type: string
+        default: "3.12"
+      requirements:
+        description: The course's own Python packages (relative to working-directory). Skipped if missing.
+        type: string
+        default: requirements.txt
+      kit-version:
+        description: Override the kit version (an exact version or `latest`). Default is this release.
+        type: string
+        default: ""
+      working-directory:
+        description: The course root (the folder with myst.yml).
+        type: string
+        default: "."
+      kit-source:
+        description: "`pypi` (courses) or `local` (the kit's own CI: install ./python and build ./js)."
+        type: string
+        default: pypi
+
+env:
+  KIT_VERSION: 0.1.0 # x-release-please-version
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/requirements*.txt"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install the course kit and the course's packages
+        env:
+          REQUIREMENTS: ${{ inputs.requirements }}
+          KIT_SOURCE: ${{ inputs.kit-source }}
+          REQUESTED: ${{ inputs.kit-version }}
+        run: |
+          uv venv --python "${{ inputs.python-version }}"
+          reqs=(); [ -f "$REQUIREMENTS" ] && reqs=(-r "$REQUIREMENTS")
+          if [ "$KIT_SOURCE" = local ]; then
+            uv pip install "${reqs[@]}" "$GITHUB_WORKSPACE/python"
+            (cd "$GITHUB_WORKSPACE/js" && npm ci --no-audit --no-fund && npm run build:dev)
+          else
+            version="${REQUESTED:-$KIT_VERSION}"
+            if [ "$version" = latest ]; then spec=neuromatch-course-kit; else spec="neuromatch-course-kit==$version"; fi
+            uv pip install "${reqs[@]}" "$spec"
+          fi
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Check content
+        run: nma-kit check
+
+      - name: Notebooks (dry run)
+        run: nma-kit notebooks --dry-run
+
+      - name: Pre-render scrolly pages
+        run: nma-kit render-scrolly
+
+      - name: Build the site
+        run: |
+          nma-kit prepare-site
+          myst build --html
