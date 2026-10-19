@@ -35,7 +35,6 @@
     "esbuild": "0.28.2"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   }
 }
