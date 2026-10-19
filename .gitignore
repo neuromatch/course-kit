@@ -1,2 +1,44 @@
+# Build output
+js/dist/
+python/dist/
 dist/
+build/
+*.egg-info/
+*.tsbuildinfo
+
+# Dependencies and environments
 node_modules/
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Playwright / e2e
+test-results/
+playwright-report/
+
+# MyST / example course build output
+_build/
+.myst/
+tests/example-course/**/*.ipynb
+tests/example-course/notebooks/
+tests/example-course/_static/solutions/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs, editors, OS
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

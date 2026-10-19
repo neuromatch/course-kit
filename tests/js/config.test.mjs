@@ -1,5 +1,5 @@
 // Course settings (myst.yml) and page paths. The same cases run in Python
-// (tests/python/test_config.py) against fixtures/config/settings.json.
+// (tests/python/test_config.py) against tests/fixtures/config/settings.json.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -11,7 +11,7 @@ import { loadSettings, readNmaConfig } from '../../js/src/shared/config.mjs';
 import { pageLocation, notebookUrls, solutionUrl, courseSettings } from '../../js/src/shared/paths.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const { cases } = JSON.parse(readFileSync(join(here, '..', '..', 'fixtures', 'config', 'settings.json'), 'utf8'));
+const { cases } = JSON.parse(readFileSync(join(here, '..', 'fixtures', 'config', 'settings.json'), 'utf8'));
 const start = process.cwd();
 
 function inCourse(myst, fn) {

@@ -19,7 +19,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - run: uv venv --python 3.12 && uv pip install -e "python[test]" -r example-course/requirements.txt
+      - run: uv venv --python 3.12 && uv pip install -e "python[test]" -r tests/example-course/requirements.txt
       - run: uv run pytest -q tests/python
 
   js:
@@ -56,16 +56,16 @@ jobs:
       - name: Install
         run: |
           uv venv python/.venv --python 3.12
-          VIRTUAL_ENV=python/.venv uv pip install -e "python[test]" -r example-course/requirements.txt
+          VIRTUAL_ENV=python/.venv uv pip install -e "python[test]" -r tests/example-course/requirements.txt
           (cd js && npm ci --no-audit --no-fund)
       - name: Build the example course
-        run: scripts/build-example.sh
+        run: tests/scripts/build-example.sh
       # Cold Pyodide/JupyterLite downloads make the first run timing-sensitive,
       # so failed tests are retried once.
       - name: Browser smoke test
         run: |
           python/.venv/bin/playwright install --with-deps chromium
-          (cd example-course/_build/html && python3 -m http.server 8765 >/dev/null 2>&1 &)
+          (cd tests/example-course/_build/html && python3 -m http.server 8765 >/dev/null 2>&1 &)
           sleep 2
           NMA_E2E_URL=http://localhost:8765 python/.venv/bin/pytest -q --reruns 1 tests/e2e
 
@@ -73,5 +73,5 @@ jobs:
     needs: [python, js]
     uses: ./.github/workflows/course-check.yml
     with:
-      working-directory: example-course
+      working-directory: tests/example-course
       kit-source: local

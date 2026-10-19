@@ -1,6 +1,6 @@
 // Course settings from the course's myst.yml.
 // Twin in Python: nma_kit.config (load_settings, read_nma_block); shared
-// fixtures in fixtures/config/ and fixtures/nma_config/.
+// fixtures in tests/fixtures/config/ and tests/fixtures/nma_config/.
 //
 //   nma:
 //     paths:

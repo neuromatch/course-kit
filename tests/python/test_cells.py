@@ -5,7 +5,7 @@ import pytest
 
 from nma_kit.cells import runtime_of, validate
 
-FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "cells"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "cells"
 
 
 @pytest.mark.parametrize(

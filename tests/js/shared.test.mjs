@@ -11,7 +11,7 @@ import { notebookUrls } from '../../js/src/shared/paths.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const kit = join(here, '..', '..');
-const fixtures = join(kit, 'fixtures', 'nma_config');
+const fixtures = join(kit, 'tests', 'fixtures', 'nma_config');
 
 // The same fixtures are checked against PyYAML in tests/python/test_feedback.py.
 for (const name of readdirSync(fixtures).filter((f) => f.endsWith('.yml'))) {
@@ -23,7 +23,7 @@ for (const name of readdirSync(fixtures).filter((f) => f.endsWith('.yml'))) {
 }
 
 test("the example course's myst.yml has complete feedback settings", () => {
-  const text = readFileSync(join(kit, 'example-course', 'myst.yml'), 'utf8');
+  const text = readFileSync(join(kit, 'tests', 'example-course', 'myst.yml'), 'utf8');
   const { feedback } = readNmaConfig(text);
   for (const key of ['url', 'project', 'user_key']) assert.ok(feedback?.[key], key);
 });
@@ -34,7 +34,7 @@ test('isScrolly is re-exported by the scrolly plugin', async () => {
 });
 
 test('notebookUrls matches make_badge_html', () => {
-  const course = join(kit, 'example-course');
+  const course = join(kit, 'tests', 'example-course');
   process.chdir(course);
   const { colabUrl, kaggleUrl } = notebookUrls(join(course, 'tutorials/W2D1_Examples/W2D1_Tutorial1.md'));
   assert.equal(

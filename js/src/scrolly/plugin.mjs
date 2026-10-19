@@ -15,7 +15,7 @@
 //
 // nma_kit.scrolly is the Python side. These must stay in sync:
 //   isScrolly <-> is_scrolly, cellKey <-> cell_key, parseParams <-> parse_params
-// (shared fixtures in fixtures/scrolly/).
+// (shared fixtures in tests/fixtures/scrolly/).
 
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -163,7 +163,7 @@ const EXERCISE_RE = /^\s*raise NotImplementedError\b/m;
 
 /**
  * [{exercise, solution}] for each top-level exercise code cell directly
- * followed by an {nma-solution}. A small copy of nma_solutions.find_blocks:
+ * followed by an {nma-solution}. A small copy of nma_kit.solutions.find_blocks:
  * code fences are opaque, so syntax examples are ignored.
  */
 export function exercisePairs(text) {

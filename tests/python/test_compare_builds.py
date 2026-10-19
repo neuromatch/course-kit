@@ -3,7 +3,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "compare_builds.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "compare_builds.py"
 
 
 def course(root: Path, notebook: str = "{}", esm: str = "/panel-0123456789abcdef0123456789abcdef.mjs",

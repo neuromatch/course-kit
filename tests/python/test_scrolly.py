@@ -6,7 +6,7 @@ import pytest
 from nma_kit import scrolly as nma_scrolly
 from nma_kit.scrolly import cell_key, find_markers, is_scrolly, parse_params, validate
 
-FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "scrolly"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "scrolly"
 
 FRONT = "---\ntitle: T\nlayout: scrolly\nkernelspec:\n  name: python3\n  display_name: Python 3\n---\n"
 PLAIN_FRONT = "---\ntitle: T\nkernelspec:\n  name: python3\n  display_name: Python 3\n---\n"
@@ -304,8 +304,8 @@ def test_render_skips_non_scrolly_pages(tmp_path, monkeypatch):
 # --- the real scrolly pages ---------------------------------------------------------
 
 KIT = Path(__file__).resolve().parents[2]
-DOC_PAGE = FIXTURES / "doc_page.md"  # copy of the template's scrolly how-to page
-EXAMPLE_PAGE = KIT / "example-course" / "tutorials" / "W2D1_Examples" / "W2D1_Tutorial2.md"
+DOC_PAGE = FIXTURES / "doc_page.md"  # copy of the course template's scrolly how-to page
+EXAMPLE_PAGE = KIT / "tests" / "example-course" / "tutorials" / "W2D1_Examples" / "W2D1_Tutorial2.md"
 
 
 @pytest.mark.parametrize("page", [DOC_PAGE, EXAMPLE_PAGE], ids=lambda p: p.stem)

@@ -105,9 +105,9 @@ See [AGENTS.md](AGENTS.md) for the layout, the Python/JS twin rules and the
 test commands. In short:
 
 ```bash
-cd python && uv venv && uv pip install -e '.[test]' -r ../example-course/requirements.txt && uv run pytest -q ../tests/python
+cd python && uv venv && uv pip install -e '.[test]' -r ../tests/example-course/requirements.txt && uv run pytest -q ../tests/python
 cd js && npm ci && npm run build && npm test && npm run build:dev && npm test
-scripts/build-example.sh   # build example-course with the dev bundle
+tests/scripts/build-example.sh   # build example-course with the dev bundle
 ```
 
 To try a kit change in a course without releasing, point the course's
