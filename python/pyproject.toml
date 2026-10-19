@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "neuromatch-course-kit"
-version = "0.1.0"
+version = "0.1.1"
 description = "Neuromatch course kit: notebook generation, content checks and site preparation for MyST courses"
 readme = "README.md"
 license = "BSD-3-Clause"
