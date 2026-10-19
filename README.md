@@ -132,6 +132,14 @@ One-time setup (after this repo exists as `neuromatch/course-kit`):
    `release`. The first release creates the project.
 3. Create the `release` environment in the repo settings.
 4. Add a second owner/maintainer on npm and PyPI.
+5. Create a fine-grained personal access token (or GitHub App) for this repo
+   with read/write on Contents, Pull requests and Workflows, and save it as
+   the repository secret `RELEASE_PLEASE_TOKEN`. release-please edits
+   `KIT_VERSION` in `.github/workflows/`, which the default `GITHUB_TOKEN`
+   may not do.
+6. Branch protection on `main`: require pull requests, the CI checks, and
+   "Require branches to be up to date before merging". CI runs on pull
+   requests only.
 
 ## License
 
