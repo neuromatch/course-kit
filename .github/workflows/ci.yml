@@ -3,10 +3,11 @@
 # reusable course-check workflow run against the example course.
 name: CI
 
+# Pull requests only. Branch protection requires PRs to be up to date with
+# main before merging, so the PR run is the run of what lands on main.
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
