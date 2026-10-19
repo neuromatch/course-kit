@@ -18,6 +18,8 @@ MARKER = "x-release-please-version"
 def stated_versions() -> dict:
     versions = {
         "js/package.json": json.loads((KIT / "js" / "package.json").read_text())["version"],
+        "js/package-lock.json": json.loads((KIT / "js" / "package-lock.json").read_text())["version"],
+        "js/package-lock.json (root package)": json.loads((KIT / "js" / "package-lock.json").read_text())["packages"][""]["version"],
         "python/pyproject.toml": re.search(r'^version = "([^"]+)"', (KIT / "python" / "pyproject.toml").read_text(), re.M).group(1),
         "nma_kit.__version__": nma_kit.__version__,
         ".release-please-manifest.json": json.loads((KIT / ".release-please-manifest.json").read_text())["."],
@@ -44,7 +46,7 @@ def test_release_please_bumps_every_file():
     assert config.get("bump-patch-for-minor-pre-major") is True
     paths = {f["path"] if isinstance(f, dict) else f for f in package["extra-files"]}
     expected = {f".github/workflows/{n}" for n in REUSABLE} | {
-        "js/package.json", "python/pyproject.toml", "python/src/nma_kit/__init__.py"}
+        "js/package.json", "js/package-lock.json", "python/pyproject.toml", "python/src/nma_kit/__init__.py"}
     assert expected <= paths, expected - paths
 
 
