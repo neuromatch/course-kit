@@ -52,7 +52,7 @@ def test_release_please_bumps_every_file():
 
 def test_generic_files_carry_the_marker():
     for path in [*(WORKFLOWS / n for n in REUSABLE), KIT / "python" / "src" / "nma_kit" / "__init__.py"]:
-        line = next(l for l in path.read_text().splitlines() if re.search(r"\d+\.\d+\.\d+", l) and "VERSION" in l.upper())
+        line = next(ln for ln in path.read_text().splitlines() if re.search(r"\d+\.\d+\.\d+", ln) and "VERSION" in ln.upper())
         assert MARKER in line, path
 
 

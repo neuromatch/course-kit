@@ -1,6 +1,6 @@
-# The kit's own CI: unit tests (Python + JS), both bundle builds, the example
-# course built with the dev bundle plus the browser smoke test, and the
-# reusable course-check workflow run against the example course.
+# The kit's own CI, on pull requests: unit tests (Python + JS), both bundle
+# builds, the example course built with the dev bundle plus the browser smoke
+# test, and the reusable course-check workflow run against the example course.
 name: CI
 
 # Pull requests only. Branch protection requires PRs to be up to date with
@@ -41,7 +41,11 @@ jobs:
       - name: Dev build + tests
         run: npm run build:dev && npm test
 
+  # The slowest job. A release PR only changes version strings and the
+  # changelog, so it is skipped there (a skipped job counts as passing for
+  # required checks).
   example-course:
+    if: github.head_ref != 'release-please--branches--main--components--course-kit'
     needs: [python, js]
     runs-on: ubuntu-latest
     steps:
