@@ -4,7 +4,7 @@
 # venv at python/.venv). Leaves the site in tests/example-course/_build/html.
 set -euo pipefail
 
-KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+KIT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 if [ -x "$KIT/python/.venv/bin/nma-kit" ]; then
   export PATH="$KIT/python/.venv/bin:$PATH"
 fi
