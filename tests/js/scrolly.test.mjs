@@ -13,7 +13,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const fixtures = join(here, '..', 'fixtures', 'scrolly');
 const load = (name) => JSON.parse(readFileSync(join(fixtures, name), 'utf8'));
 
-// The same fixtures are checked in tests/test_nma_scrolly.py.
+// The same fixtures are checked in tests/python/test_scrolly.py.
 for (const c of load('cell_keys.json')) {
   test(`cellKey: ${c.name}`, () => {
     assert.equal(canonicalCode(c.code), c.canonical);

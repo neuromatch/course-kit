@@ -3,7 +3,7 @@
 
     compare_builds.py BEFORE_DIR AFTER_DIR
 
-Each dir is a course root after `nma-kit notebooks` (or the old scripts) and
+Each dir is a course root after `nma-kit notebooks` and
 `myst build --html`. Exits 0 if
   (a) every notebook under notebooks/ is equal ignoring cell ids (jupytext
       gives cells random ids on every run); other files are byte-identical,

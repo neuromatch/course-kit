@@ -360,7 +360,7 @@ nma:
 :::
 ## Real figures before Python starts
 
-In CI, `scripts/nma_scrolly.py --render` runs every scrolly page's **instructor** notebook (solutions filled in, `# @param` at their defaults) and saves the outputs. The plugin puts them in the page, so every figure above appeared without starting Python. Never type outputs by hand.
+In CI, `nma-kit render-scrolly` runs every scrolly page's **instructor** notebook (solutions filled in, `# @param` at their defaults) and saves the outputs. The plugin puts them in the page, so every figure above appeared without starting Python. Never type outputs by hand.
 
 - A cell that raises **fails the build**, naming the file and line.
 - Exercise cells get no starting output.
@@ -369,8 +369,8 @@ In CI, `scripts/nma_scrolly.py --render` runs every scrolly page's **instructor*
 :::{stage}
 ```bash
 # Preview with real outputs locally
-uv run python scripts/nma_scrolly.py --render
-uv run myst start
+nma-kit render-scrolly
+myst start
 
 # Writes _build/scrolly/<Day>/<Tutorial>.json
 ```

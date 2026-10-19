@@ -304,7 +304,7 @@ def test_render_skips_non_scrolly_pages(tmp_path, monkeypatch):
 # --- the real scrolly pages ---------------------------------------------------------
 
 KIT = Path(__file__).resolve().parents[2]
-DOC_PAGE = FIXTURES / "doc_page.md"  # copy of the template's scrolly how-to page
+DOC_PAGE = FIXTURES / "doc_page.md"  # copy of the course template's scrolly how-to page
 EXAMPLE_PAGE = KIT / "tests" / "example-course" / "tutorials" / "W2D1_Examples" / "W2D1_Tutorial2.md"
 
 
