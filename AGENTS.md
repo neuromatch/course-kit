@@ -110,9 +110,9 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   `nma.yml` without testing that in a real course.
 - **One `style` slot**: `site.css` = kit CSS (Rubik embedded as data URIs, so
   no relative `url()` depends on where MyST serves the file and the kit's CSS
-  makes no font requests; the built site still requests Roboto from
-  `fonts.gstatic.com` from something that isn't ours, see
-  `tests/e2e/test_branding_browser.py::test_no_google_font_requests`)
+  makes no font requests; the YouTube players embedded by `{nma-video}`
+  fetch Roboto from Google inside their own iframes, which
+  `tests/e2e/test_branding_browser.py` deliberately doesn't count)
   + `:root` overrides from `nma.brand` + the course's
   `nma.style.extra` file.
 - **CSS variables are the API**: `--nma-brand-*` (the five colours a course may
@@ -183,13 +183,19 @@ npm run build:dev && npm test    # dev build: local asset paths
 tests/scripts/build-example.sh
 (cd tests/example-course/_build/html && python3 -m http.server 8765 &)
 python/.venv/bin/playwright install chromium
-NMA_E2E_URL=http://localhost:8765 python/.venv/bin/pytest -q --reruns 1 tests/e2e
+NMA_E2E_URL=http://localhost:8765 python/.venv/bin/pytest -q --reruns 1 -n 4 tests/e2e
 # NMA_E2E_COURSE=<course root> tests another course's build;
 # NMA_E2E_REQUIREJS=<path to require.js> if cdnjs is blocked.
 
 # Golden check for a change: build a course before and after, then
 python3 tests/scripts/compare_builds.py <before course root> <after course root>
 ```
+
+Every page with editable cells boots its own Pyodide kernel (about a minute
+or more in CI, CPU time, not downloads: a shared browser context did not help),
+so the e2e tests run in parallel (`-n 4`) and tests that don't need a kernel
+(the branding checks) use the `runtime: colab` tutorial, which loads in about
+a second. Keep it that way when adding tests.
 
 The e2e suite is timing-sensitive on cold caches (first Pyodide/JupyterLite
 downloads); CI retries failed tests once.
