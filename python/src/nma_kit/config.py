@@ -5,7 +5,9 @@ Kit settings live in the top-level `nma:` block, as `section: {key: value}`
 with string values. js/src/shared/config.mjs reads the same block with a
 YAML parser too; both sides are tested against tests/fixtures/config/settings.json.
 
-New settings (all optional, defaults are the template's conventions):
+Settings read here (all optional; the defaults are the course template's
+conventions). The feedback and scrolly sections are read by nma_kit.feedback
+and the plugin (`nma.scrolly.pyodide_url`):
 
     nma:
       paths:

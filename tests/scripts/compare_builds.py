@@ -63,7 +63,7 @@ def first_difference(a, b, path="$"):
                 return found
         return None
     if isinstance(a, list):
-        for i, (x, y) in enumerate(zip(a, b)):
+        for i, (x, y) in enumerate(zip(a, b, strict=False)):
             found = first_difference(x, y, f"{path}[{i}]")
             if found:
                 return found
