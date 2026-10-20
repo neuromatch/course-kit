@@ -2,7 +2,7 @@
 .nma-cells-runtime { display: none; }
 
 /* Floating "Run all" control (runtime-widget.mjs). Brand-coloured via the theme
-   variables set in _static/custom.css, with safe fallbacks. */
+   variables set in the kit stylesheet (site.css), with safe fallbacks. */
 .nma-run-all-bar {
   position: fixed;
   right: 1rem;

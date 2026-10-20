@@ -1,6 +1,7 @@
 /* Editable cell panel (in each panel's shadow root).
    Layout: header, editor, action bar, output. Colours follow the site theme.
-   Public tokens, set on :root / html.dark in _static/custom.css:
+   Public tokens, set on :root / html.dark in the kit stylesheet (python/src/nma_kit/assets/site.css);
+   a course overrides them in its own CSS (nma.style.extra):
    --nma-cell-{bg,fg}-{light,dark}, --nma-cell-head-{bg,fg}-{light,dark},
    --nma-cell-bar-bg-{light,dark}, --nma-cell-out-bg-{light,dark},
    --nma-cell-gutter-{bg,fg}-{light,dark}, --nma-cell-active-line-{light,dark},

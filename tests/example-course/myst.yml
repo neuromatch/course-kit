@@ -24,10 +24,17 @@ site:
   template: book-theme
   options:
     folders: true   # URLs keep the folder, like the template (/tutorials/w2d1-examples/...)
-    style: _static/custom.css   # holds the toolbar rule every course needs
+    # Written by `nma-kit sync-assets` (prepare-site runs it in CI).
+    style: _nma/site.css
+    logo: _nma/logo.svg
+    logo_dark: _nma/logo-dark.svg
+    logo_text: Course Kit Example Course
+    favicon: _nma/favicon.png
 
 # Course kit settings (read by the kit's plugin and the nma-kit CLI).
 nma:
+  style:
+    extra: _static/custom.css   # the course's own CSS, appended after the kit's
   feedback:
     url: https://pmyvdlilci.execute-api.us-east-1.amazonaws.com/klab
     project: neuromatch_cn

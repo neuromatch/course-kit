@@ -1,5 +1,5 @@
 // CodeMirror 6 editor for one cell. Colors come from CSS variables (cells.css),
-// so a course restyles panels from _static/custom.css without touching JS.
+// so a course restyles panels from its own CSS (nma.style.extra) without touching JS.
 // No basicSetup: the explicit list is smaller and leaves out search/autocomplete popups.
 
 import { EditorView, keymap, lineNumbers, highlightActiveLine, drawSelection } from '@codemirror/view';

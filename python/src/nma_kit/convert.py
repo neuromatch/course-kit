@@ -67,8 +67,10 @@ from nma_kit.config import (
     Settings,
     load_settings,
     page_location,
+    read_nma_block,
     read_settings,
 )
+from nma_kit import branding as nma_branding
 from nma_kit import feedback as nma_feedback
 from nma_kit import scrolly as nma_scrolly
 from nma_kit import solutions as nma_solutions
@@ -173,6 +175,7 @@ def validate_content(check_injected: bool = True) -> list[str]:
     tutorials_dir = Path(load_settings(config_text).tutorials_dir)
     config_problems = nma_feedback.config_errors(config_text)
     errors += config_problems
+    errors += nma_branding.brand_errors(read_nma_block(config_text))
     has_config = not config_problems and nma_feedback.load_config(config_text) is not None
     for path in sorted(tutorials_dir.rglob("*.ipynb")):
         if ".ipynb_checkpoints" in path.parts:

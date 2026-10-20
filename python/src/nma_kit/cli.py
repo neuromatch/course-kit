@@ -3,8 +3,10 @@
   nma-kit check                  validate content and myst.yml
   nma-kit notebooks [--dry-run]  generate student/instructor notebooks and solution files
   nma-kit render-scrolly         pre-render scrolly page outputs into _build/scrolly/
+  nma-kit sync-assets            write the site branding (CSS, logos, favicon) to _nma/
   nma-kit prepare-site           add badges + fallback cells to the .md pages and pin the
-                                 kit URL in myst.yml (CI only, never commit the result)
+                                 kit URL in myst.yml, and run sync-assets (CI only,
+                                 never commit the result)
   nma-kit publish-notebooks      push notebooks/ to the notebooks branch
 
 Exit codes: 0 ok, 1 content problems, 2 usage or configuration errors.
@@ -16,7 +18,7 @@ import sys
 from pathlib import Path
 
 from nma_kit import __version__
-from nma_kit import convert, scrolly
+from nma_kit import branding, convert, scrolly
 from nma_kit.config import MYST_CONFIG, MissingConfig, read_settings
 from nma_kit.pin import pin_kit_url
 from nma_kit.publish import PublishError, publish_notebooks
@@ -65,12 +67,20 @@ def cmd_render_scrolly(args) -> int:
     return scrolly.render_all(read_settings().tutorials_dir)
 
 
+def cmd_sync_assets(args) -> int:
+    settings = read_settings()
+    for path in branding.sync_assets(settings):
+        print(f"  wrote {path.as_posix()}")
+    return 0
+
+
 def cmd_prepare_site(args) -> int:
     settings = _settings()
     if not _validate(check_injected=False):
         return 1
     count = convert.process_tutorials(settings, args.dry_run, prepare_site=True)
     if not args.dry_run:
+        branding.sync_assets(settings)
         text = MYST_CONFIG.read_text(encoding="utf-8")
         pinned = pin_kit_url(text, args.kit_version)
         if pinned != text:
@@ -105,6 +115,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("render-scrolly", help="pre-render scrolly pages").set_defaults(func=cmd_render_scrolly)
 
+    sub.add_parser("sync-assets", help="write the site branding to _nma/").set_defaults(func=cmd_sync_assets)
+
     p = sub.add_parser("prepare-site", help="prepare the .md pages for `myst build` (CI only)")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--kit-version", default=__version__,
@@ -126,7 +138,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     try:
         return args.func(args)
-    except (MissingConfig, UsageError) as exc:
+    except (MissingConfig, UsageError, branding.BrandingError) as exc:
         print(f"nma-kit: {exc}", file=sys.stderr)
         return 2
     except PublishError as exc:
