@@ -42,6 +42,8 @@ python/src/nma_kit/
   convert.py                  # content rules, jupytext conversion, badges, prepare-site
   media.py solutions.py feedback.py scrolly.py cells.py   # Python side of each feature
   pin.py                      # pin course-kit CDN URLs in myst.yml to one version
+  branding.py                 # sync-assets: _nma/site.css (+ brand colours, extra CSS), logos, favicon
+  assets/                     # the branding source: site.css, logos, favicon, fonts/ (Rubik, OFL)
   publish.py                  # push notebooks/ to the notebooks branch (orphan branch if missing)
 tests/
   python/ js/ e2e/            # unit tests (pytest, node:test) and the browser smoke test
@@ -88,9 +90,38 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - **One version everywhere.** `tests/python/test_release.py` checks that
   `js/package.json`, `python/pyproject.toml`, `nma_kit.__version__`,
   `.release-please-manifest.json` and `KIT_VERSION` in the reusable workflows agree.
-- Courses keep one rule in their own CSS (a plugin can't add site-wide CSS):
-  `.myst-jp-nb-toolbar { display: none !important; }` (editable cells replace
-  JupyterLite's power button).
+- The toolbar rule `.myst-jp-nb-toolbar { display: none !important; }`
+  (editable cells replace JupyterLite's power button) is in the kit's
+  `site.css`; courses no longer carry it.
+
+## Site branding (internals)
+
+- **Source of truth**: `python/src/nma_kit/assets/` (`site.css`, logos, favicon,
+  `fonts/`). It lives inside the Python package, not in a top-level folder,
+  because `uv build` makes the wheel from the sdist, which can't include files
+  from outside `python/`. `tests/python/test_branding.py` checks they ship.
+- **`nma-kit sync-assets`** (also run by `prepare-site`, not by `--dry-run`)
+  writes `_nma/` in the course: `site.css`, `logo.svg`, `logo-dark.svg`,
+  `favicon.png`, and a `.gitignore` containing `*`, so courses never commit it.
+- **Courses name the files themselves** in `site.options` (`style`, `logo`,
+  `logo_dark`, `favicon`). The kit's `nma.yml` does not set them: MyST lets the
+  course's values win over an extended file's, and how it resolves relative
+  file paths of a *remote* extended config is unverified. Don't move them into
+  `nma.yml` without testing that in a real course.
+- **One `style` slot**: `site.css` = kit CSS (Rubik embedded as data URIs, so
+  no relative `url()` depends on where MyST serves the file and the kit's CSS
+  makes no font requests; the built site still requests Roboto from
+  `fonts.gstatic.com` from something that isn't ours, see
+  `tests/e2e/test_branding_browser.py::test_no_google_font_requests`)
+  + `:root` overrides from `nma.brand` + the course's
+  `nma.style.extra` file.
+- **CSS variables are the API**: `--nma-brand-*` (the five colours a course may
+  change), `--nma-cell-*` and `--nma-tok-*` (read by `cells/assets/cells.css`).
+  Syntax-token colours are fixed on purpose (chosen for contrast).
+- Settings are validated by `branding.brand_errors` inside `check`.
+- `tests/scripts/build-example.sh` ends with `git checkout -- tutorials myst.yml`
+  to undo `prepare-site`: stage (`git add`) edits to the example course's
+  `myst.yml` before running it, or they are reverted too.
 
 ## Editable cells (internals)
 
@@ -118,6 +149,16 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - The section sits between the book theme's TOC sidebar and outline
   (`.scrolly-col` in `scrolly.css`) and uses container queries on its own width
   (stage beside the cards from 760px, `WIDE` in `engine.mjs`).
+- **Colours follow the site.** `scrolly.css` defines `--sc-*` tokens on `.scrolly`
+  (light) and overrides them under `.dark .scrolly`; `runnable.css` and the HUD
+  styles in `engine.mjs` read the same tokens (custom properties inherit into
+  the shadow DOM, so no JS switches modes). Brand colours come from the kit
+  stylesheet's `--nma-brand-*`, so `nma.brand` recolours scrolly pages too;
+  syntax colours reuse `--nma-tok-*` (shared with the editable cells). Hex
+  values in `var(..., #hex)` are the Neuromatch defaults for courses that
+  don't load `site.css`. `tests/js/scrolly.test.mjs` checks that every
+  `--sc-*` in use is defined and that dark mode only overrides known tokens.
+  Don't add fixed colours: add a token.
 - Engine (HUD), stage and steps share one grid cell (`grid-area: 1 / 1`), not
   negative margins (a sticky element with `margin-bottom: -height` covered the
   footer links; regression test in `tests/js/scrolly.test.mjs`).

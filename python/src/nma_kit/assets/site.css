@@ -1,0 +1,205 @@
+/* Neuromatch course kit: site-wide styles
+ *
+ * `nma-kit sync-assets` writes this file, with the fonts embedded, to
+ * _nma/site.css. Courses list it as `site.options.style`. It applies the
+ * Neuromatch brand (palette, typography, accents) and styles the kit's own
+ * interactive widgets (editable cells, scrollytelling).
+ *
+ * Brand palette (Neuromatch Brand Book 2026):
+ *   Primary   Purple     #45429C
+ *             Blue       #008CBF
+ *             Light teal #BDCFCF
+ *   Accent    Blush      #FA7A7A
+ *   Neutrals  Off white  #F7F8FA   Light grey #E6E6E6
+ *             Mid grey   #7A7A7A   Black      #1A1A1A
+ *
+ * A course changes the colours through the `nma.brand` block in myst.yml
+ * (see README); `nma-kit sync-assets` then appends a `:root { ... }` block
+ * that redefines the --nma-brand-* variables below. Everything else follows.
+ */
+
+/* The Rubik font faces (SIL OFL 1.1) are inserted below by sync-assets. */
+/*FONTS*/
+
+/* -------------------------------------------------------------------------
+ * Brand variables: the only values a course is meant to change.
+ * ---------------------------------------------------------------------- */
+:root {
+  --nma-brand-primary: #008CBF;        /* Neuromatch Blue: links, accents, buttons */
+  --nma-brand-primary-hover: #006B8F;  /* hover / pressed */
+  --nma-brand-primary-light: #35B4DC;  /* the same accent on dark backgrounds */
+  --nma-brand-secondary: #45429C;      /* Purple: header surface, tips */
+  --nma-brand-accent: #FA7A7A;         /* Blush: exercise cells */
+
+  --nma-font-sans: 'Rubik', Arial, ui-sans-serif, system-ui, sans-serif;
+}
+
+body,
+button,
+input,
+select,
+textarea,
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--nma-font-sans);
+}
+
+/* -------------------------------------------------------------------------
+ * Book theme colours, light mode (:root) overrides the theme defaults.
+ * ---------------------------------------------------------------------- */
+:root {
+  --myst-color-primary: var(--nma-brand-primary);
+  --myst-color-primary-hover: var(--nma-brand-primary-hover);
+
+  --myst-color-link: var(--nma-brand-primary);
+  --myst-color-link-hover: var(--nma-brand-primary-hover);
+  --myst-color-link-underline: var(--nma-brand-primary);
+
+  --myst-color-active: var(--nma-brand-primary);
+  --myst-color-active-bg: color-mix(in srgb, var(--nma-brand-primary) 15%, transparent);
+  --myst-color-active-surface: #F7F8FA;
+
+  --myst-color-focus-ring: var(--nma-brand-primary);
+  --myst-color-focus-outline: #BDCFCF;
+
+  --myst-color-accent-text: var(--nma-brand-primary);
+  --myst-color-accent-surface: #F7F8FA;
+  --myst-color-accent-surface-border: #BDCFCF;
+  --myst-color-accent-surface-text: var(--nma-brand-primary-hover);
+
+  --myst-color-inverse-bg: var(--nma-brand-secondary);
+  --myst-color-code: var(--nma-brand-primary);
+
+  /* Neutrals */
+  --myst-color-text: #1A1A1A;
+  --myst-color-prose-body: #1A1A1A;
+  --myst-color-text-secondary: #7A7A7A;
+  --myst-color-text-tertiary: #7A7A7A;
+  --myst-color-bg-secondary: #F7F8FA;
+  --myst-color-surface: #F7F8FA;
+  --myst-color-surface-hover: #E6E6E6;
+  --myst-color-border: #E6E6E6;
+  --myst-color-border-strong: #BDCFCF;
+
+  /* Admonition accents on brand */
+  --myst-color-info: var(--nma-brand-primary);
+  --myst-color-info-text: var(--nma-brand-primary-hover);
+  --myst-color-tip: var(--nma-brand-secondary);
+  --myst-color-tip-text: var(--nma-brand-secondary);
+
+  /* Interactive code panels (editable cells), light */
+  --nma-cell-accent-light: var(--nma-brand-primary);
+  --nma-cell-exercise-accent-light: var(--nma-brand-accent);
+  --nma-cell-font-family: var(--nma-font-sans);
+
+  /* Syntax highlighting tokens (CodeMirror cells), light. Fixed values:
+     chosen for AA contrast on the light cell background. */
+  --nma-tok-keyword-light: #45429C;
+  --nma-tok-function-light: #006B8F;
+  --nma-tok-definition-light: #006B8F;
+  --nma-tok-string-light: #0E7C86;
+  --nma-tok-number-light: #B5484B;
+  --nma-tok-comment-light: #7A7A7A;
+}
+
+/* -------------------------------------------------------------------------
+ * Book theme colours, dark mode. The accent shifts to the lighter brand
+ * colour so it stays legible on the dark background.
+ * ---------------------------------------------------------------------- */
+html.dark,
+.dark {
+  --myst-color-primary: var(--nma-brand-primary);
+  --myst-color-primary-hover: var(--nma-brand-primary-light);
+
+  --myst-color-link: var(--nma-brand-primary-light);
+  --myst-color-link-hover: #BDCFCF;
+  --myst-color-link-underline: var(--nma-brand-primary);
+
+  --myst-color-active: var(--nma-brand-primary-light);
+  --myst-color-active-bg: color-mix(in srgb, var(--nma-brand-primary) 25%, transparent);
+
+  --myst-color-focus-ring: var(--nma-brand-primary-light);
+  --myst-color-focus-outline: var(--nma-brand-primary-light);
+
+  --myst-color-accent-text: #BDCFCF;
+  --myst-color-accent-surface-text: #BDCFCF;
+
+  --myst-color-inverse-bg: var(--nma-brand-primary);
+  --myst-color-code: var(--nma-brand-primary-light);
+
+  --myst-color-info: var(--nma-brand-primary-light);
+  --myst-color-info-text: var(--nma-brand-primary-light);
+  --myst-color-tip: var(--nma-brand-primary-light);
+  --myst-color-tip-text: var(--nma-brand-primary-light);
+
+  /* Dark neutrals (restated: the :root overrides above would otherwise leak
+     into dark mode, since this file loads after the theme and :root / .dark
+     have equal specificity). */
+  --myst-color-text: #F7F8FA;
+  --myst-color-prose-body: #E6E6E6;
+  --myst-color-text-secondary: #BDCFCF;
+  --myst-color-text-tertiary: #7A7A7A;
+  --myst-color-bg-secondary: #232323;
+  --myst-color-surface: #232323;
+  --myst-color-surface-hover: #2E2E2E;
+  --myst-color-border: #3A3A3A;
+  --myst-color-border-strong: #4A4A4A;
+
+  /* Interactive code panels (editable cells), dark */
+  --nma-cell-accent-dark: var(--nma-brand-primary-light);
+  --nma-cell-exercise-accent-dark: var(--nma-brand-accent);
+
+  /* Syntax highlighting tokens (CodeMirror cells), dark. */
+  --nma-tok-keyword-dark: #B9B8FF;
+  --nma-tok-function-dark: #5EC8EC;
+  --nma-tok-definition-dark: #5EC8EC;
+  --nma-tok-string-dark: #5EFBD7;
+  --nma-tok-number-dark: #FF9E9E;
+  --nma-tok-comment-dark: #9AA7A7;
+}
+
+/* -------------------------------------------------------------------------
+ * Static code blocks (highlight.js) — brand palette matching the CodeMirror
+ * token colours above, so the two highlighters look consistent. Light is the
+ * default (no html class); dark is html.dark. Selectors are one step more
+ * specific than the theme's so they win.
+ * ---------------------------------------------------------------------- */
+html:not(.dark) .hljs-keyword,
+html:not(.dark) .hljs-literal,
+html:not(.dark) .hljs-selector-tag,
+html:not(.dark) .hljs-name,
+html:not(.dark) .hljs-symbol,
+html:not(.dark) .hljs-tag { color: #45429C; }
+html:not(.dark) .hljs-built_in,
+html:not(.dark) .hljs-type,
+html:not(.dark) .hljs-title,
+html:not(.dark) .hljs-section { color: #006B8F; }
+html:not(.dark) .hljs-string,
+html:not(.dark) .hljs-quote,
+html:not(.dark) .hljs-attr,
+html:not(.dark) .hljs-attribute { color: #0E7C86; }
+html:not(.dark) .hljs-number,
+html:not(.dark) .hljs-meta { color: #B5484B; }
+html:not(.dark) .hljs-comment { color: #7A7A7A; font-style: italic; }
+
+html.dark .hljs-keyword,
+html.dark .hljs-literal,
+html.dark .hljs-selector-tag,
+html.dark .hljs-name,
+html.dark .hljs-symbol,
+html.dark .hljs-tag { color: #B9B8FF; }
+html.dark .hljs-built_in,
+html.dark .hljs-type,
+html.dark .hljs-title,
+html.dark .hljs-section { color: #5EC8EC; }
+html.dark .hljs-string,
+html.dark .hljs-quote,
+html.dark .hljs-attr,
+html.dark .hljs-attribute { color: #5EFBD7; }
+html.dark .hljs-number,
+html.dark .hljs-meta { color: #FF9E9E; }
+html.dark .hljs-comment { color: #9AA7A7; font-style: italic; }
+
+/* The editable cells replace JupyterLite's power button on every page. Hide
+   the whole toolbar wrapper, not just the button: the wrapper otherwise
+   leaves a small ghost dot. */
+.myst-jp-nb-toolbar { display: none !important; }

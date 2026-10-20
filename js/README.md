@@ -61,8 +61,12 @@ nma:
     pyodide_url: https://cdn.jsdelivr.net/pyodide/v314.0.7/full/
 ```
 
-One rule belongs in the course's own CSS, because a plugin can't add
-site-wide CSS: `.myst-jp-nb-toolbar { display: none !important; }`.
+A plugin can't add site-wide CSS, so the Neuromatch look (colours, Rubik font,
+logos, favicon, and the rule that hides JupyterLite's toolbar) comes from the
+`nma-kit sync-assets` command in the PyPI package instead. It writes `_nma/`,
+which the course's `myst.yml` lists under `site.options` (`style`, `logo`,
+`logo_dark`, `favicon`). See the
+[kit README](https://github.com/neuromatch/course-kit#site-branding).
 
 ## What's in the package
 

@@ -8,6 +8,9 @@ NMA_E2E_REQUIREJS (optional): path to a local require.js. thebe's widget manager
 loads require.js from cdnjs; in sandboxes where cdnjs is blocked, set this to
 serve it locally. Service workers are then blocked, because Playwright can't
 intercept requests that go through JupyterLite's service worker.
+
+NMA_E2E_FRESH_CONTEXT=1 (optional): a new browser context per test instead of one
+shared by the whole run (slower: every test downloads Pyodide again).
 """
 
 import os
@@ -39,21 +42,40 @@ def _browser():
         browser.close()
 
 
-@pytest.fixture
-def page(_browser):
+def _new_context(browser):
     options = {"ignore_https_errors": True}
     if REQUIREJS:
         options["service_workers"] = "block"
-    context = _browser.new_context(**options)
+    context = browser.new_context(**options)
     if REQUIREJS:
         context.route(
             "**/require.min.js",
             lambda route: route.fulfill(path=REQUIREJS, content_type="application/javascript"),
         )
+    return context
+
+
+@pytest.fixture(scope="session")
+def _shared_context(_browser):
+    """One context for the whole run. Pages in a context share the HTTP cache, so
+    Pyodide and its packages are downloaded once, not once per test (the slow
+    part of this suite). Set NMA_E2E_FRESH_CONTEXT=1 for a new context per test,
+    to rule out state leaking between tests."""
+    context = _new_context(_browser)
+    yield context
+    context.close()
+
+
+@pytest.fixture
+def page(_browser, _shared_context):
+    fresh = os.environ.get("NMA_E2E_FRESH_CONTEXT") == "1"
+    context = _new_context(_browser) if fresh else _shared_context
     page = context.new_page()
     page.set_default_timeout(120_000)
     yield page
-    context.close()
+    page.close()
+    if fresh:
+        context.close()
 
 
 @pytest.fixture

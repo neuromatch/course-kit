@@ -44,9 +44,9 @@ jobs:
   # The slowest job. A release PR only changes version strings and the
   # changelog, so it is skipped there (a skipped job counts as passing for
   # required checks).
+  # It builds the JS bundle itself, so it runs in parallel with the unit tests.
   example-course:
     if: github.head_ref != 'release-please--branches--main--components--course-kit'
-    needs: [python, js]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,14 +65,21 @@ jobs:
           (cd js && npm ci --no-audit --no-fund)
       - name: Build the example course
         run: tests/scripts/build-example.sh
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('python/pyproject.toml', 'python/uv.lock') }}
+          restore-keys: playwright-${{ runner.os }}-
+      - name: Install the browser
+        run: python/.venv/bin/playwright install --with-deps chromium
       # Cold Pyodide/JupyterLite downloads make the first run timing-sensitive,
-      # so failed tests are retried once.
+      # so failed tests are retried once. The tests share one browser context
+      # (see tests/e2e/conftest.py); --durations shows where the time goes.
       - name: Browser smoke test
         run: |
-          python/.venv/bin/playwright install --with-deps chromium
           (cd tests/example-course/_build/html && python3 -m http.server 8765 >/dev/null 2>&1 &)
           sleep 2
-          NMA_E2E_URL=http://localhost:8765 python/.venv/bin/pytest -q --reruns 1 tests/e2e
+          NMA_E2E_URL=http://localhost:8765 python/.venv/bin/pytest -v --durations=15 --reruns 1 tests/e2e
 
   course-check:
     needs: [python, js]

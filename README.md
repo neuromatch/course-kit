@@ -8,6 +8,8 @@ in one versioned package:
   `{stage}`) and editable, runnable code cells.
 - **`nma-kit` CLI**: content checks, notebook generation (student, instructor,
   solutions), scrolly pre-rendering, site preparation, notebook publishing.
+- **Site branding**: the Neuromatch stylesheet, Rubik font, logos and favicon,
+  written into a course by `nma-kit sync-assets`.
 - **Reusable GitHub workflows**: check pull requests, publish notebooks and the
   site to GitHub Pages.
 
@@ -27,6 +29,16 @@ which teaches the authoring conventions.
    project:
      github: https://github.com/<org>/<course>
      # ...
+   site:
+     template: book-theme
+     options:
+       folders: true
+       logo_text: My Course Title    # your course's name next to the logo
+       # The kit's branding, written to _nma/ by `nma-kit sync-assets`:
+       style: _nma/site.css
+       logo: _nma/logo.svg
+       logo_dark: _nma/logo-dark.svg
+       favicon: _nma/favicon.png
    ```
 
 2. Copy [`templates/course.yml`](templates/course.yml) to
@@ -35,16 +47,21 @@ which teaches the authoring conventions.
    the site.
 3. In the repo's **Settings → Pages**, set **Source** to **GitHub Actions**
    (and the custom domain, if any; no `CNAME` file needed).
-4. Keep this rule in your site CSS (a plugin can't add site-wide CSS):
+4. Generate the branding files once for local previews (CI does it for you):
 
-   ```css
-   .myst-jp-nb-toolbar { display: none !important; }
+   ```bash
+   uv run nma-kit sync-assets
    ```
+
+   This writes `_nma/` (stylesheet, logos, favicon). The folder ignores itself,
+   so nothing gets committed. Re-run it after upgrading the kit. See
+   [Site branding](#site-branding).
 
 5. List the packages your tutorials import in `requirements.txt` (CI installs
    them next to the kit; `nma-kit render-scrolly` executes scrolly pages).
 
-Optional settings, in the `nma:` block of `myst.yml` (defaults shown):
+Optional settings, in the `nma:` block of `myst.yml` (defaults shown, except
+`brand` and `style`, which are unset by default):
 
 ```yaml
 nma:
@@ -58,7 +75,51 @@ nma:
     user_key: ...
   scrolly:
     pyodide_url: https://cdn.jsdelivr.net/pyodide/v314.0.7/full/
+  brand:                          # colours, see "Site branding"
+    primary: "#008CBF"
+  style:
+    extra: _static/extra.css      # your own CSS, appended after the kit's
 ```
+
+## Site branding
+
+The kit carries the Neuromatch look: the colour palette, the Rubik font
+(embedded in the stylesheet, so the kit's own CSS makes no font requests), the
+logos and the favicon. It also styles the kit's own widgets (editable cells,
+scrollytelling) and hides JupyterLite's toolbar, so courses no longer carry
+that rule themselves.
+
+`nma-kit sync-assets` writes these files to `_nma/` in the course:
+
+| File | Used as |
+|---|---|
+| `_nma/site.css` | `site.options.style`: the kit stylesheet, then your colour overrides, then your own CSS |
+| `_nma/logo.svg`, `_nma/logo-dark.svg` | `site.options.logo`, `logo_dark` |
+| `_nma/favicon.png` | `site.options.favicon` |
+
+CI runs it as part of `nma-kit prepare-site`. Locally, run it once and again
+after upgrading the kit. MyST accepts a single `style` file, which is why the
+kit stylesheet and your own CSS are combined into `_nma/site.css`.
+
+**Change the colours** with the `nma.brand` block (all keys optional, each a
+`"#RRGGBB"` string):
+
+```yaml
+nma:
+  brand:
+    primary: "#D9480F"       # links, accents, buttons
+    primary_hover: "#A63700" # default: primary, 25% darker
+    primary_light: "#FF8A57" # accent on dark backgrounds, default: primary, 35% lighter
+    secondary: "#45429C"     # header surface, tips
+    accent: "#FA7A7A"        # exercise cells
+```
+
+**Add your own CSS** with `nma.style.extra`: the file (relative to the course
+root) is appended after the kit's CSS, so its rules win. The brand colours are
+CSS variables (`--nma-brand-primary`, ...), so your CSS can use them too.
+
+`nma-kit check` reports unknown keys and malformed colours. The course title
+and `logo_text` stay in your `myst.yml`.
 
 ## Versions and updates
 
@@ -95,6 +156,7 @@ Local previews cache the downloaded plugin for 30 days in `_build/cache`;
 ```bash
 uv venv && uv pip install -r requirements.txt neuromatch-course-kit==0.1.*
 uv run nma-kit check
+uv run nma-kit sync-assets      # site branding, written to _nma/
 uv run nma-kit render-scrolly   # optional: real outputs on scrolly pages
 uv run myst start
 ```

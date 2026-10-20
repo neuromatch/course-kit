@@ -25,8 +25,9 @@ folder with `myst.yml`).
 |---|---|
 | `nma-kit check` | Validate the content rules and the `nma:` block of `myst.yml` |
 | `nma-kit notebooks [--dry-run]` | Generate student and instructor notebooks and the solution files into `notebooks/` |
+| `nma-kit sync-assets` | Write the site branding (stylesheet, logos, favicon, Rubik font) to `_nma/`, which the course's `myst.yml` points at |
 | `nma-kit render-scrolly` | Run each scrolly page's instructor notebook and save outputs to `_build/scrolly/` |
-| `nma-kit prepare-site [--dry-run] [--kit-version V]` | Add badges and fallback cells to the pages and pin the kit URL in `myst.yml`. **CI only: it edits files in place, never commit the result** |
+| `nma-kit prepare-site [--dry-run] [--kit-version V]` | Add badges and fallback cells to the pages, pin the kit URL in `myst.yml` and run `sync-assets`. **CI only: it edits files in place, never commit the result** |
 | `nma-kit publish-notebooks [--remote R] [--message M]` | Push `notebooks/` to the notebooks branch (created if missing) |
 
 Exit codes: `0` ok, `1` content problems or a failed publish, `2` usage or
@@ -47,7 +48,32 @@ nma:
     url: https://...
     project: ...
     user_key: ...
+  brand:                          # site colours, "#RRGGBB" each (see below)
+    primary: "#008CBF"
+  style:
+    extra: _static/extra.css      # your own CSS, appended after the kit's
 ```
+
+### Site branding
+
+`sync-assets` writes `_nma/site.css`, `logo.svg`, `logo-dark.svg` and
+`favicon.png`. List them in `myst.yml`:
+
+```yaml
+site:
+  options:
+    style: _nma/site.css
+    logo: _nma/logo.svg
+    logo_dark: _nma/logo-dark.svg
+    favicon: _nma/favicon.png
+```
+
+The stylesheet is the kit's (Neuromatch palette, Rubik embedded, so the
+kit's own CSS makes no font requests, styles for the kit's widgets), then your
+`nma.brand` colours, then your `nma.style.extra` CSS. Brand keys: `primary`,
+`primary_hover`, `primary_light`, `secondary`, `accent`. Setting only `primary`
+derives the hover and light variants. `_nma/` ignores itself, so don't commit
+it; run `sync-assets` again after upgrading the kit.
 
 Values in `nma:` must be plain strings in one level of sections.
 
