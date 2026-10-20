@@ -183,11 +183,17 @@ downloads); CI retries failed tests once.
 
 ## CI
 
-- `ci.yml`: pytest; JS release + dev builds with tests; example course build +
-  e2e; the reusable `course-check.yml` run against `example-course` with
-  `kit-source: local`.
+- `ci.yml` runs on pull requests only (branch protection requires PRs to be up
+  to date with `main`): pytest; JS release + dev builds with tests; example
+  course build + e2e (skipped on the release-please PR, which only changes
+  version strings); the reusable `course-check.yml` run against
+  `tests/example-course` with `kit-source: local`.
 - `release.yml`: release-please PR -> tag `vX.Y.Z` -> npm (provenance) and
-  PyPI (trusted publishing) -> move `vX.Y` and `vX`.
+  PyPI (trusted publishing) -> move `vX.Y` and `vX`. release-please uses the
+  `RELEASE_PLEASE_TOKEN` secret (a PAT or app token with Contents, Pull
+  requests and Workflows access), because it edits `KIT_VERSION` in
+  `.github/workflows/` and the default token may not; the token also makes CI
+  run on the release PR. Setup: README, "Releasing".
 - `course-publish.yml` job order: check -> notebooks -> publish-notebooks ->
   render-scrolly -> prepare-site -> myst build -> Pages deploy. One run per
   repository at a time (notebook pushes never race). No CNAME step: with the

@@ -98,7 +98,7 @@ def find_blocks(text: str, kinds: tuple = KINDS) -> list[Block]:
         stop = end if end != -1 else len(lines)
         body = lines[block.start + 1:stop]
         block.options, block.body_lines = _split_options(body)
-        if block.kind == "code-cell" and any(EXERCISE_RE.match(l) for l in block.body_lines):
+        if block.kind == "code-cell" and any(EXERCISE_RE.match(line) for line in block.body_lines):
             block.kind = "exercise"
 
     for i, line in enumerate(lines):
@@ -184,7 +184,7 @@ def validate(text: str) -> list[str]:
     for b in blocks:
         where = f"line {b.start + 1}:"
         if b.kind in ("code-cell", "exercise"):
-            if any(TO_REMOVE_RE.match(l) for l in b.body_lines):
+            if any(TO_REMOVE_RE.match(line) for line in b.body_lines):
                 errors.append(
                     f"{where} code cell has a `# to_remove` marker. Move the solution into "
                     f"an {{nma-solution}} or the explanation into an {{nma-explanation}} directive"
@@ -267,7 +267,7 @@ def exercise_pairs(text: str) -> list[tuple[str, str]]:
     """(exercise source, solution code) for each exercise. Assumes validate() passed."""
     blocks = [b for b in find_blocks(text) if not b.nested]
     pairs = []
-    for ex, sol in zip(blocks, blocks[1:]):
+    for ex, sol in zip(blocks, blocks[1:], strict=False):
         if ex.kind == "exercise" and sol.kind == SOLUTION:
             exercise = "\n".join(ex.body_lines).strip("\n")
             pairs.append((exercise, solution_code(sol) or ""))
@@ -328,7 +328,7 @@ def split_notebook(nb: dict, stem: str, rel_dir: str, repo: str,
         lines = text.splitlines(keepends=True)
         base = cell.get("id", "cell")[:50]
         cursor = 0
-        for k, (block, item) in enumerate(zip(directive_blocks, items)):
+        for k, (block, item) in enumerate(zip(directive_blocks, items, strict=False)):
             prose = "".join(lines[cursor:block.start]).strip("\n")
             if prose.strip():
                 fragment = _markdown(prose, f"{base}-m{k}")

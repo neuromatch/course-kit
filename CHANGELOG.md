@@ -2,6 +2,13 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.1.2](https://github.com/neuromatch/course-kit/compare/v0.1.1...v0.1.2) (2026-10-20)
+
+
+### Bug Fixes
+
+* package READMEs, refresh README/AGENTS/changelog, lint fixes; c… ([5e3956e](https://github.com/neuromatch/course-kit/commit/5e3956edcbb90709022f67850c7a8f34a48c7976))
+
 ## [0.1.1](https://github.com/neuromatch/course-kit/compare/v0.1.0...v0.1.1) (2026-10-19)
 
 
@@ -11,7 +18,7 @@ Maintained by release-please from conventional commit messages.
 * don't force provenance in package.json (CI passes --provenance) ([5199e87](https://github.com/neuromatch/course-kit/commit/5199e875c476013ebcf573ce721e4460382fce07))
 * reorganize repo, add release manifest and package metadata ([b1a96c7](https://github.com/neuromatch/course-kit/commit/b1a96c725a5c94ceefd08cf8d1ac61e180a3c381))
 
-## 0.1.0 (unreleased)
+## 0.1.0
 
 First version, extracted from `neuromatch/course-template`:
 
