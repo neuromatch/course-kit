@@ -109,8 +109,11 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   file paths of a *remote* extended config is unverified. Don't move them into
   `nma.yml` without testing that in a real course.
 - **One `style` slot**: `site.css` = kit CSS (Rubik embedded as data URIs, so
-  no relative `url()` depends on where MyST serves the file and no request
-  leaves the site) + `:root` overrides from `nma.brand` + the course's
+  no relative `url()` depends on where MyST serves the file and the kit's CSS
+  makes no font requests; the built site still requests Roboto from
+  `fonts.gstatic.com` from something that isn't ours, see
+  `tests/e2e/test_branding_browser.py::test_no_google_font_requests`)
+  + `:root` overrides from `nma.brand` + the course's
   `nma.style.extra` file.
 - **CSS variables are the API**: `--nma-brand-*` (the five colours a course may
   change), `--nma-cell-*` and `--nma-tok-*` (read by `cells/assets/cells.css`).

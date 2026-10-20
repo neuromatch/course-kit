@@ -84,7 +84,7 @@ nma:
 ## Site branding
 
 The kit carries the Neuromatch look: the colour palette, the Rubik font
-(embedded in the stylesheet, so readers' browsers don't contact Google), the
+(embedded in the stylesheet, so the kit's own CSS makes no font requests), the
 logos and the favicon. It also styles the kit's own widgets (editable cells,
 scrollytelling) and hides JupyterLite's toolbar, so courses no longer carry
 that rule themselves.

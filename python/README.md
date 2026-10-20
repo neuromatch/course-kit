@@ -68,8 +68,8 @@ site:
     favicon: _nma/favicon.png
 ```
 
-The stylesheet is the kit's (Neuromatch palette, Rubik embedded so readers'
-browsers don't contact Google, styles for the kit's widgets), then your
+The stylesheet is the kit's (Neuromatch palette, Rubik embedded, so the
+kit's own CSS makes no font requests, styles for the kit's widgets), then your
 `nma.brand` colours, then your `nma.style.extra` CSS. Brand keys: `primary`,
 `primary_hover`, `primary_light`, `secondary`, `accent`. Setting only `primary`
 derives the hover and light variants. `_nma/` ignores itself, so don't commit
