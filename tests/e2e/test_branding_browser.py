@@ -4,6 +4,9 @@ import pytest
 
 pytest.importorskip("playwright")
 
+# Deterministic checks: a failure is not cold-cache flakiness, so don't rerun it.
+pytestmark = pytest.mark.flaky(reruns=0)
+
 PAGE = "/tutorials/w2d1-examples/w2d1-tutorial1/"
 GOOGLE_FONTS = ("fonts.googleapis.com", "fonts.gstatic.com")
 
