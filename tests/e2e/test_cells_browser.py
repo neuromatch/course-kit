@@ -28,9 +28,17 @@ def visible_cell_count(md: str) -> int:
     return count
 
 
-def open_page(page, base_url, path):
+def open_page(page, base_url, path, boot=True):
+    """Open a page with editable cells and wait for its panels.
+
+    boot=True also waits for the network to go quiet, which means the Pyodide
+    kernel has finished booting (a minute or more on a CI runner). Tests that
+    never run Python pass boot=False: they don't need it, and a kernel booting
+    in the background only slows the other tests running in parallel.
+    """
     page.goto(base_url + path)
-    page.wait_for_load_state("networkidle")
+    if boot:
+        page.wait_for_load_state("networkidle")
     page.wait_for_selector(".myst-anywidget.nma-cell")
     page.wait_for_timeout(2000)  # let hydration settle
 
@@ -60,11 +68,11 @@ def out_text(panel):
 
 def run(panel):
     panel.locator("button.run").click()
-    expect(status(panel)).to_have_text(DONE, timeout=120_000)
+    expect(status(panel)).to_have_text(DONE, timeout=180_000)
 
 
 def test_one_panel_per_visible_cell(page, base_url):
-    open_page(page, base_url, TUTORIAL1)
+    open_page(page, base_url, TUTORIAL1, boot=False)
     assert panels(page).count() == visible_cell_count(TUTORIAL1_MD)
     for i in range(panels(page).count()):
         panel = panels(page).nth(i)
@@ -171,7 +179,7 @@ def test_restart(page, base_url):
     last = panels(page).last
     run(last)
     last.locator("button.restart").click()
-    expect(status(last)).to_have_text("", timeout=120_000)  # restart takes a few seconds
+    expect(status(last)).to_have_text("", timeout=180_000)  # restart takes a few seconds
     run(last)
     expect(status(last)).to_contain_text("✓")
     assert FALLBACK_NOTE in out_text(panel_with(page, "def integrate_exponential"))
