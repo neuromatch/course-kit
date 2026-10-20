@@ -51,7 +51,9 @@ def page(_browser):
             lambda route: route.fulfill(path=REQUIREJS, content_type="application/javascript"),
         )
     page = context.new_page()
-    page.set_default_timeout(120_000)
+    # Pages boot a Pyodide kernel, and several run in parallel on a 4-core CI runner:
+    # 120 s was too close for the slowest tests. A passing test never waits this long.
+    page.set_default_timeout(180_000)
     yield page
     context.close()
 
