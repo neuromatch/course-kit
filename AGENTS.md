@@ -146,6 +146,16 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - The section sits between the book theme's TOC sidebar and outline
   (`.scrolly-col` in `scrolly.css`) and uses container queries on its own width
   (stage beside the cards from 760px, `WIDE` in `engine.mjs`).
+- **Colours follow the site.** `scrolly.css` defines `--sc-*` tokens on `.scrolly`
+  (light) and overrides them under `.dark .scrolly`; `runnable.css` and the HUD
+  styles in `engine.mjs` read the same tokens (custom properties inherit into
+  the shadow DOM, so no JS switches modes). Brand colours come from the kit
+  stylesheet's `--nma-brand-*`, so `nma.brand` recolours scrolly pages too;
+  syntax colours reuse `--nma-tok-*` (shared with the editable cells). Hex
+  values in `var(..., #hex)` are the Neuromatch defaults for courses that
+  don't load `site.css`. `tests/js/scrolly.test.mjs` checks that every
+  `--sc-*` in use is defined and that dark mode only overrides known tokens.
+  Don't add fixed colours: add a token.
 - Engine (HUD), stage and steps share one grid cell (`grid-area: 1 / 1`), not
   negative margins (a sticky element with `margin-bottom: -height` covered the
   footer links; regression test in `tests/js/scrolly.test.mjs`).

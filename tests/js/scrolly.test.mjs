@@ -314,3 +314,42 @@ test('cards stay in their column when they hold wide content (code blocks)', () 
   assert.ok(pre, 'no .scrolly-card pre rule');
   assert.match(pre.body, /overflow-x:\s*auto/);
 });
+
+// ---- colours: light and dark mode share one token set -----------------------
+
+const STYLE_DIR = join(here, '..', '..', 'js', 'src', 'scrolly', 'assets');
+const cssFiles = ['scrolly.css', 'runnable.css', 'engine.mjs'].map((f) => readFileSync(join(STYLE_DIR, f), 'utf8'));
+const layoutCss = cssFiles[0];
+const block = (selector) => {
+  const start = layoutCss.indexOf(`${selector} {`);
+  assert.ok(start >= 0, `${selector} block exists`);
+  return layoutCss.slice(start, layoutCss.indexOf('\n}', start));
+};
+const defined = (css) => new Set([...css.matchAll(/^\s*(--sc-[\w-]+):/gm)].map((m) => m[1]));
+
+test('every --sc-* token used by the scrolly styles is defined on .scrolly', () => {
+  const light = defined(block('.scrolly'));
+  const used = new Set(cssFiles.flatMap((css) => [...css.matchAll(/var\((--sc-[\w-]+)/g)].map((m) => m[1])));
+  const undefinedTokens = [...used].filter((t) => !light.has(t));
+  assert.deepEqual(undefinedTokens, []);
+});
+
+test('dark mode only overrides tokens that exist in light mode, and covers the surfaces', () => {
+  const light = defined(block('.scrolly'));
+  const dark = defined(block('.dark .scrolly'));
+  assert.deepEqual([...dark].filter((t) => !light.has(t)), []);
+  for (const surface of ['--sc-bg', '--sc-text', '--sc-card-bg', '--sc-card-text', '--sc-code-bg', '--sc-code-text', '--sc-line']) {
+    assert.ok(dark.has(surface), `dark mode sets ${surface}`);
+  }
+});
+
+test('scrolly styles use the kit brand variables, with the Neuromatch defaults as fallbacks', () => {
+  const light = block('.scrolly');
+  for (const v of ['--nma-brand-primary', '--nma-brand-primary-light', '--nma-brand-secondary', '--nma-brand-accent']) {
+    assert.match(light, new RegExp(`var\\(${v}, #[0-9a-f]{6}\\)`), `${v} has a fallback`);
+  }
+});
+
+test('the old fixed indigo palette is gone', () => {
+  for (const css of cssFiles) assert.doesNotMatch(css, /--nm-(indigo|mint|salmon|cream|lilac|ink|purple|blue|text|muted)\b/);
+});

@@ -1,4 +1,4 @@
-/* Scrollytelling page layout (plugins/scrolly/).
+/* Scrollytelling page layout and colours (js/src/scrolly/).
    Attached to the engine widget so MyST bundles it; engine.mjs copies it
    into <head>. Without JavaScript the page is a plain linear document; the
    pinned layout switches on when the engine sets data-ready.
@@ -26,27 +26,94 @@
   body:has(.myst-primary-sidebar.lg\:hidden) .article-grid:not(:has(> .lg\:col-margin-right)) > .scrolly-col { grid-column: screen-inset; }
 }
 
+/* ---- colours ----
+   The section follows the site: light and dark mode (the theme's `.dark` class
+   on <html>), the brand colours from the kit stylesheet (--nma-brand-*, which a
+   course changes with `nma.brand`) and the kit's syntax colours (--nma-tok-*,
+   shared with the editable cells). The hex values are the Neuromatch defaults,
+   used when the kit stylesheet is not loaded. runnable.css and the HUD in
+   engine.mjs read the same --sc-* tokens through the shadow DOM. */
 .scrolly {
   --scrolly-top: 60px;
-  --nm-indigo: #2a2952;
-  --nm-indigo-deep: #1c1b3e;
-  --nm-purple: #45429c;
-  --nm-blue: #008cbf;
-  --nm-salmon: #fa7a7a;
-  --nm-mint: #5efbd7;
-  --nm-lilac: #b9b8ff;
-  --nm-cream: #f3f0ec;
-  --nm-ink: #161922;
-  --nm-muted: #b4b3e6;
-  --nm-text: #f3f0ec;
+  --sc-primary: var(--nma-brand-primary, #008cbf);
+  --sc-primary-light: var(--nma-brand-primary-light, #35b4dc);
+  --sc-secondary: var(--nma-brand-secondary, #45429c);
+  --sc-warm: var(--nma-brand-accent, #fa7a7a);
+
+  --sc-bg: #f7f8fa;
+  --sc-text: #1a1a1a;
+  --sc-muted: #7a7a7a;
+  --sc-line: #e6e6e6;
+  --sc-heading: var(--sc-secondary);
+  --sc-title: var(--sc-secondary);
+  --sc-link: var(--sc-primary);
+  --sc-accent: var(--sc-primary);
+  --sc-accent-fg: #ffffff;
+  --sc-warm-text: color-mix(in srgb, var(--sc-warm) 60%, #1a1a1a);
+  --sc-glow-1: color-mix(in srgb, var(--sc-secondary) 10%, transparent);
+  --sc-glow-2: color-mix(in srgb, var(--sc-primary) 12%, transparent);
+  --sc-track: rgba(26, 26, 26, 0.12);
+  --sc-chip-bg: color-mix(in srgb, var(--sc-primary) 6%, #ffffff);
+  --sc-chip-line: color-mix(in srgb, var(--sc-primary) 28%, transparent);
+
+  --sc-card-bg: #ffffff;
+  --sc-card-text: #1a1a1a;
+  --sc-card-code: color-mix(in srgb, var(--sc-primary) 10%, #ffffff);
+  --sc-shadow: 0 10px 30px rgba(26, 26, 26, 0.1);
+
+  --sc-code-bg: #ffffff;
+  --sc-code-bar: #f7f8fa;
+  --sc-code-out: #f7f8fa;
+  --sc-code-text: #1a1a1a;
+  --sc-code-head-fg: var(--sc-secondary);
+  --sc-tok-comment: var(--nma-tok-comment-light, #7a7a7a);
+  --sc-tok-string: var(--nma-tok-string-light, #0e7c86);
+  --sc-tok-keyword: var(--nma-tok-keyword-light, #45429c);
+  --sc-tok-number: var(--nma-tok-number-light, #b5484b);
+  --sc-tok-function: var(--nma-tok-function-light, #006b8f);
+
   --nm-font-body: inherit;
   --nm-font-head: inherit;
   position: relative;
   margin-block: 1.5rem;
-  color: var(--nm-text);
-  background: var(--nm-indigo-deep);
+  color: var(--sc-text);
+  background: var(--sc-bg);
+  border: 1px solid var(--sc-line);
   border-radius: 12px;
   padding: 1rem;
+}
+.dark .scrolly {
+  --sc-bg: #232323;
+  --sc-text: #f7f8fa;
+  --sc-muted: #bdcfcf;
+  --sc-line: #3a3a3a;
+  --sc-heading: var(--nma-tok-keyword-dark, #b9b8ff);
+  --sc-title: #f7f8fa;
+  --sc-link: var(--sc-primary-light);
+  --sc-accent: var(--sc-primary-light);
+  --sc-accent-fg: #14131f;
+  --sc-warm-text: color-mix(in srgb, var(--sc-warm) 75%, #ffffff);
+  --sc-glow-1: color-mix(in srgb, var(--sc-secondary) 45%, transparent);
+  --sc-glow-2: color-mix(in srgb, var(--sc-primary) 18%, transparent);
+  --sc-track: rgba(255, 255, 255, 0.14);
+  --sc-chip-bg: rgba(255, 255, 255, 0.05);
+  --sc-chip-line: color-mix(in srgb, var(--sc-primary-light) 30%, transparent);
+
+  --sc-card-bg: #2e2e2e;
+  --sc-card-text: #f7f8fa;
+  --sc-card-code: rgba(255, 255, 255, 0.1);
+  --sc-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+
+  --sc-code-bg: #1b1b1b;
+  --sc-code-bar: #262626;
+  --sc-code-out: #151515;
+  --sc-code-text: #e6e6e6;
+  --sc-code-head-fg: #bdcfcf;
+  --sc-tok-comment: var(--nma-tok-comment-dark, #9aa7a7);
+  --sc-tok-string: var(--nma-tok-string-dark, #5efbd7);
+  --sc-tok-keyword: var(--nma-tok-keyword-dark, #b9b8ff);
+  --sc-tok-number: var(--nma-tok-number-dark, #ff9e9e);
+  --sc-tok-function: var(--nma-tok-function-dark, #5ec8ec);
 }
 .scrolly *, .scrolly *::before, .scrolly *::after { box-sizing: border-box; }
 .scrolly-engine { display: block; }
@@ -77,8 +144,8 @@ body:has(.scrolly) .myst-jp-nb-toolbar-power { display: none !important; }
   z-index: 0;
   border-radius: 12px;
   background:
-    radial-gradient(ellipse 60% 50% at 78% 20%, rgba(68, 67, 156, 0.55), transparent 70%),
-    radial-gradient(ellipse 40% 40% at 10% 95%, rgba(0, 137, 247, 0.16), transparent 70%);
+    radial-gradient(ellipse 60% 50% at 78% 20%, var(--sc-glow-1), transparent 70%),
+    radial-gradient(ellipse 40% 40% at 10% 95%, var(--sc-glow-2), transparent 70%);
 }
 .scrolly[data-ready="true"] .scrolly-view {
   position: absolute;
@@ -104,59 +171,60 @@ body:has(.scrolly) .myst-jp-nb-toolbar-power { display: none !important; }
   pointer-events: auto;
   max-width: 32rem;
   min-width: 0; /* flex item in .scrolly-step: don't grow to the widest code line */
-  background: var(--nm-cream);
-  color: var(--nm-ink);
+  background: var(--sc-card-bg);
+  color: var(--sc-card-text);
+  border: 1px solid var(--sc-line);
   border-radius: 14px;
-  border-left: 6px solid var(--nm-salmon);
+  border-left: 6px solid var(--sc-warm);
   padding: 1.1rem 1.35rem 1.25rem;
-  box-shadow: 0 14px 40px rgba(8, 7, 30, 0.45);
+  box-shadow: var(--sc-shadow);
   line-height: 1.6;
 }
 .scrolly[data-ready="true"] .scrolly-card { opacity: 0.32; transform: translateX(-10px) scale(0.985); transition: opacity 0.35s, transform 0.35s; }
 .scrolly[data-ready="true"] .scrolly-step.is-active .scrolly-card { opacity: 1; transform: none; }
 .scrolly-card > :first-child { margin-top: 0; }
 .scrolly-card > :last-child { margin-bottom: 0; }
-.scrolly-card :is(h1, h2, h3, h4, h5, h6) { display: block; border: 0; padding: 0; margin: 0.2rem 0 0.45rem; font-weight: 600; font-size: 1.35rem; line-height: 1.2; color: var(--nm-indigo); }
+.scrolly-card :is(h1, h2, h3, h4, h5, h6) { display: block; border: 0; padding: 0; margin: 0.2rem 0 0.45rem; font-weight: 600; font-size: 1.35rem; line-height: 1.2; color: var(--sc-heading); }
 .scrolly-card p { margin: 0 0 0.6rem; font-size: 1rem; }
-.scrolly-card :is(p, li, strong, em, span, b, i, td, th) { color: var(--nm-ink); }
-.scrolly-card code { background: #e4e0f7; color: var(--nm-indigo); padding: 0.05em 0.4em; border-radius: 5px; font-size: 0.88em; }
-.scrolly-card a { color: var(--nm-purple); }
+.scrolly-card :is(p, li, strong, em, span, b, i, td, th) { color: var(--sc-card-text); }
+.scrolly-card code { background: var(--sc-card-code); color: var(--sc-heading); padding: 0.05em 0.4em; border-radius: 5px; font-size: 0.88em; }
+.scrolly-card a { color: var(--sc-link); }
 .scrolly-card .katex-display { overflow-x: auto; overflow-y: hidden; }
 .scrolly-card details { margin: 0.5rem 0; }
 .scrolly-card pre { max-width: 100%; overflow-x: auto; }
 .scrolly-card .nma-solution-link p { margin: 0.4rem 0; }
 .scrolly-kicker { margin: 0 0 0.1rem; }
-.scrolly-kicker p { margin: 0; font-weight: 600; font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--nm-purple) !important; }
+.scrolly-kicker p { margin: 0; font-weight: 600; font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sc-heading) !important; }
 
 /* ---- stage content ---- */
-.scrolly-view { color: var(--nm-text); }
+.scrolly-view { color: var(--sc-text); }
 .scrolly-view :is(p, li, strong, em, span) { color: inherit; }
-.scrolly-view :is(h1, h2, h3, h4) { display: block; border: 0; padding: 0; color: #fff; }
-.scrolly-view a { color: var(--nm-mint); }
-.scrolly-view img { max-width: 100%; max-height: 70vh; width: auto; height: auto; border-radius: 10px; background: #fff; margin: 0 auto; display: block; }
+.scrolly-view :is(h1, h2, h3, h4) { display: block; border: 0; padding: 0; color: var(--sc-title); }
+.scrolly-view a { color: var(--sc-link); }
+.scrolly-view img { max-width: 100%; max-height: 70vh; width: auto; height: auto; border-radius: 10px; background: #fff; border: 1px solid var(--sc-line); margin: 0 auto; display: block; }
 .scrolly-view video { max-width: 100%; max-height: 70vh; border-radius: 10px; margin: 0 auto; display: block; }
 .scrolly-view figure { margin: 0; }
-.scrolly-view figcaption, .scrolly-view figcaption * { color: var(--nm-muted); }
+.scrolly-view figcaption, .scrolly-view figcaption * { color: var(--sc-muted); }
 .scrolly-view iframe { width: 100%; aspect-ratio: 16 / 9; height: auto; border: 0; border-radius: 10px; background: #000; }
 .scrolly-view .nma-video p, .scrolly-view .nma-slides p { margin: 0.3rem 0; font-size: 0.85rem; }
-.scrolly-view .nma-video [role="tab"] { color: var(--nm-lilac); }
+.scrolly-view .nma-video [role="tab"] { color: var(--sc-link); }
 .scrolly-view .scrolly-runnable { width: 100%; }
 .scrolly-view.is-list ol, .scrolly-view.is-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; counter-reset: chip; }
-.scrolly-view.is-list li { counter-increment: chip; display: grid; grid-template-columns: 2.6rem 1fr; align-items: center; gap: 0.9rem; font-size: 1.05rem; line-height: 1.45; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(185, 184, 255, 0.2); border-radius: 12px; padding: 0.75rem 1rem; margin: 0; }
-.scrolly-view.is-list li::before { content: counter(chip); display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 50%; background: var(--nm-mint); color: var(--nm-indigo); font-weight: 700; font-size: 1.1rem; }
+.scrolly-view.is-list li { counter-increment: chip; display: grid; grid-template-columns: 2.6rem 1fr; align-items: center; gap: 0.9rem; font-size: 1.05rem; line-height: 1.45; background: var(--sc-chip-bg); border: 1px solid var(--sc-chip-line); border-radius: 12px; padding: 0.75rem 1rem; margin: 0; }
+.scrolly-view.is-list li::before { content: counter(chip); display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 50%; background: var(--sc-accent); color: var(--sc-accent-fg); font-weight: 700; font-size: 1.1rem; }
 .scrolly-view.is-list li > p { margin: 0; }
 .scrolly-view.is-list :is(h2, h3, h4) { margin: 0 0 0.5rem; font-size: clamp(1.4rem, 4cqi, 2.2rem); font-weight: 700; }
 
 /* ---- hero (title and closing screens) ----
    MyST re-levels headings, so the title is styled by position, not by tag. */
 .scrolly-view.is-hero { max-width: 72rem; margin-inline: auto; padding: 0 clamp(0.5rem, 5cqi, 4rem); }
-.scrolly-view.is-hero .scrolly-kicker p { font-size: 0.85rem; letter-spacing: 0.32em; color: var(--nm-mint) !important; margin-bottom: 0.6rem; }
+.scrolly-view.is-hero .scrolly-kicker p { font-size: 0.85rem; letter-spacing: 0.32em; color: var(--sc-accent) !important; margin-bottom: 0.6rem; }
 .scrolly-view.is-hero :is(h1, h2, h3, h4, h5, h6) { display: block; margin: 0; padding: 0; border: 0; }
-.scrolly-view.is-hero :is(h1, h2, h3, h4, h5, h6):not(:is(h1, h2, h3, h4, h5, h6) ~ *) { font-weight: 700; font-size: clamp(2rem, 8cqi, 4.6rem); line-height: 1.05; color: #fff; }
-.scrolly-view.is-hero :is(h1, h2, h3, h4, h5, h6) ~ :is(h1, h2, h3, h4, h5, h6) { font-weight: 500; font-size: 1.15rem; color: var(--nm-lilac); margin: 0.9rem 0 0.3rem; }
-.scrolly-view.is-hero :is(h1, h2, h3, h4, h5, h6) em { font-style: normal; background: linear-gradient(90deg, var(--nm-salmon), var(--nm-mint)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.scrolly-view.is-hero :is(h1, h2, h3, h4, h5, h6):not(:is(h1, h2, h3, h4, h5, h6) ~ *) { font-weight: 700; font-size: clamp(2rem, 8cqi, 4.6rem); line-height: 1.05; color: var(--sc-title); }
+.scrolly-view.is-hero :is(h1, h2, h3, h4, h5, h6) ~ :is(h1, h2, h3, h4, h5, h6) { font-weight: 500; font-size: 1.15rem; color: var(--sc-link); margin: 0.9rem 0 0.3rem; }
+.scrolly-view.is-hero :is(h1, h2, h3, h4, h5, h6) em { font-style: normal; background: linear-gradient(90deg, var(--sc-warm), var(--sc-accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .scrolly-view.is-hero p { margin: 0.5rem 0; font-size: 0.98rem; line-height: 1.5; max-width: 52rem; }
-.scrolly-view.is-hero p strong { color: var(--nm-salmon); }
+.scrolly-view.is-hero p strong { color: var(--sc-warm-text); }
 
 /* ---- narrow sections: stage on top, cards below it ----
    Keep the 760px breakpoint in sync with WIDE in engine.mjs. */

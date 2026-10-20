@@ -11,14 +11,14 @@
 
 const STYLE = `
 .hud { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 16px; padding: 14px 28px; pointer-events: none; font-family: var(--nm-font-head, system-ui, sans-serif); }
-.sec { font-weight: 600; font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--nm-mint, #5efbd7); min-width: 12ch; }
-.bar { flex: 1; height: 3px; background: rgba(255,255,255,0.14); border-radius: 3px; overflow: hidden; }
-.bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--nm-salmon, #fb7a7a), var(--nm-mint, #5efbd7)); transition: width 0.4s; }
+.sec { font-weight: 600; font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-accent, #008cbf); min-width: 12ch; }
+.bar { flex: 1; height: 3px; background: var(--sc-track, rgba(26,26,26,0.12)); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--sc-warm, #fa7a7a), var(--sc-accent, #008cbf)); transition: width 0.4s; }
 .py[hidden] { display: none; }
-.py { pointer-events: auto; flex: none; font: 600 0.74rem var(--nm-font-head, system-ui, sans-serif); letter-spacing: 0.04em; border: 1px solid var(--nm-mint, #5efbd7); border-radius: 999px; padding: 0.3rem 0.85rem; cursor: pointer; max-width: 34ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--nm-mint, #5efbd7); color: var(--nm-indigo, #2a2952); }
-.py[data-state="loading"] { background: transparent; color: var(--nm-mint, #5efbd7); cursor: progress; }
-.py[data-state="ready"] { background: transparent; color: var(--nm-mint, #5efbd7); cursor: default; }
-.py[data-state="error"] { background: var(--nm-salmon, #fb7a7a); border-color: var(--nm-salmon, #fb7a7a); }
+.py { pointer-events: auto; flex: none; font: 600 0.74rem var(--nm-font-head, system-ui, sans-serif); letter-spacing: 0.04em; border: 1px solid var(--sc-accent, #008cbf); border-radius: 999px; padding: 0.3rem 0.85rem; cursor: pointer; max-width: 34ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--sc-accent, #008cbf); color: var(--sc-accent-fg, #fff); }
+.py[data-state="loading"] { background: transparent; color: var(--sc-accent, #008cbf); cursor: progress; }
+.py[data-state="ready"] { background: transparent; color: var(--sc-accent, #008cbf); cursor: default; }
+.py[data-state="error"] { background: var(--sc-warm, #fa7a7a); border-color: var(--sc-warm, #fa7a7a); color: #1a1a1a; }
 `;
 
 // Section width (px) from which the stage sits beside the cards.
