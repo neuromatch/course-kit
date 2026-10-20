@@ -2,6 +2,13 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.1.3](https://github.com/neuromatch/course-kit/compare/v0.1.2...v0.1.3) (2026-10-20)
+
+
+### Features
+
+* **scrolly:** follow the site's light/dark mode and brand colours ([ddac309](https://github.com/neuromatch/course-kit/commit/ddac30936f12dd5861dcb0795a70d73cd091b7b2))
+
 ## [0.1.2](https://github.com/neuromatch/course-kit/compare/v0.1.1...v0.1.2) (2026-10-20)
 
 
