@@ -223,14 +223,15 @@ def insert_download_cell(nb: dict, paths: list[str], repo: str, branch: str, day
 
 
 def _image_rewriter(repo: str, branch: str, day: str, image_dir: str):
-    md_re = re.compile(r"(!\[[^\]]*\]\()(%s/[\w./-]+)(\))" % re.escape(image_dir))
+    md_re = re.compile(r"""(!\[[^\]]*\]\()(%s/[\w./-]+)(\s+["'][^)]*["'])?(\))""" % re.escape(image_dir))
     html_re = re.compile(r"""(<img[^>]*\ssrc=["'])(%s/[\w./-]+)(["'])""" % re.escape(image_dir))
     count = 0
 
     def repl(match):
         nonlocal count
         count += 1
-        return match.group(1) + asset_url(repo, branch, day, match.group(2)) + match.group(3)
+        url = asset_url(repo, branch, day, match.group(2))
+        return match.group(1) + url + "".join(g or "" for g in match.groups()[2:])
 
     def rewrite(text: str) -> str:
         return html_re.sub(repl, md_re.sub(repl, text))

@@ -180,3 +180,10 @@ def test_strip_data_directives_removes_directive_and_empty_cells():
     assert [c["id"] for c in nb["cells"]] == ["b"]
     text = "".join(nb["cells"][0]["source"])
     assert "nma-data" not in text and "Intro" in text and "Outro" in text
+
+
+def test_rewrite_markdown_image_with_title():
+    nb = {"cells": [{"cell_type": "markdown", "source": ['![a](image/x.png "A title")\n']}]}
+    assert rewrite_markdown_images(nb, "org/repo", "nb", "W1D1", "image") == 1
+    joined = "".join(nb["cells"][0]["source"])
+    assert 'notebooks/W1D1/image/x.png "A title")' in joined
