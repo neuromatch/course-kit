@@ -29,6 +29,7 @@ js/
                               # assets.mjs (assetUrl), frontmatter.mjs (isScrolly), tree.mjs (mdast helpers)
     media/plugin.mjs          # {nma-video}, {nma-slides} -> static iframes / tab sets
     solutions/plugin.mjs      # {nma-solution}, {nma-explanation} -> "Click for ..." links
+    assets/plugin.mjs         # {nma-data} -> "Data used by this notebook" note; embeds declared files (base64) for cells
     feedback/plugin.mjs       # {nma-feedback} -> anywidget; assets/widget.mjs posts to datatops
     scrolly/plugin.mjs        # {step}/{stage}, stage/card layout; assets/{engine,runnable}.mjs, *.css
     cells/plugin.mjs          # editable cells on browser pages, Colab banner on runtime: colab pages
@@ -40,7 +41,7 @@ python/src/nma_kit/
   cli.py                      # nma-kit check | notebooks | render-scrolly | prepare-site | publish-notebooks
   config.py                   # Settings from myst.yml (github repo, nma.paths.tutorials, nma.notebooks.branch)
   convert.py                  # content rules, jupytext conversion, badges, prepare-site
-  media.py solutions.py feedback.py scrolly.py cells.py   # Python side of each feature
+  media.py solutions.py feedback.py scrolly.py cells.py assets.py   # Python side of each feature
   pin.py                      # pin course-kit CDN URLs in myst.yml to one version
   branding.py                 # sync-assets: _nma/site.css (+ brand colours, extra CSS), logos, favicon
   assets/                     # the branding source: site.css, logos, favicon, fonts/ (Rubik, OFL)
@@ -63,6 +64,9 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   the same feature names.
 - **Python/JS twins stay in sync**, tested against the same fixtures:
   - URL templates (`VIDEO_SOURCES` in `media/plugin.mjs` and `media.py`).
+  - `{nma-data}` parsing/validation and the asset URL (`assets/model.mjs` / `assets.py`: `parseDataDirective`/`parse_data_directive`,
+    `validateDataDirectives`/`validate_data_directives`, `assetUrlFor`/`asset_url`), `tests/fixtures/assets/directives.json`.
+    The strict code-reference scan and the notebook download cell are Python-only.
   - Solution file naming and URLs (`solutions/plugin.mjs`, `shared/paths.mjs` / `solutions.py`).
   - Course settings and page location (`shared/config.mjs`, `shared/paths.mjs` / `config.py`), `tests/fixtures/config/settings.json`.
   - The `nma:` block reader (`readNmaConfig` / `read_nma_block`, both YAML), `tests/fixtures/nma_config/`.
@@ -122,6 +126,21 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - `tests/scripts/build-example.sh` ends with `git checkout -- tutorials myst.yml`
   to undo `prepare-site`: stage (`git add`) edits to the example course's
   `myst.yml` before running it, or they are reverted too.
+
+## Data and images (internals)
+
+- Files live in the day folder (`tutorials/<day>/data/`, `image/`; names from `nma.assets.data|image`).
+  A tutorial declares what it uses with `{nma-data}` (one path per line, `data/` or `image/` prefix, no `..`).
+- **Notebooks** (`build_notebooks`): the directive is stripped, a hidden `hide-cell` download cell
+  (`# @title Download course data`, right after the badge cell) fetches the declared files from
+  `raw.githubusercontent.com/<repo>/<branch>/notebooks/<day>/`, markdown images (`image/..`) are
+  rewritten to the same URLs, and declared files are copied to `notebooks/<day>/` so `publish-notebooks` ships them.
+- **Browser cells**: the plugin reads declared files at build time and embeds them (base64) in the runtime
+  widget model; `PageRuntime.writeAssets` writes them into the kernel through a Python prelude before the first cell
+  (and after a restart). No fetch, so it works without the notebooks branch and under any base path.
+- `nma-kit check` errors: bad/missing declared files, and code that uses a strict literal `data/x.ext` /
+  `image/x.ext` (no `{`) that no `{nma-data}` declares. Dynamic paths are not detected: declare them.
+- The embedded bytes grow the page: keep tutorial files small; large datasets use the author's own download cell.
 
 ## Editable cells (internals)
 
