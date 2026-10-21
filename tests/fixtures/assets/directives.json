@@ -1,0 +1,34 @@
+{
+  "parse": [
+    {
+      "name": "single block",
+      "text": ":::{nma-data}\ndata/a.npz\nimage/b.png\n:::\n",
+      "paths": ["data/a.npz", "image/b.png"]
+    },
+    {
+      "name": "dedupe across blocks in order",
+      "text": ":::{nma-data}\ndata/a.npz\n:::\n\n:::{nma-data}\ndata/a.npz\ndata/c.npz\n:::\n",
+      "paths": ["data/a.npz", "data/c.npz"]
+    },
+    {
+      "name": "blank lines ignored",
+      "text": ":::{nma-data}\n\ndata/a.npz\n\n:::\n",
+      "paths": ["data/a.npz"]
+    },
+    {
+      "name": "fenced example ignored",
+      "text": "````markdown\n:::{nma-data}\ndata/a.npz\n:::\n````\n",
+      "paths": []
+    },
+    {
+      "name": "backtick fence",
+      "text": "```{nma-data}\ndata/a.npz\n```\n",
+      "paths": ["data/a.npz"]
+    },
+    {
+      "name": "no directive",
+      "text": "Just prose.\n",
+      "paths": []
+    }
+  ]
+}
