@@ -67,7 +67,10 @@ export function buildBrowserPage(tree) {
     css: PAGE_CSS,
     class: 'nma-cells-runtime',
     id: 'nma-cells-runtime',
-    model: { cells: cells.map(({ index, code, mode, exercise }) => ({ index, code, mode, exercise })) },
+    model: {
+      cells: cells.map(({ index, code, mode, exercise }) => ({ index, code, mode, exercise })),
+      assets: tree.data?.nmaAssets ?? [],
+    },
   };
   tree.children = [{ type: 'block', children: [runtime] }, ...(tree.children ?? [])];
   return cells.length;

@@ -56,6 +56,6 @@ test('index.mjs bundles every directive and keeps the transform order', async ()
   // feedback widgets), then scrolly, then cells.
   assert.deepEqual(
     kit.transforms.map((t) => t.name),
-    ['nma-solution-links', 'nma-feedback-widgets', 'nma-scrolly', 'nma-cells'],
+    ['nma-solution-links', 'nma-feedback-widgets', 'nma-assets', 'nma-scrolly', 'nma-cells'],
   );
 });

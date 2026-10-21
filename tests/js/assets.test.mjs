@@ -34,3 +34,38 @@ test('validateDataDirectives honours custom folder names', () => {
 test('plugin registers the nma-data directive', () => {
   assert.deepEqual(plugin.directives.map((d) => d.name), ['nma-data']);
 });
+
+// ------------------------------------------------------------- transform
+
+import { readEmbeddedAssets, applyAssets, dataNote } from '../../js/src/assets/plugin.mjs';
+
+const DAY = join(here, '..', 'fixtures', 'assets', 'day');
+
+test('readEmbeddedAssets embeds bytes as base64 and skips missing or escaping paths', () => {
+  const out = readEmbeddedAssets(DAY, ['data/tiny.bin', 'data/missing.npz', '../x.bin', '/etc/passwd']);
+  assert.deepEqual(out, [{ path: 'data/tiny.bin', b64: Buffer.from([0, 1, 2, 255]).toString('base64') }]);
+});
+
+test('dataNote is a collapsed dropdown with raw URL links', () => {
+  const node = dataNote(['data/tiny.bin'], (p) => `https://u/${p}`);
+  assert.equal(node.type, 'admonition');
+  assert.equal(node.kind, 'dropdown');
+  assert.match(JSON.stringify(node), /Data used by this notebook/);
+  assert.match(JSON.stringify(node), /https:\/\/u\/data\/tiny\.bin/);
+});
+
+test('applyAssets sets tree.data.nmaAssets only when the page declares files', () => {
+  const src = ':::{nma-data}\ndata/tiny.bin\n:::\n';
+  const tree = { type: 'root', children: [] };
+  applyAssets(tree, src, join(DAY, 'page.md'));
+  assert.equal(tree.data.nmaAssets.length, 1);
+  assert.equal(tree.data.nmaAssets[0].path, 'data/tiny.bin');
+
+  const plain = { type: 'root', children: [] };
+  applyAssets(plain, 'Just prose.\n', join(DAY, 'page.md'));
+  assert.equal(plain.data, undefined);
+});
+
+test('the plugin registers the nma-assets transform at document stage', () => {
+  assert.deepEqual(plugin.transforms.map((t) => [t.name, t.stage]), [['nma-assets', 'document']]);
+});

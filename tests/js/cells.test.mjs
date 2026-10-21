@@ -348,3 +348,31 @@ test('buildColabPage adds a banner and keeps the code blocks', () => {
   assert.ok(tree.children.some((c) => c.kind === 'notebook-code'));
   assert.equal(widgets(tree, 'nma-cell').length, 0);
 });
+
+
+test('buildBrowserPage carries embedded assets into the runtime model', () => {
+  const assets = [{ path: 'data/x.bin', b64: 'AAEC' }];
+  const tree = { type: 'root', data: { nmaAssets: assets }, children: [code('a = 1')] };
+  buildBrowserPage(tree);
+  assert.deepEqual(widgets(tree, 'nma-cells-runtime')[0].model.assets, assets);
+  const bare = { type: 'root', children: [code('a = 1')] };
+  buildBrowserPage(bare);
+  assert.deepEqual(widgets(bare, 'nma-cells-runtime')[0].model.assets, []);
+});
+
+import { assetsPrelude } from '../../js/src/cells/src/model.mjs';
+
+test('assetsPrelude writes each file, creating parent dirs, and is empty with no assets', () => {
+  assert.equal(assetsPrelude([]), '');
+  const src = assetsPrelude([{ path: 'data/x.bin', b64: 'AAEC' }]);
+  assert.match(src, /import base64, os/);
+  assert.match(src, /makedirs/);
+  assert.match(src, /'data\/x\.bin'|"data\/x\.bin"/);
+  assert.match(src, /AAEC/);
+});
+
+test('setCells stores assets and boot prelude id is stable', async () => {
+  const rt = new PageRuntime('/p');
+  rt.setAssets([{ path: 'a/b.bin', b64: 'AA==' }]);
+  assert.deepEqual(rt.assets, [{ path: 'a/b.bin', b64: 'AA==' }]);
+});
