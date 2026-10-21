@@ -7,6 +7,9 @@ from nma_kit.assets import (
     parse_data_directive,
     find_data_directives,
     validate_data_directives,
+    asset_url,
+    scan_code_references,
+    undeclared_reference_errors,
 )
 
 FIXTURE = json.loads(
@@ -70,3 +73,37 @@ def test_validate_rejects_empty_body():
 def test_validate_passes_custom_dirs():
     text = ":::{nma-data}\nassets/a.npz\npics/b.png\n:::\n"
     assert validate_data_directives(text, "assets", "pics") == []
+
+
+@pytest.mark.parametrize("case", FIXTURE["asset_url"], ids=lambda c: c["path"])
+def test_asset_url_matches_fixture(case):
+    assert asset_url(case["repo"], case["branch"], case["day"], case["path"]) == case["url"]
+
+
+def test_asset_url_joins_day():
+    assert asset_url("org/repo", "nb", "W1D1", "data/a.npz") == \
+        "https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/data/a.npz"
+
+
+@pytest.mark.parametrize("case", FIXTURE["scan"], ids=[c["name"] for c in FIXTURE["scan"]])
+def test_scan_matches_fixture(case):
+    assert scan_code_references(case["code"], case["data_dir"], case["image_dir"]) == case["refs"]
+
+
+def test_undeclared_reference_is_error():
+    md = '---\nkernelspec: {}\n---\n```{code-cell}\nnp.load("data/a.npz")\n```\n'
+    assert undeclared_reference_errors(md, "data", "image")
+
+
+def test_declared_reference_is_ok():
+    md = (
+        '---\nkernelspec: {}\n---\n'
+        ':::{nma-data}\ndata/a.npz\n:::\n\n'
+        '```{code-cell}\nnp.load("data/a.npz")\n```\n'
+    )
+    assert undeclared_reference_errors(md, "data", "image") == []
+
+
+def test_reference_in_fenced_example_not_flagged():
+    md = '---\nkernelspec: {}\n---\n````markdown\n```{code-cell}\nnp.load("data/a.npz")\n```\n````\n'
+    assert undeclared_reference_errors(md, "data", "image") == []

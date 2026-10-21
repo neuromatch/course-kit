@@ -25,6 +25,8 @@ sync; both are tested against tests/fixtures/assets/directives.json.
 import re
 from dataclasses import dataclass, field
 
+from nma_kit import solutions as nma_solutions
+
 ANY_FENCE_RE = re.compile(r"^(`{3,}|~{3,}|:{3,})(.*)$")
 DIRECTIVE_RE = re.compile(r"^\{(nma-data)\}\s*(.*?)\s*$")
 
@@ -117,4 +119,50 @@ def validate_data_directives(text: str, data_dir: str, image_dir: str) -> list[s
             errors.append(f"{where} is empty; list at least one file, e.g. {data_dir}/data.npz")
         for path in d.paths:
             errors += _path_errors(path, data_dir, image_dir, where)
+    return errors
+
+
+def asset_url(repo: str, branch: str, day: str, path: str) -> str:
+    """Published raw.githubusercontent URL for a day's asset file.
+
+    `day` is the page's directory relative to the course root ('' at the top).
+    """
+    segments = ["notebooks", day, path] if day else ["notebooks", path]
+    tail = "/".join(s.strip("/") for s in segments if s)
+    return f"https://raw.githubusercontent.com/{repo}/{branch}/{tail}"
+
+
+def _ref_pattern(data_dir: str, image_dir: str) -> re.Pattern:
+    prefix = "|".join(re.escape(d) for d in (data_dir, image_dir))
+    # a quoted literal path: known prefix, no '{' (so f-strings are skipped),
+    # and a real file extension.
+    return re.compile(
+        r"""['"]((?:%s)/[\w./-]+\.\w+)['"]""" % prefix
+    )
+
+
+def scan_code_references(code: str, data_dir: str, image_dir: str) -> list[str]:
+    """Strict literal data/image references in one code string, in order, deduped."""
+    pattern = _ref_pattern(data_dir, image_dir)
+    seen = {}
+    for line in code.splitlines():
+        for match in pattern.finditer(line):
+            seen.setdefault(match.group(1), None)
+    return list(seen)
+
+
+def undeclared_reference_errors(text: str, data_dir: str, image_dir: str) -> list[str]:
+    """Errors for strict literal references in code cells not declared by {nma-data}."""
+    declared = set(parse_data_directive(text))
+    errors = []
+    for block in nma_solutions.find_blocks(text):
+        if block.kind not in ("code-cell", "exercise") or block.nested:
+            continue
+        code = "\n".join(block.body_lines)
+        for ref in scan_code_references(code, data_dir, image_dir):
+            if ref not in declared:
+                errors.append(
+                    f"line {block.start + 1}: code uses {ref!r} but no {{nma-data}} "
+                    f"directive on the page declares it"
+                )
     return errors
