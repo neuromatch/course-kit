@@ -148,3 +148,8 @@ def test_rewrite_markdown_images():
     assert "https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/image/x.png" in joined
     assert "https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/image/y.png" in joined
     assert "data/z.npz" in joined  # non-image link untouched
+
+
+@pytest.mark.parametrize("case", FIXTURE["validate"], ids=[c["name"] for c in FIXTURE["validate"]])
+def test_validate_matches_fixture(case):
+    assert len(validate_data_directives(case["text"], "data", "image")) == case["errors"]
