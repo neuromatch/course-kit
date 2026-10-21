@@ -10,6 +10,10 @@ from nma_kit.assets import (
     asset_url,
     scan_code_references,
     undeclared_reference_errors,
+    download_cell_source,
+    make_download_cell,
+    insert_download_cell,
+    rewrite_markdown_images,
 )
 
 FIXTURE = json.loads(
@@ -107,3 +111,40 @@ def test_declared_reference_is_ok():
 def test_reference_in_fenced_example_not_flagged():
     md = '---\nkernelspec: {}\n---\n````markdown\n```{code-cell}\nnp.load("data/a.npz")\n```\n````\n'
     assert undeclared_reference_errors(md, "data", "image") == []
+
+
+def test_download_cell_source_has_paths_and_base():
+    src = download_cell_source(["data/a.npz", "image/b.png"], "org/repo", "nb", "W1D1")
+    assert "data/a.npz" in src and "image/b.png" in src
+    assert "https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/" in src
+    assert "urlretrieve" in src
+
+
+def test_make_download_cell_is_hide_cell():
+    cell = make_download_cell(["data/a.npz"], "org/repo", "nb", "W1D1")
+    assert cell["cell_type"] == "code"
+    assert cell["metadata"]["tags"] == ["hide-cell"]
+
+
+def test_insert_download_cell_idempotent_and_skips_empty():
+    nb = {"cells": [{"cell_type": "code", "source": ["pass"]}]}
+    assert insert_download_cell(nb, [], "org/repo", "nb", "W1D1") is False
+    assert len(nb["cells"]) == 1
+    assert insert_download_cell(nb, ["data/a.npz"], "org/repo", "nb", "W1D1") is True
+    assert len(nb["cells"]) == 2
+    assert insert_download_cell(nb, ["data/a.npz"], "org/repo", "nb", "W1D1") is False
+    assert len(nb["cells"]) == 2
+    assert "urlretrieve" in "".join(nb["cells"][0]["source"])
+
+
+def test_rewrite_markdown_images():
+    nb = {"cells": [{
+        "cell_type": "markdown",
+        "source": ["![a](image/x.png)\n", "<img src=\"image/y.png\">\n", "[d](data/z.npz)\n"],
+    }]}
+    count = rewrite_markdown_images(nb, "org/repo", "nb", "W1D1", "image")
+    joined = "".join(nb["cells"][0]["source"])
+    assert count == 2
+    assert "https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/image/x.png" in joined
+    assert "https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/image/y.png" in joined
+    assert "data/z.npz" in joined  # non-image link untouched

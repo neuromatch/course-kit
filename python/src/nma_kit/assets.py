@@ -24,6 +24,7 @@ sync; both are tested against tests/fixtures/assets/directives.json.
 
 import re
 from dataclasses import dataclass, field
+from string import Template
 
 from nma_kit import solutions as nma_solutions
 
@@ -166,3 +167,84 @@ def undeclared_reference_errors(text: str, data_dir: str, image_dir: str) -> lis
                     f"directive on the page declares it"
                 )
     return errors
+
+
+DOWNLOAD_CELL_ID = "nma-download-data"
+
+_DOWNLOAD_TEMPLATE = Template('''\
+# @title Download course data
+import os, urllib.request
+
+_BASE = "$base"
+for _f in [$files]:
+    if not os.path.exists(_f):
+        os.makedirs(os.path.dirname(_f), exist_ok=True)
+        urllib.request.urlretrieve(_BASE + _f, _f)
+del _f''')
+
+
+def download_cell_source(paths: list[str], repo: str, branch: str, day: str) -> str:
+    """Python source for the hidden Colab/Kaggle download cell."""
+    base = asset_url(repo, branch, day, "") + "/"
+    files = ", ".join(repr(p) for p in paths)
+    return _DOWNLOAD_TEMPLATE.substitute(base=base, files=files)
+
+
+def make_download_cell(paths: list[str], repo: str, branch: str, day: str,
+                       cell_id: str = DOWNLOAD_CELL_ID) -> dict:
+    """A hidden code cell that downloads the declared files. Cf. media.make_code_cell."""
+    source = download_cell_source(paths, repo, branch, day)
+    return {
+        "cell_type": "code",
+        "execution_count": None,
+        "id": cell_id,
+        "metadata": {"cellView": "form", "tags": ["hide-cell"]},
+        "outputs": [],
+        "source": source.splitlines(keepends=True),
+    }
+
+
+def insert_download_cell(nb: dict, paths: list[str], repo: str, branch: str, day: str,
+                         cell_id: str = DOWNLOAD_CELL_ID) -> bool:
+    """Insert the download cell at index 0 if there are paths and it is not already there.
+
+    Idempotent by `cell_id`. Returns whether a cell was inserted. The badge cell
+    is prepended later (convert.add_badge_cell), so it ends up ahead of this one.
+    """
+    if not paths:
+        return False
+    if any(c.get("id") == cell_id for c in nb["cells"]):
+        return False
+    nb["cells"].insert(0, make_download_cell(paths, repo, branch, day, cell_id))
+    return True
+
+
+def _image_rewriter(repo: str, branch: str, day: str, image_dir: str):
+    md_re = re.compile(r"(!\[[^\]]*\]\()(%s/[\w./-]+)(\))" % re.escape(image_dir))
+    html_re = re.compile(r"""(<img[^>]*\ssrc=["'])(%s/[\w./-]+)(["'])""" % re.escape(image_dir))
+    count = 0
+
+    def repl(match):
+        nonlocal count
+        count += 1
+        return match.group(1) + asset_url(repo, branch, day, match.group(2)) + match.group(3)
+
+    def rewrite(text: str) -> str:
+        return html_re.sub(repl, md_re.sub(repl, text))
+
+    def total() -> int:
+        return count
+
+    return rewrite, total
+
+
+def rewrite_markdown_images(nb: dict, repo: str, branch: str, day: str, image_dir: str) -> int:
+    """Rewrite relative image references in markdown cells to published URLs. Returns count."""
+    rewrite, total = _image_rewriter(repo, branch, day, image_dir)
+    for cell in nb["cells"]:
+        if cell.get("cell_type") != "markdown":
+            continue
+        source = cell["source"]
+        text = "".join(source) if isinstance(source, list) else source
+        cell["source"] = rewrite(text).splitlines(keepends=True)
+    return total()
