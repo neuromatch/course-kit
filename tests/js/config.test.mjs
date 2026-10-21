@@ -48,6 +48,8 @@ test('defaults without an nma block', () => {
     githubRepo: 'o/r',
     tutorialsDir: 'tutorials',
     notebooksBranch: 'notebooks-branch',
+    assetsDataDir: 'data',
+    assetsImageDir: 'image',
     nma: {},
   });
 });
@@ -62,4 +64,11 @@ test('readNmaConfig uses a YAML parser', () => {
   assert.deepEqual(readNmaConfig('nma:\n  feedback: {url: u, project: p}\n'), { feedback: { url: 'u', project: 'p' } });
   assert.deepEqual(readNmaConfig('nma: [1]\n'), {});
   assert.deepEqual(readNmaConfig('not: [valid'), {});
+});
+
+test('asset folder names default to data/image and can be overridden', () => {
+  const d = loadSettings('project:\n  github: https://github.com/o/r\n');
+  assert.deepEqual([d.assetsDataDir, d.assetsImageDir], ['data', 'image']);
+  const c = loadSettings('nma:\n  assets:\n    data: files\n    image: pics/\n');
+  assert.deepEqual([c.assetsDataDir, c.assetsImageDir], ['files', 'pics']);
 });

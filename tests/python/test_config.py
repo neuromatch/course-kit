@@ -25,6 +25,13 @@ def test_custom_paths():
     assert s.github_repo is None
 
 
+def test_asset_dirs_default_and_custom():
+    d = load_settings("project:\n  github: https://github.com/o/r\n")
+    assert (d.assets_data_dir, d.assets_image_dir) == ("data", "image")
+    c = load_settings("nma:\n  assets:\n    data: files\n    image: pics/\n")
+    assert (c.assets_data_dir, c.assets_image_dir) == ("files", "pics")
+
+
 def test_nma_block_is_exposed():
     s = load_settings("nma:\n  feedback:\n    url: https://x\n")
     assert s.nma == {"feedback": {"url": "https://x"}}

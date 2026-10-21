@@ -14,6 +14,9 @@ and the plugin (`nma.scrolly.pyodide_url`):
         tutorials: tutorials        # where the course's .md pages live
       notebooks:
         branch: notebooks-branch    # where generated notebooks are published
+      assets:
+        data: data                  # folder (in each day folder) for data files
+        image: image                # folder (in each day folder) for images
 """
 
 import re
@@ -24,6 +27,8 @@ import yaml
 
 DEFAULT_TUTORIALS_DIR = "tutorials"
 DEFAULT_NOTEBOOKS_BRANCH = "notebooks-branch"
+DEFAULT_DATA_DIR = "data"
+DEFAULT_IMAGE_DIR = "image"
 NOTEBOOKS_DIR = "notebooks"
 MYST_CONFIG = Path("myst.yml")
 
@@ -44,6 +49,8 @@ class Settings:
     tutorials_dir: str = DEFAULT_TUTORIALS_DIR
     notebooks_branch: str = DEFAULT_NOTEBOOKS_BRANCH
     nma: dict = field(default_factory=dict)
+    assets_data_dir: str = DEFAULT_DATA_DIR
+    assets_image_dir: str = DEFAULT_IMAGE_DIR
 
 
 def _yaml(text: str) -> dict:
@@ -79,6 +86,8 @@ def load_settings(myst_text: str) -> Settings:
         github_repo=_github_repo(data),
         tutorials_dir=_setting(nma, "paths", "tutorials", DEFAULT_TUTORIALS_DIR).strip("/"),
         notebooks_branch=_setting(nma, "notebooks", "branch", DEFAULT_NOTEBOOKS_BRANCH),
+        assets_data_dir=_setting(nma, "assets", "data", DEFAULT_DATA_DIR).strip("/"),
+        assets_image_dir=_setting(nma, "assets", "image", DEFAULT_IMAGE_DIR).strip("/"),
         nma=nma,
     )
 

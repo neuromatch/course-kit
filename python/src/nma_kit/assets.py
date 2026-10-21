@@ -23,7 +23,9 @@ sync; both are tested against tests/fixtures/assets/directives.json.
 """
 
 import re
+import shutil
 from dataclasses import dataclass, field
+from pathlib import Path
 from string import Template
 
 from nma_kit import solutions as nma_solutions
@@ -170,9 +172,10 @@ def undeclared_reference_errors(text: str, data_dir: str, image_dir: str) -> lis
 
 
 DOWNLOAD_CELL_ID = "nma-download-data"
+DOWNLOAD_SENTINEL = "# @title Download course data"
 
 _DOWNLOAD_TEMPLATE = Template('''\
-# @title Download course data
+$sentinel
 import os, urllib.request
 
 _BASE = "$base"
@@ -187,7 +190,7 @@ def download_cell_source(paths: list[str], repo: str, branch: str, day: str) -> 
     """Python source for the hidden Colab/Kaggle download cell."""
     base = asset_url(repo, branch, day, "") + "/"
     files = ", ".join(repr(p) for p in paths)
-    return _DOWNLOAD_TEMPLATE.substitute(base=base, files=files)
+    return _DOWNLOAD_TEMPLATE.substitute(sentinel=DOWNLOAD_SENTINEL, base=base, files=files)
 
 
 def make_download_cell(paths: list[str], repo: str, branch: str, day: str,
@@ -248,3 +251,63 @@ def rewrite_markdown_images(nb: dict, repo: str, branch: str, day: str, image_di
         text = "".join(source) if isinstance(source, list) else source
         cell["source"] = rewrite(text).splitlines(keepends=True)
     return total()
+
+
+def _well_formed(path: str) -> bool:
+    return bool(path) and not path.startswith("/") and ".." not in path.split("/")
+
+
+def missing_file_errors(text: str, day_dir: Path) -> list[str]:
+    """Errors for declared files that do not exist under the page's day folder.
+
+    Malformed paths (absolute, `..`) are skipped here: validate_data_directives
+    reports them, and nothing outside the day folder is probed.
+    """
+    errors = []
+    for d in find_data_directives(text):
+        for path in d.paths:
+            if _well_formed(path) and not (Path(day_dir) / path).is_file():
+                errors.append(f"line {d.start + 1}: {{nma-data}} declares {path!r}, but {day_dir}/{path} does not exist")
+    return errors
+
+
+def strip_data_directives(nb: dict) -> int:
+    """Remove {nma-data} directives from markdown cells, dropping cells left empty.
+
+    The download cell replaces them in generated notebooks. Returns the number removed.
+    """
+    new_cells, removed = [], 0
+    for cell in nb["cells"]:
+        if cell.get("cell_type") != "markdown":
+            new_cells.append(cell)
+            continue
+        source = cell["source"]
+        text = "".join(source) if isinstance(source, list) else source
+        directives = find_data_directives(text)
+        if not directives:
+            new_cells.append(cell)
+            continue
+        lines = text.splitlines(keepends=True)
+        drop = {i for d in directives for i in range(d.start, (d.end if d.end != -1 else len(lines) - 1) + 1)}
+        kept = "".join(line for i, line in enumerate(lines) if i not in drop)
+        kept = re.sub(r"\n{3,}", "\n\n", kept).strip("\n")
+        removed += len(directives)
+        if kept.strip():
+            cell["source"] = kept.splitlines(keepends=True)
+            new_cells.append(cell)
+    nb["cells"] = new_cells
+    return removed
+
+
+def copy_declared_files(paths: list[str], src_day: Path, dest_day: Path) -> int:
+    """Copy the declared, existing files from the source day folder into the notebooks tree."""
+    count = 0
+    for path in paths:
+        source = Path(src_day) / path
+        if not _well_formed(path) or not source.is_file():
+            continue
+        target = Path(dest_day) / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+        count += 1
+    return count
