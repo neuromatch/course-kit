@@ -233,7 +233,7 @@ test('fenced example markers are text, not nodes', () => {
 
 // --- runnable.mjs pure helpers -------------------------------------------------
 
-import { highlight, applyParams, pyLiteral, codeForEarlierCell, formatValue } from '../../js/src/scrolly/assets/runnable.mjs';
+import { highlight, applyParams, pyLiteral, codeForEarlierCell, formatValue, writeAssets } from '../../js/src/scrolly/assets/runnable.mjs';
 import { readNmaConfig } from '../../js/src/shared/config.mjs';
 
 test('highlight escapes HTML and marks tokens', () => {
@@ -352,4 +352,22 @@ test('scrolly styles use the kit brand variables, with the Neuromatch defaults a
 
 test('the old fixed indigo palette is gone', () => {
   for (const css of cssFiles) assert.doesNotMatch(css, /--nm-(indigo|mint|salmon|cream|lilac|ink|purple|blue|text|muted)\b/);
+});
+
+test('buildScrolly passes embedded {nma-data} files to the engine', () => {
+  const assets = [{ path: 'data/a.bin', b64: 'AAE=' }];
+  const tree = sampleTree();
+  buildScrolly(tree, { renders: {}, solutions: {}, config: {}, assets });
+  assert.deepEqual(byClass(tree, 'scrolly-engine')[0].model.assets, assets);
+  const bare = sampleTree();
+  buildScrolly(bare, { renders: {}, solutions: {}, config: {} });
+  assert.deepEqual(byClass(bare, 'scrolly-engine')[0].model.assets, []);
+});
+
+test('writeAssets creates folders and writes decoded bytes into the Pyodide filesystem', () => {
+  const calls = [];
+  const py = { FS: { mkdirTree: (d) => calls.push(['mkdir', d]), writeFile: (p, b) => calls.push(['write', p, [...b]]) } };
+  writeAssets(py, [{ path: 'data/a.bin', b64: Buffer.from([0, 1, 255]).toString('base64') }, { path: 'top.txt', b64: '' }]);
+  assert.deepEqual(calls, [['mkdir', 'data'], ['write', 'data/a.bin', [0, 1, 255]], ['write', 'top.txt', []]]);
+  writeAssets(py, undefined); // nothing to write
 });

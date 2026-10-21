@@ -260,9 +260,9 @@ function flatten(tree) {
 
 /**
  * Rebuild a scrolly page's tree in place. Returns a list of warning messages.
- * options: {renders: {key: output}, solutions: {exerciseKey: code}, config: {pyodideUrl}}
+ * options: {renders: {key: output}, solutions: {exerciseKey: code}, config: {pyodideUrl}, assets: [{path, b64}]}
  */
-export function buildScrolly(tree, { renders = {}, solutions = {}, config = {} } = {}) {
+export function buildScrolly(tree, { renders = {}, solutions = {}, config = {}, assets = [] } = {}) {
   const messages = [];
   const items = flatten(tree);
   const first = items.findIndex((n) => n.type === STEP);
@@ -374,6 +374,7 @@ export function buildScrolly(tree, { renders = {}, solutions = {}, config = {} }
       hero,
       sections,
       pyodideUrl: config.pyodideUrl || DEFAULT_PYODIDE_URL,
+      assets,
       cells: cells.map(({ index, code, mode, fallback }) => ({ index, code, mode, fallback })),
     },
   };
@@ -492,7 +493,7 @@ const scrollyTransform = {
       );
     }
     const solutions = Object.fromEntries(exercisePairs(source).map((p) => [cellKey(p.exercise), p.solution]));
-    for (const message of buildScrolly(tree, { renders, solutions, config: scrollyConfig() })) {
+    for (const message of buildScrolly(tree, { renders, solutions, config: scrollyConfig(), assets: tree.data?.nmaAssets ?? [] })) {
       vfile.message(message, null, 'nma-scrolly');
     }
   },

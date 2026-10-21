@@ -50,6 +50,7 @@ function render({ model, el }) {
     ...(window.NMA_SCROLLY || {}),
     cells: model.get('cells') || [],
     pyodideUrl: model.get('pyodideUrl'),
+    assets: model.get('assets') || [],
     edits: (window.NMA_SCROLLY && window.NMA_SCROLLY.edits) || {},
   };
 

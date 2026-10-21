@@ -138,9 +138,19 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - **Browser cells**: the plugin reads declared files at build time and embeds them (base64) in the runtime
   widget model; `PageRuntime.writeAssets` writes them into the kernel through a Python prelude before the first cell
   (and after a restart). No fetch, so it works without the notebooks branch and under any base path.
-- `nma-kit check` errors: bad/missing declared files, and code that uses a strict literal `data/x.ext` /
-  `image/x.ext` (no `{`) that no `{nma-data}` declares. Dynamic paths are not detected: declare them.
+- **Scrolly pages**: the assets transform runs before scrolly, so `buildScrolly` puts the files in the engine model;
+  `engine.mjs` publishes them on `window.NMA_SCROLLY.assets` and `runnable.mjs` (`writeAssets`) writes them with
+  `py.FS` right after `loadPyodide`.
+- **`{figure}` / `{image}`** in notebooks become `<img>` (+ italic caption) with the published URL
+  (`convert_image_directives`, run by `rewrite_markdown_images`); markdown `![]()` and `<img>` are rewritten in place.
+- `nma-kit check` errors: bad/missing declared files; code that uses a strict literal `data/x.ext` / `image/x.ext`
+  that no `{nma-data}` declares; f-string paths (`f"data/{x}.npz"`) under a folder where the page declares no file;
+  page images (markdown, `<img>`, `{figure}`) under `image/` that aren't declared (they'd work on the site but never
+  reach Colab); declared files over `MAX_EMBED_BYTES` (2 MB total, twin in `assets/plugin.mjs`, which skips
+  embedding with a warning). Other dynamic paths can't be detected: declare every file the code can reach.
 - The embedded bytes grow the page: keep tutorial files small; large datasets use the author's own download cell.
+- Limits: the download cell needs Internet (on Kaggle it must be turned on; the cell says so on failure), and raw
+  URLs don't work for a private repo.
 
 ## Editable cells (internals)
 

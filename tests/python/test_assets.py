@@ -187,3 +187,102 @@ def test_rewrite_markdown_image_with_title():
     assert rewrite_markdown_images(nb, "org/repo", "nb", "W1D1", "image") == 1
     joined = "".join(nb["cells"][0]["source"])
     assert 'notebooks/W1D1/image/x.png "A title")' in joined
+
+
+# --- {figure} / {image}, undeclared images, dynamic paths, size guard, download errors ---
+
+from nma_kit.assets import (  # noqa: E402
+    convert_image_directives,
+    dynamic_reference_errors,
+    embed_size_errors,
+    find_image_directives,
+    image_references,
+    undeclared_image_errors,
+    MAX_EMBED_BYTES,
+)
+
+FIGURE = """Intro
+
+```{figure} image/atlas.png
+:alt: Brain atlas
+:width: 60%
+
+The atlas, *annotated*.
+```
+
+after
+"""
+
+
+def test_find_image_directives_reads_options_and_caption():
+    (d,) = find_image_directives(FIGURE)
+    assert (d.kind, d.path) == ("figure", "image/atlas.png")
+    assert d.options == {"alt": "Brain atlas", "width": "60%"}
+    assert d.caption == "The atlas, *annotated*."
+
+
+def test_find_image_directives_yaml_options_and_colon_fence():
+    text = ":::{image} image/a.png\n---\nalt: A\nwidth: 10px\n---\n:::\n"
+    (d,) = find_image_directives(text)
+    assert (d.kind, d.options, d.caption) == ("image", {"alt": "A", "width": "10px"}, "")
+
+
+def test_find_image_directives_ignores_nested_examples():
+    text = "````md\n```{figure} image/a.png\n```\n````\n"
+    assert find_image_directives(text) == []
+
+
+def test_convert_image_directives_makes_img_with_published_url_and_caption():
+    out, n = convert_image_directives(FIGURE, "org/repo", "nb", "W1D1", "image")
+    assert n == 1
+    assert '<img src="https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/image/atlas.png"' in out
+    assert 'alt="Brain atlas"' in out and 'width="60%"' in out
+    assert "*The atlas, *annotated*.*" in out
+    assert "{figure}" not in out and out.startswith("Intro\n") and out.rstrip().endswith("after")
+
+
+def test_convert_image_directives_keeps_external_urls():
+    out, _ = convert_image_directives("```{image} https://x.org/a.png\n```\n", "o/r", "nb", "d", "image")
+    assert 'src="https://x.org/a.png"' in out
+
+
+def test_rewrite_markdown_images_counts_directives():
+    nb = {"cells": [{"cell_type": "markdown", "source": FIGURE.splitlines(keepends=True)}]}
+    assert rewrite_markdown_images(nb, "org/repo", "nb", "W1D1", "image") == 1
+    assert "raw.githubusercontent.com" in "".join(nb["cells"][0]["source"])
+
+
+def test_image_references_cover_markdown_html_and_directives():
+    text = (
+        "![a](image/a.png)\n<img src='image/b.png' width=3>\n```{figure} image/c.png\n```\n"
+        "```python\n![x](image/skip.png)\n```\n![ext](https://x.org/image/z.png)\n"
+    )
+    assert image_references(text, "image") == ["image/a.png", "image/b.png", "image/c.png"]
+
+
+def test_undeclared_image_errors():
+    text = ":::{nma-data}\nimage/a.png\n:::\n![a](image/a.png)\n![b](image/b.png)\n"
+    errors = undeclared_image_errors(text, "image")
+    assert len(errors) == 1 and "image/b.png" in errors[0]
+
+
+def test_dynamic_reference_errors_need_a_declared_file_in_that_folder():
+    code = '```{code-cell} python\nnp.load(f"data/{name}.npz")\n```\n'
+    assert len(dynamic_reference_errors(code, "data", "image")) == 1
+    declared = ":::{nma-data}\ndata/a.npz\n:::\n" + code
+    assert dynamic_reference_errors(declared, "data", "image") == []
+    assert dynamic_reference_errors('```{code-cell} python\nx = f"hello/{y}"\n```\n', "data", "image") == []
+
+
+def test_embed_size_errors(tmp_path):
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "big.bin").write_bytes(b"0" * (MAX_EMBED_BYTES + 1))
+    (tmp_path / "data" / "ok.bin").write_bytes(b"0")
+    assert len(embed_size_errors(":::{nma-data}\ndata/big.bin\n:::\n", tmp_path)) == 1
+    assert embed_size_errors(":::{nma-data}\ndata/ok.bin\n:::\n", tmp_path) == []
+
+
+def test_download_cell_explains_failures():
+    src = download_cell_source(["data/a.npz"], "org/repo", "nb", "W1D1")
+    compile(src, "<cell>", "exec")
+    assert "Internet" in src

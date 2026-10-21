@@ -171,6 +171,59 @@ def undeclared_reference_errors(text: str, data_dir: str, image_dir: str) -> lis
     return errors
 
 
+def _dynamic_pattern(data_dir: str, image_dir: str) -> re.Pattern:
+    prefix = "|".join(re.escape(d) for d in (data_dir, image_dir))
+    # f"data/{name}.npz" or "data/{}.npz".format(...): the path is built at run time
+    return re.compile(r"""\bf?['"]((?:%s))/[^'"]*\{[^'"]*['"]""" % prefix)
+
+
+def dynamic_reference_errors(text: str, data_dir: str, image_dir: str) -> list[str]:
+    """Errors for code that builds a data/image path at run time under a folder nothing declares.
+
+    The exact file can't be known, so this only requires the page to declare at
+    least one file in that folder (the author then lists every file the code can reach).
+    """
+    declared_dirs = {p.split("/", 1)[0] for p in parse_data_directive(text)}
+    pattern = _dynamic_pattern(data_dir, image_dir)
+    errors = []
+    for block in nma_solutions.find_blocks(text):
+        if block.kind not in ("code-cell", "exercise") or block.nested:
+            continue
+        reported = set()
+        for line in block.body_lines:
+            for match in pattern.finditer(line):
+                folder = match.group(1)
+                if folder not in declared_dirs and folder not in reported:
+                    reported.add(folder)
+                    errors.append(
+                        f"line {block.start + 1}: code builds a path under {folder}/ at run time, "
+                        f"but no {{nma-data}} directive declares any {folder}/ file; "
+                        f"declare every file the code can read"
+                    )
+    return errors
+
+
+# Files declared by {nma-data} are embedded (base64) in the page for browser cells.
+# JS twin: MAX_EMBED_BYTES in js/src/assets/plugin.mjs.
+MAX_EMBED_BYTES = 2 * 1024 * 1024
+
+
+def embed_size_errors(text: str, day_dir: Path) -> list[str]:
+    """Error when the declared files together are too big to embed in the page."""
+    total = 0
+    for path in parse_data_directive(text):
+        full = Path(day_dir) / path
+        if _well_formed(path) and full.is_file():
+            total += full.stat().st_size
+    if total <= MAX_EMBED_BYTES:
+        return []
+    return [
+        f"{{nma-data}} files total {total / 1024 / 1024:.1f} MB, more than the "
+        f"{MAX_EMBED_BYTES // 1024 // 1024} MB that can be embedded in the page for browser cells. "
+        f"Declare only small files; fetch large datasets with your own download cell"
+    ]
+
+
 DOWNLOAD_CELL_ID = "nma-download-data"
 DOWNLOAD_SENTINEL = "# @title Download course data"
 
@@ -182,7 +235,10 @@ _BASE = "$base"
 for _f in [$files]:
     if not os.path.exists(_f):
         os.makedirs(os.path.dirname(_f), exist_ok=True)
-        urllib.request.urlretrieve(_BASE + _f, _f)
+        try:
+            urllib.request.urlretrieve(_BASE + _f, _f)
+        except OSError as _e:
+            raise RuntimeError(f"Could not download {_f} ({_e}). On Kaggle, turn Internet on in the notebook settings.") from None
 del _f''')
 
 
@@ -242,16 +298,161 @@ def _image_rewriter(repo: str, branch: str, day: str, image_dir: str):
     return rewrite, total
 
 
+IMAGE_DIRECTIVE_RE = re.compile(r"^\{(figure|image)\}\s*(.*?)\s*$")
+_OPTION_RE = re.compile(r"^:([\w-]+):\s*(.*?)\s*$")
+
+
+@dataclass
+class ImageDirective:
+    kind: str                # "figure" or "image"
+    path: str                # the directive argument (image path or URL)
+    options: dict            # :alt:, :width:, ... (as written)
+    caption: str             # figure caption (markdown), '' for {image}
+    start: int               # 0-based line index of the opening fence
+    end: int                 # 0-based line index of the closing fence
+
+
+def _scan_top_level(text: str):
+    """Yield ('line', i, line) outside any fence and ('fence', i, (marker, info, end)) for each top-level fence.
+
+    A fence's end is the index of its closing line (len(lines) when unclosed).
+    """
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        match = ANY_FENCE_RE.match(lines[i])
+        if not match:
+            yield "line", i, lines[i]
+            i += 1
+            continue
+        marker, info = match.group(1), match.group(2).strip()
+        j = i + 1
+        while j < len(lines):
+            close = ANY_FENCE_RE.match(lines[j])
+            if (close and close.group(1)[0] == marker[0] and len(close.group(1)) >= len(marker)
+                    and not close.group(2).strip()):
+                break
+            j += 1
+        yield "fence", i, (marker, info, j, lines[i + 1:j])
+        i = j + 1
+
+
+def find_image_directives(text: str) -> list[ImageDirective]:
+    """Top-level {figure} / {image} directives, with their options and caption."""
+    found = []
+    for kind, i, payload in _scan_top_level(text):
+        if kind != "fence":
+            continue
+        _marker, info, end, body = payload
+        match = IMAGE_DIRECTIVE_RE.match(info)
+        if not match:
+            continue
+        options, rest = {}, list(body)
+        if rest and rest[0].strip() == "---":           # YAML options block
+            close = next((k for k in range(1, len(rest)) if rest[k].strip() == "---"), None)
+            if close is not None:
+                for line in rest[1:close]:
+                    key, _, value = line.partition(":")
+                    if key.strip():
+                        options[key.strip()] = value.strip().strip("\"'")
+                rest = rest[close + 1:]
+        else:
+            while rest and _OPTION_RE.match(rest[0]):
+                m = _OPTION_RE.match(rest.pop(0))
+                options[m.group(1)] = m.group(2)
+        caption = "\n".join(rest).strip() if match.group(1) == "figure" else ""
+        found.append(ImageDirective(match.group(1), match.group(2), options, caption, i, end))
+    return found
+
+
+_MD_IMAGE_RE = re.compile(r"""!\[[^\]]*\]\(\s*([^\s)]+)""")
+_HTML_IMAGE_RE = re.compile(r"""<img[^>]*\ssrc=["']([^"']+)["']""")
+
+
+def image_references(text: str, image_dir: str) -> list[str]:
+    """Image paths under `image_dir` referenced by markdown, <img> or {figure}/{image}, in order, deduped."""
+    prefix = image_dir + "/"
+    seen = {}
+    for kind, _i, payload in _scan_top_level(text):
+        if kind == "line":
+            refs = _MD_IMAGE_RE.findall(payload) + _HTML_IMAGE_RE.findall(payload)
+        else:
+            match = IMAGE_DIRECTIVE_RE.match(payload[1])
+            refs = [match.group(2)] if match else []
+        for ref in refs:
+            if ref.startswith(prefix):
+                seen.setdefault(ref, None)
+    return list(seen)
+
+
+def undeclared_image_errors(text: str, image_dir: str) -> list[str]:
+    """Errors for page images under `image_dir` that no {nma-data} declares.
+
+    An undeclared image works on the site but is never published for Colab/Kaggle.
+    """
+    declared = set(parse_data_directive(text))
+    return [
+        f"{ref!r} is used as an image but no {{nma-data}} directive on the page declares it"
+        for ref in image_references(text, image_dir) if ref not in declared
+    ]
+
+
+def _html_attr(value: str) -> str:
+    return value.replace("&", "&amp;").replace('"', "&quot;")
+
+
+def _image_directive_html(d: ImageDirective, url: str) -> str:
+    attrs = [f'src="{_html_attr(url)}"']
+    alt = d.options.get("alt")
+    if alt:
+        attrs.append(f'alt="{_html_attr(alt)}"')
+    width = d.options.get("width")
+    if width:
+        attrs.append(f'width="{_html_attr(width)}"')
+    html = f"<img {' '.join(attrs)}>"
+    if d.kind == "figure" and d.caption:
+        html += f"\n\n*{' '.join(d.caption.split())}*"
+    return html
+
+
+def convert_image_directives(text: str, repo: str, branch: str, day: str, image_dir: str) -> tuple[str, int]:
+    """Replace {figure}/{image} directives with <img> (+ italic caption) that Colab renders.
+
+    Paths under `image_dir` become published URLs; other paths are kept as written.
+    Returns (new text, number converted).
+    """
+    directives = find_image_directives(text)
+    if not directives:
+        return text, 0
+    lines = text.splitlines()
+    out, cursor = [], 0
+    for d in directives:
+        out.extend(lines[cursor:d.start])
+        path = d.path
+        url = asset_url(repo, branch, day, path) if path.startswith(image_dir + "/") else path
+        out.extend(_image_directive_html(d, url).split("\n"))
+        cursor = d.end + 1
+    out.extend(lines[cursor:])
+    return "\n".join(out) + ("\n" if text.endswith("\n") else ""), len(directives)
+
+
 def rewrite_markdown_images(nb: dict, repo: str, branch: str, day: str, image_dir: str) -> int:
-    """Rewrite relative image references in markdown cells to published URLs. Returns count."""
+    """Make image references in markdown cells point at published URLs. Returns count.
+
+    {figure}/{image} directives become <img> tags; markdown and <img> references
+    under `image_dir` are rewritten in place.
+    """
     rewrite, total = _image_rewriter(repo, branch, day, image_dir)
+    converted = 0
     for cell in nb["cells"]:
         if cell.get("cell_type") != "markdown":
             continue
         source = cell["source"]
         text = "".join(source) if isinstance(source, list) else source
+        text, n = convert_image_directives(text, repo, branch, day, image_dir)
+        converted += n
         cell["source"] = rewrite(text).splitlines(keepends=True)
-    return total()
+    return total() + converted
 
 
 def _well_formed(path: str) -> bool:

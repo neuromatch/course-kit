@@ -69,3 +69,23 @@ test('applyAssets sets tree.data.nmaAssets only when the page declares files', (
 test('the plugin registers the nma-assets transform at document stage', () => {
   assert.deepEqual(plugin.transforms.map((t) => [t.name, t.stage]), [['nma-assets', 'document']]);
 });
+
+import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { MAX_EMBED_BYTES } from '../../js/src/assets/plugin.mjs';
+
+test('applyAssets refuses to embed more than MAX_EMBED_BYTES and says so', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'nma-big-'));
+  mkdirSync(join(dir, 'data'));
+  writeFileSync(join(dir, 'data', 'big.bin'), Buffer.alloc(MAX_EMBED_BYTES + 1));
+  const tree = { type: 'root', children: [] };
+  const warning = applyAssets(tree, ':::{nma-data}\ndata/big.bin\n:::\n', join(dir, 'page.md'));
+  assert.match(warning, /embed limit/);
+  assert.equal(tree.data, undefined);
+});
+
+test('MAX_EMBED_BYTES matches the Python twin', () => {
+  const py = readFileSync(join(here, '..', '..', 'python', 'src', 'nma_kit', 'assets.py'), 'utf8');
+  assert.match(py, /MAX_EMBED_BYTES = 2 \* 1024 \* 1024/);
+  assert.equal(MAX_EMBED_BYTES, 2 * 1024 * 1024);
+});

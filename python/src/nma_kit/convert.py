@@ -214,6 +214,9 @@ def validate_content(check_injected: bool = True) -> list[str]:
             nma_assets.validate_data_directives(text, settings.assets_data_dir, settings.assets_image_dir)
             + nma_assets.missing_file_errors(text, path.parent)
             + nma_assets.undeclared_reference_errors(text, settings.assets_data_dir, settings.assets_image_dir)
+            + nma_assets.dynamic_reference_errors(text, settings.assets_data_dir, settings.assets_image_dir)
+            + nma_assets.undeclared_image_errors(text, settings.assets_image_dir)
+            + nma_assets.embed_size_errors(text, path.parent)
         ):
             errors.append(f"{path}: {problem}")
         if not has_config and not config_problems and nma_feedback.find_directives(text):

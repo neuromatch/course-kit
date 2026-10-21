@@ -20,6 +20,15 @@ This image is referenced with a relative path:
 
 ![A single red pixel](image/demo.png)
 
+The `{figure}` directive works too, and becomes an `<img>` in the notebook:
+
+```{figure} image/demo.png
+:alt: The same pixel, as a figure
+:width: 80px
+
+A figure with a caption.
+```
+
 ## Reading a data file
 
 ```{code-cell} python

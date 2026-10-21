@@ -15,6 +15,9 @@ import { assetUrlFor, parseDataDirective, validateDataDirectives } from './model
 
 export { parseDataDirective, validateDataDirectives, assetUrlFor };
 
+// Python twin: MAX_EMBED_BYTES in nma_kit.assets. `nma-kit check` reports it as an error.
+export const MAX_EMBED_BYTES = 2 * 1024 * 1024;
+
 const text = (value) => ({ type: 'text', value });
 const link = (url, label) => ({ type: 'link', url, children: [text(label)] });
 
@@ -52,12 +55,23 @@ export function readEmbeddedAssets(dayDir, paths) {
   return out;
 }
 
-/** Attach the embedded files of a page's {nma-data} declarations to the tree. */
+/**
+ * Attach the embedded files of a page's {nma-data} declarations to the tree.
+ * Returns a warning when they are too big to embed (nothing is attached then).
+ */
 export function applyAssets(tree, source, pagePath) {
   const paths = parseDataDirective(source);
-  if (paths.length === 0) return;
+  if (paths.length === 0) return null;
   const assets = readEmbeddedAssets(dirname(pagePath), paths);
+  const bytes = assets.reduce((sum, a) => sum + Buffer.byteLength(a.b64, 'base64'), 0);
+  if (bytes > MAX_EMBED_BYTES) {
+    return (
+      `{nma-data} files total ${(bytes / 1024 / 1024).toFixed(1)} MB, over the ` +
+      `${MAX_EMBED_BYTES / 1024 / 1024} MB embed limit: browser cells will not have them`
+    );
+  }
   tree.data = { ...(tree.data ?? {}), nmaAssets: assets };
+  return null;
 }
 
 function urlFor(filePath) {
@@ -89,7 +103,8 @@ const assetsTransform = {
     } catch {
       return;
     }
-    applyAssets(tree, source, vfile.path);
+    const warning = applyAssets(tree, source, vfile.path);
+    if (warning) vfile.message(warning, null, 'nma-assets');
   },
 };
 
