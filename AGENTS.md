@@ -149,8 +149,8 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   A tutorial declares what it uses with `{nma-data}` (one path per line, `data/` or `image/` prefix, no `..`).
 - **Notebooks** (`build_notebooks`): the directive is stripped, a hidden `hide-cell` download cell
   (`# @title Download course data`, right after the badge cell) fetches the declared files from
-  `raw.githubusercontent.com/<repo>/<branch>/notebooks/<day>/`, markdown images (`image/..`) are
-  rewritten to the same URLs, and declared files are copied to `notebooks/<day>/` so `publish-notebooks` ships them.
+  `raw.githubusercontent.com/<repo>/<branch>/notebooks/<root>/<day>/`, markdown images (`image/..`) are
+  rewritten to the same URLs, and declared files are copied to `notebooks/<root>/<day>/` so `publish-notebooks` ships them.
 - **Browser cells**: the plugin reads declared files at build time and embeds them (base64) in the runtime
   widget model; `PageRuntime.writeAssets` writes them into the kernel through a Python prelude before the first cell
   (and after a restart). No fetch, so it works without the notebooks branch and under any base path.
