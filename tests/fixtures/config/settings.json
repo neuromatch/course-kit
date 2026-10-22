@@ -1,5 +1,5 @@
 {
-  "_doc": "Shared by tests/python/test_config.py and tests/js/config.test.mjs. Each case: a course myst.yml, a page path relative to the course root, and what both sides must compute for it (null = page is outside the tutorials dir).",
+  "_doc": "Shared by tests/python/test_config.py and tests/js/config.test.mjs. Each case: a course myst.yml, a page path relative to the course root, and what both sides must compute for it (null = page is outside every content dir). `notebookDir` is the folder under notebooks/.",
   "cases": [
     {
       "name": "defaults without an nma block",
@@ -8,10 +8,12 @@
       "expect": {
         "relDir": "W2D1_Examples",
         "stem": "W2D1_Tutorial1",
-        "notebook": "notebooks/W2D1_Examples/W2D1_Tutorial1.ipynb",
-        "colab": "https://colab.research.google.com/github/neuromatch/course-template/blob/notebooks-branch/notebooks/W2D1_Examples/W2D1_Tutorial1.ipynb",
-        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/neuromatch/course-template/notebooks-branch/notebooks/W2D1_Examples/W2D1_Tutorial1.ipynb",
-        "solution1": "https://github.com/neuromatch/course-template/blob/notebooks-branch/notebooks/W2D1_Examples/solutions/W2D1_Tutorial1_Solution_1.py"
+        "notebook": "notebooks/tutorials/W2D1_Examples/W2D1_Tutorial1.ipynb",
+        "colab": "https://colab.research.google.com/github/neuromatch/course-template/blob/notebooks-branch/notebooks/tutorials/W2D1_Examples/W2D1_Tutorial1.ipynb",
+        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/neuromatch/course-template/notebooks-branch/notebooks/tutorials/W2D1_Examples/W2D1_Tutorial1.ipynb",
+        "solution1": "https://github.com/neuromatch/course-template/blob/notebooks-branch/notebooks/tutorials/W2D1_Examples/solutions/W2D1_Tutorial1_Solution_1.py",
+        "root": "tutorials",
+        "notebookDir": "tutorials/W2D1_Examples"
       }
     },
     {
@@ -21,10 +23,12 @@
       "expect": {
         "relDir": "Day1",
         "stem": "T1",
-        "notebook": "notebooks/Day1/T1.ipynb",
-        "colab": "https://colab.research.google.com/github/org/my-course/blob/nb/notebooks/Day1/T1.ipynb",
-        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/org/my-course/nb/notebooks/Day1/T1.ipynb",
-        "solution1": "https://github.com/org/my-course/blob/nb/notebooks/Day1/solutions/T1_Solution_1.py"
+        "notebook": "notebooks/tutorials/Day1/T1.ipynb",
+        "colab": "https://colab.research.google.com/github/org/my-course/blob/nb/notebooks/tutorials/Day1/T1.ipynb",
+        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/org/my-course/nb/notebooks/tutorials/Day1/T1.ipynb",
+        "solution1": "https://github.com/org/my-course/blob/nb/notebooks/tutorials/Day1/solutions/T1_Solution_1.py",
+        "root": "tutorials",
+        "notebookDir": "tutorials/Day1"
       }
     },
     {
@@ -34,10 +38,12 @@
       "expect": {
         "relDir": "",
         "stem": "intro",
-        "notebook": "notebooks/intro.ipynb",
-        "colab": "https://colab.research.google.com/github/o/r/blob/notebooks-branch/notebooks/intro.ipynb",
-        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/o/r/notebooks-branch/notebooks/intro.ipynb",
-        "solution1": "https://github.com/o/r/blob/notebooks-branch/notebooks/solutions/intro_Solution_1.py"
+        "notebook": "notebooks/tutorials/intro.ipynb",
+        "colab": "https://colab.research.google.com/github/o/r/blob/notebooks-branch/notebooks/tutorials/intro.ipynb",
+        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/o/r/notebooks-branch/notebooks/tutorials/intro.ipynb",
+        "solution1": "https://github.com/o/r/blob/notebooks-branch/notebooks/tutorials/solutions/intro_Solution_1.py",
+        "root": "tutorials",
+        "notebookDir": "tutorials"
       }
     },
     {
@@ -45,6 +51,51 @@
       "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  paths:\n    tutorials: content\n",
       "page": "tutorials/W1D1/T1.md",
       "expect": null
+    },
+    {
+      "name": "project page",
+      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\n",
+      "page": "projects/Neuroscience/ProjectA.md",
+      "expect": {
+        "root": "projects",
+        "relDir": "Neuroscience",
+        "notebookDir": "projects/Neuroscience",
+        "stem": "ProjectA",
+        "notebook": "notebooks/projects/Neuroscience/ProjectA.ipynb",
+        "colab": "https://colab.research.google.com/github/o/r/blob/notebooks-branch/notebooks/projects/Neuroscience/ProjectA.ipynb",
+        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/o/r/notebooks-branch/notebooks/projects/Neuroscience/ProjectA.ipynb",
+        "solution1": "https://github.com/o/r/blob/notebooks-branch/notebooks/projects/Neuroscience/solutions/ProjectA_Solution_1.py"
+      }
+    },
+    {
+      "name": "custom projects dir keeps the projects root name",
+      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  paths:\n    projects: capstone\n",
+      "page": "capstone/P1.md",
+      "expect": {
+        "root": "projects",
+        "relDir": "",
+        "notebookDir": "projects",
+        "stem": "P1",
+        "notebook": "notebooks/projects/P1.ipynb",
+        "colab": "https://colab.research.google.com/github/o/r/blob/notebooks-branch/notebooks/projects/P1.ipynb",
+        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/o/r/notebooks-branch/notebooks/projects/P1.ipynb",
+        "solution1": "https://github.com/o/r/blob/notebooks-branch/notebooks/projects/solutions/P1_Solution_1.py"
+      }
+    },
+    {
+      "name": "deepest content root wins",
+      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  paths:\n    tutorials: course\n    projects: course/projects\n",
+      "page": "course/projects/P1.md",
+      "expect": {
+        "root": "projects",
+        "relDir": "",
+        "notebookDir": "projects",
+        "stem": "P1",
+        "notebook": "notebooks/projects/P1.ipynb",
+        "colab": "https://colab.research.google.com/github/o/r/blob/notebooks-branch/notebooks/projects/P1.ipynb",
+        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/o/r/notebooks-branch/notebooks/projects/P1.ipynb",
+        "solution1": "https://github.com/o/r/blob/notebooks-branch/notebooks/projects/solutions/P1_Solution_1.py"
+      }
     }
   ]
 }

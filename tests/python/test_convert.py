@@ -114,7 +114,7 @@ def test_build_notebooks_expands_feedback(tmp_path, monkeypatch):
     page = tmp_path / "tutorials" / "D" / "T.md"
     page.parent.mkdir(parents=True)
     page.write_text(FEEDBACK_PAGE)
-    out = tmp_path / "notebooks" / "D" / "T.ipynb"
+    out = tmp_path / "notebooks" / "tutorials" / "D" / "T.ipynb"
     config = nma_feedback.FeedbackConfig("https://e.org", "proj", "key")
 
     convert_md_to_notebook(page.relative_to(tmp_path), out, dry_run=False)
@@ -180,7 +180,7 @@ def test_build_notebooks_flattens_scrolly_pages(tmp_path, monkeypatch):
     page = tmp_path / "tutorials" / "D" / "T.md"
     page.parent.mkdir(parents=True)
     page.write_text(SCROLLY_PAGE)
-    out = tmp_path / "notebooks" / "D" / "T.ipynb"
+    out = tmp_path / "notebooks" / "tutorials" / "D" / "T.ipynb"
 
     convert_md_to_notebook(page.relative_to(tmp_path), out, dry_run=False)
     build_notebooks(page.relative_to(tmp_path), out.relative_to(tmp_path), "org/repo", False, None)

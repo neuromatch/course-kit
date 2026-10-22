@@ -94,6 +94,22 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   (editable cells replace JupyterLite's power button) is in the kit's
   `site.css`; courses no longer carry it.
 
+## Content roots (internals)
+
+- Pages live in **content roots**: `tutorials` (`nma.paths.tutorials`) and
+  `projects` (`nma.paths.projects`). `Settings.content_roots` /
+  `contentRoots()` list `(name, directory)`; the *name* is fixed, the
+  directory is configurable. A missing directory is just empty.
+- Everything generated is scoped by the root name:
+  `notebooks/<root>/<relDir>/<stem>.ipynb` (+ `instructor/`, `solutions/`),
+  `_build/scrolly/<root>/<relDir>/<stem>.json`. `page_location` /
+  `pageLocation` return the root too, and `PageLocation.notebook_dir` /
+  `notebookDir()` give the folder under `notebooks/`. The deepest matching
+  directory wins when roots are nested.
+- `nma-kit notebooks | prepare-site | render-scrolly | check` all go through
+  `process_content` / the roots, so a feature added to tutorials works in projects.
+  The twins are tested with `tests/fixtures/config/settings.json`.
+
 ## Site branding (internals)
 
 - **Source of truth**: `python/src/nma_kit/assets/` (`site.css`, logos, favicon,
@@ -119,7 +135,7 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   change), `--nma-cell-*` and `--nma-tok-*` (read by `cells/assets/cells.css`).
   Syntax-token colours are fixed on purpose (chosen for contrast).
 - Settings are validated by `branding.brand_errors` inside `check`.
-- `tests/scripts/build-example.sh` ends with `git checkout -- tutorials myst.yml`
+- `tests/scripts/build-example.sh` ends with `git checkout -- tutorials projects myst.yml`
   to undo `prepare-site`: stage (`git add`) edits to the example course's
   `myst.yml` before running it, or they are reverted too.
 
@@ -164,7 +180,7 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   footer links; regression test in `tests/js/scrolly.test.mjs`).
 - `nma-kit render-scrolly` runs each scrolly page's instructor notebook
   (exercise cells removed, `# @param` at defaults, cwd = page dir) and writes
-  `_build/scrolly/<relDir>/<stem>.json` = `{cell_key: {stdout, images, error}}`.
+  `_build/scrolly/<root>/<relDir>/<stem>.json` = `{cell_key: {stdout, images, error}}`.
   A raising cell fails CI with `file:line`.
 
 ## Commands

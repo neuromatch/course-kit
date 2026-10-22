@@ -24,7 +24,7 @@ folder with `myst.yml`).
 | Command | What it does |
 |---|---|
 | `nma-kit check` | Validate the content rules and the `nma:` block of `myst.yml` |
-| `nma-kit notebooks [--dry-run]` | Generate student and instructor notebooks and the solution files into `notebooks/` |
+| `nma-kit notebooks [--dry-run]` | Generate student and instructor notebooks and the solution files into `notebooks/<tutorials|projects>/...` |
 | `nma-kit sync-assets` | Write the site branding (stylesheet, logos, favicon, Rubik font) to `_nma/`, which the course's `myst.yml` points at |
 | `nma-kit render-scrolly` | Run each scrolly page's instructor notebook and save outputs to `_build/scrolly/` |
 | `nma-kit prepare-site [--dry-run] [--kit-version V]` | Add badges and fallback cells to the pages, pin the kit URL in `myst.yml` and run `sync-assets`. **CI only: it edits files in place, never commit the result** |
@@ -41,7 +41,8 @@ top-level `nma:` block holds the rest.
 ```yaml
 nma:
   paths:
-    tutorials: tutorials          # where the .md pages live
+    tutorials: tutorials          # where the tutorial .md pages live
+    projects: projects            # where the project .md pages live
   notebooks:
     branch: notebooks-branch      # where generated notebooks are published
   feedback:                       # required if any page uses {nma-feedback}
