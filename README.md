@@ -66,7 +66,8 @@ Optional settings, in the `nma:` block of `myst.yml` (defaults shown, except
 ```yaml
 nma:
   paths:
-    tutorials: tutorials          # where the .md pages live
+    tutorials: tutorials          # where the tutorial .md pages live
+    projects: projects            # where the project .md pages live
   notebooks:
     branch: notebooks-branch      # where generated notebooks are published
   feedback:                       # needed if any page uses {nma-feedback}

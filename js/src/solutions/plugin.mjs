@@ -6,7 +6,7 @@
 // placeholders in document order and builds the links. The file naming and URL
 // rules must stay in sync with nma_kit.solutions.
 
-import { courseSettings, pageLocation, solutionUrl } from '../shared/paths.mjs';
+import { contentRoots, notebookDir, pageLocation, solutionUrl } from '../shared/paths.mjs';
 import { findPlaceholders, replaceNode, text } from '../shared/tree.mjs';
 
 const SOLUTION_KINDS = {
@@ -56,12 +56,12 @@ const solutionLinks = {
         continue;
       }
       if (!location) {
-        fatal(`${kind} is only supported in pages under ${courseSettings().tutorialsDir}/`);
+        fatal(`${kind} is only supported in pages under ${contentRoots().map(([, dir]) => `${dir}/`).join(' or ')}`);
         continue;
       }
       counters[kind] = (counters[kind] ?? 0) + 1;
       const { label, file } = SOLUTION_KINDS[kind];
-      const url = solutionUrl(repo, location.relDir, file(location.stem, counters[kind]), branch);
+      const url = solutionUrl(repo, notebookDir(location), file(location.stem, counters[kind]), branch);
       replaceWith(
         [
           {

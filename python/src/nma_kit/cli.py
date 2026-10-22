@@ -58,13 +58,13 @@ def cmd_notebooks(args) -> int:
     settings = _settings()
     if not _validate(check_injected=True):
         return 1
-    count = convert.process_tutorials(settings, args.dry_run, prepare_site=False)
+    count = convert.process_content(settings, args.dry_run, prepare_site=False)
     print(f"Done. Processed {count} file(s).")
     return 0
 
 
 def cmd_render_scrolly(args) -> int:
-    return scrolly.render_all(read_settings().tutorials_dir)
+    return scrolly.render_all(read_settings())
 
 
 def cmd_sync_assets(args) -> int:
@@ -78,7 +78,7 @@ def cmd_prepare_site(args) -> int:
     settings = _settings()
     if not _validate(check_injected=False):
         return 1
-    count = convert.process_tutorials(settings, args.dry_run, prepare_site=True)
+    count = convert.process_content(settings, args.dry_run, prepare_site=True)
     if not args.dry_run:
         branding.sync_assets(settings)
         text = MYST_CONFIG.read_text(encoding="utf-8")

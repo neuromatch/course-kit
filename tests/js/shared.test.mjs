@@ -39,9 +39,9 @@ test('notebookUrls matches make_badge_html', () => {
   const { colabUrl, kaggleUrl } = notebookUrls(join(course, 'tutorials/W2D1_Examples/W2D1_Tutorial1.md'));
   assert.equal(
     colabUrl,
-    'https://colab.research.google.com/github/neuromatch/course-kit/blob/notebooks-branch/notebooks/W2D1_Examples/W2D1_Tutorial1.ipynb',
+    'https://colab.research.google.com/github/neuromatch/course-kit/blob/notebooks-branch/notebooks/tutorials/W2D1_Examples/W2D1_Tutorial1.ipynb',
   );
   assert.ok(
-    kaggleUrl.endsWith('raw.githubusercontent.com/neuromatch/course-kit/notebooks-branch/notebooks/W2D1_Examples/W2D1_Tutorial1.ipynb'),
+    kaggleUrl.endsWith('raw.githubusercontent.com/neuromatch/course-kit/notebooks-branch/notebooks/tutorials/W2D1_Examples/W2D1_Tutorial1.ipynb'),
   );
 });

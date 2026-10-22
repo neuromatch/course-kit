@@ -420,12 +420,12 @@ function scrollyConfig() {
   return { pyodideUrl: courseSettings().nma.scrolly?.pyodide_url || DEFAULT_PYODIDE_URL };
 }
 
-// tutorials/W2D1_Examples/W2D1_Tutorial2.md -> _build/scrolly/W2D1_Examples/W2D1_Tutorial2.json
-// (same as render_path in nma_kit.scrolly; the tutorials dir comes from myst.yml)
+// tutorials/W2D1_Examples/W2D1_Tutorial2.md -> _build/scrolly/tutorials/W2D1_Examples/W2D1_Tutorial2.json
+// (same as render_path in nma_kit.scrolly; the content dirs come from myst.yml)
 function renderFile(filePath) {
   const location = pageLocation(filePath);
   const parts = location
-    ? [...(location.relDir ? location.relDir.split('/') : []), location.stem]
+    ? [location.root, ...(location.relDir ? location.relDir.split('/') : []), location.stem]
     : relative(process.cwd(), filePath).split(sep).join('/').replace(/\.[^.]+$/, '').split('/');
   const stem = parts.pop();
   return join(process.cwd(), '_build', 'scrolly', ...parts, `${stem}.json`);

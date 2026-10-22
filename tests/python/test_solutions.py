@@ -247,11 +247,11 @@ NB = notebook(
     code("plot()", "d"),
     md(f"{SOLUTION}", "e"),
 )
-URL = "https://github.com/org/repo/blob/notebooks-branch/notebooks/Day/solutions/"
+URL = "https://github.com/org/repo/blob/notebooks-branch/notebooks/tutorials/Day/solutions/"
 
 
 def test_student_notebook_has_links_and_no_solution_code():
-    student, _, _ = split_notebook(NB, "T", "Day", "org/repo")
+    student, _, _ = split_notebook(NB, "T", "tutorials/Day", "org/repo")
     texts = [(c["cell_type"], text_of(c)) for c in student["cells"]]
     assert texts == [
         ("markdown", "# T"),
@@ -267,7 +267,7 @@ def test_student_notebook_has_links_and_no_solution_code():
 
 
 def test_instructor_notebook_has_solutions_and_explanations():
-    _, instructor, _ = split_notebook(NB, "T", "Day", "org/repo")
+    _, instructor, _ = split_notebook(NB, "T", "tutorials/Day", "org/repo")
     cells = instructor["cells"]
     assert [c["cell_type"] for c in cells] == [
         "markdown", "code", "code", "markdown", "markdown", "code", "code"]
@@ -279,7 +279,7 @@ def test_instructor_notebook_has_solutions_and_explanations():
 
 
 def test_files_are_returned():
-    _, _, files = split_notebook(NB, "T", "Day", "org/repo")
+    _, _, files = split_notebook(NB, "T", "tutorials/Day", "org/repo")
     assert files == {
         "T_Solution_1.py": "def f(x):\n  return 2 * x\n",
         "T_Explanation_1.md": "For $a<0$ the solution **decays**.\n",
@@ -288,7 +288,7 @@ def test_files_are_returned():
 
 
 def test_cell_ids_are_unique():
-    student, instructor, _ = split_notebook(NB, "T", "Day", "org/repo")
+    student, instructor, _ = split_notebook(NB, "T", "tutorials/Day", "org/repo")
     for nb in (student, instructor):
         ids = [c["id"] for c in nb["cells"]]
         assert len(ids) == len(set(ids))
@@ -296,13 +296,13 @@ def test_cell_ids_are_unique():
 
 def test_notebook_without_directives_is_unchanged():
     nb = notebook(md("# T", "a"), code("x = 1", "b"))
-    student, instructor, files = split_notebook(nb, "T", "Day", "org/repo")
+    student, instructor, files = split_notebook(nb, "T", "tutorials/Day", "org/repo")
     assert student == nb and instructor == nb and files == {}
 
 
 def test_input_notebook_is_not_mutated():
     before = str(NB)
-    split_notebook(NB, "T", "Day", "org/repo")
+    split_notebook(NB, "T", "tutorials/Day", "org/repo")
     assert str(NB) == before
 
 

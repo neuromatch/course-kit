@@ -8,7 +8,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSettings, readNmaConfig } from '../../js/src/shared/config.mjs';
-import { pageLocation, notebookUrls, solutionUrl, courseSettings } from '../../js/src/shared/paths.mjs';
+import { pageLocation, notebookDir, notebookUrls, solutionUrl, courseSettings } from '../../js/src/shared/paths.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const { cases } = JSON.parse(readFileSync(join(here, '..', 'fixtures', 'config', 'settings.json'), 'utf8'));
@@ -35,10 +35,11 @@ for (const c of cases) {
         assert.equal(location, null);
         return;
       }
-      assert.deepEqual(location, { relDir: c.expect.relDir, stem: c.expect.stem });
+      assert.deepEqual(location, { root: c.expect.root, relDir: c.expect.relDir, stem: c.expect.stem });
+      assert.equal(notebookDir(location), c.expect.notebookDir);
       assert.deepEqual(notebookUrls(page), { colabUrl: c.expect.colab, kaggleUrl: c.expect.kaggle });
       const s = courseSettings();
-      assert.equal(solutionUrl(s.githubRepo, location.relDir, `${location.stem}_Solution_1.py`, s.notebooksBranch), c.expect.solution1);
+      assert.equal(solutionUrl(s.githubRepo, notebookDir(location), `${location.stem}_Solution_1.py`, s.notebooksBranch), c.expect.solution1);
     });
   });
 }
@@ -47,6 +48,7 @@ test('defaults without an nma block', () => {
   assert.deepEqual(loadSettings('project:\n  github: https://github.com/o/r\n'), {
     githubRepo: 'o/r',
     tutorialsDir: 'tutorials',
+    projectsDir: 'projects',
     notebooksBranch: 'notebooks-branch',
     nma: {},
   });

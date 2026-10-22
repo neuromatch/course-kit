@@ -4,13 +4,15 @@
 //
 //   nma:
 //     paths:
-//       tutorials: tutorials        # where the course's .md pages live
+//       tutorials: tutorials        # where the course's tutorial .md pages live
+//       projects: projects          # where the course's project .md pages live
 //     notebooks:
 //       branch: notebooks-branch    # where generated notebooks are published
 
 import { parse } from 'yaml';
 
 export const DEFAULT_TUTORIALS_DIR = 'tutorials';
+export const DEFAULT_PROJECTS_DIR = 'projects';
 export const DEFAULT_NOTEBOOKS_BRANCH = 'notebooks-branch';
 const GITHUB_RE = /github\.com\/([^\s'"]+?)\/?$/;
 
@@ -36,7 +38,7 @@ function setting(nma, section, key, fallback) {
   return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
-/** {githubRepo, tutorialsDir, notebooksBranch, nma} from myst.yml text. */
+/** {githubRepo, tutorialsDir, projectsDir, notebooksBranch, nma} from myst.yml text. */
 export function loadSettings(text) {
   const data = parseYaml(text);
   const nma = readNmaConfig(text);
@@ -45,6 +47,7 @@ export function loadSettings(text) {
   return {
     githubRepo: match ? match[1] : null,
     tutorialsDir: setting(nma, 'paths', 'tutorials', DEFAULT_TUTORIALS_DIR).replace(/^\/+|\/+$/g, ''),
+    projectsDir: setting(nma, 'paths', 'projects', DEFAULT_PROJECTS_DIR).replace(/^\/+|\/+$/g, ''),
     notebooksBranch: setting(nma, 'notebooks', 'branch', DEFAULT_NOTEBOOKS_BRANCH),
     nma,
   };

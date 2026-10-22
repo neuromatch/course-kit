@@ -54,6 +54,7 @@ Settings live in the `nma:` block of `myst.yml` (all optional):
 nma:
   paths:
     tutorials: tutorials
+    projects: projects
   notebooks:
     branch: notebooks-branch
   feedback: { url: https://..., project: ..., user_key: ... }
