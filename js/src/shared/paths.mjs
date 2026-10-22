@@ -28,14 +28,28 @@ export function courseSettings() {
 
 export const githubRepo = () => courseSettings().githubRepo;
 
-// tutorials/W2D1_Examples/W2D1_Tutorial1.md -> { relDir: 'W2D1_Examples', stem: 'W2D1_Tutorial1' }
+/** The (name, directory) of each place pages live; twin of Settings.content_roots. */
+export function contentRoots() {
+  const { tutorialsDir, projectsDir } = courseSettings();
+  return [['tutorials', tutorialsDir], ['projects', projectsDir]];
+}
+
+/** Folder under notebooks/ holding a page's generated files. */
+export const notebookDir = ({ root, relDir }) => (relDir ? `${root}/${relDir}` : root);
+
+// tutorials/W2D1_Examples/W2D1_Tutorial1.md -> { root: 'tutorials', relDir: 'W2D1_Examples', stem: 'W2D1_Tutorial1' }
+// The deepest matching content root wins (twin of page_location).
 export function pageLocation(filePath) {
-  const prefix = `${courseSettings().tutorialsDir}/`;
   const rel = relative(process.cwd(), filePath).split(sep).join('/');
-  if (!rel.startsWith(prefix)) return null;
-  const parts = rel.slice(prefix.length).split('/');
-  const stem = parts.pop().replace(/\.[^.]+$/, '');
-  return { relDir: parts.join('/'), stem };
+  const roots = contentRoots().sort((a, b) => b[1].length - a[1].length);
+  for (const [root, dir] of roots) {
+    const prefix = `${dir}/`;
+    if (!rel.startsWith(prefix)) continue;
+    const parts = rel.slice(prefix.length).split('/');
+    const stem = parts.pop().replace(/\.[^.]+$/, '');
+    return { root, relDir: parts.join('/'), stem };
+  }
+  return null;
 }
 
 /** Colab and Kaggle URLs of a page's generated notebook (same as make_badge_html). */
@@ -43,7 +57,7 @@ export function notebookUrls(filePath) {
   const { githubRepo: repo, notebooksBranch: branch } = courseSettings();
   const location = pageLocation(filePath);
   if (!repo || !location) return { colabUrl: 'https://colab.research.google.com/', kaggleUrl: 'https://www.kaggle.com/' };
-  const path = ['notebooks', location.relDir, `${location.stem}.ipynb`].filter(Boolean).join('/');
+  const path = ['notebooks', notebookDir(location), `${location.stem}.ipynb`].filter(Boolean).join('/');
   return {
     colabUrl: `https://colab.research.google.com/github/${repo}/blob/${branch}/${path}`,
     kaggleUrl: `https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/${repo}/${branch}/${path}`,
@@ -51,7 +65,7 @@ export function notebookUrls(filePath) {
 }
 
 /** GitHub URL of a solution/explanation file on the notebooks branch. */
-export function solutionUrl(repo, relDir, filename, branch) {
-  const path = ['notebooks', relDir, 'solutions', filename].filter(Boolean).join('/');
+export function solutionUrl(repo, nbDir, filename, branch) {
+  const path = ['notebooks', nbDir, 'solutions', filename].filter(Boolean).join('/');
   return `https://github.com/${repo}/blob/${branch}/${path}`;
 }

@@ -1,11 +1,12 @@
 """
-Convert MyST Markdown tutorials to Jupyter notebooks and inject Colab/Kaggle badges.
+Convert MyST Markdown pages (tutorials and projects) to Jupyter notebooks and inject Colab/Kaggle badges.
 
 Usage:
     nma-kit notebooks [--dry-run]
     nma-kit prepare-site [--dry-run]
 
-`nma-kit notebooks` (CI: course-publish workflow). For each .md file in the tutorials dir
+`nma-kit notebooks` (CI: course-publish workflow). For each .md file in a content dir
+(nma.paths.tutorials, nma.paths.projects)
 that has a kernelspec frontmatter:
   1. Convert to .ipynb via jupytext. Scrolly pages (`layout: scrolly`) are
      flattened first: {step} markers removed, {stage} blocks unwrapped, and
@@ -18,8 +19,9 @@ that has a kernelspec frontmatter:
      into a student notebook (link cells) and an instructor notebook (solution
      code cells, explanation markdown), and write the solution files
   5. Inject a Colab + Kaggle badge markdown cell at position 0 of each notebook
-  6. Write notebooks/<day>/<tutorial>.ipynb (student),
-     notebooks/<day>/instructor/<tutorial>.ipynb and notebooks/<day>/solutions/*
+  6. Write notebooks/<root>/<day>/<page>.ipynb (student),
+     notebooks/<root>/<day>/instructor/<page>.ipynb and notebooks/<root>/<day>/solutions/*,
+     where <root> is `tutorials` or `projects` (the content root the page is in)
   The .md sources are never modified in this mode.
 
 `nma-kit prepare-site` (CI, right before `myst build`): edit each kernelspec .md file in place,
@@ -32,7 +34,7 @@ inserting after the frontmatter:
   Only run it on a throwaway checkout (CI). Never commit the result.
 
 Both modes first validate the content rules and exit non-zero on any violation:
-  - No .ipynb files in tutorials/ (all content is authored as MyST .md)
+  - No .ipynb files in the content dirs (all content is authored as MyST .md)
   - Any .md with a {code-cell} directive must declare a kernelspec
   - {nma-video}/{nma-slides} directives must be valid (ids present, known
     options only, closed, no body)
@@ -177,19 +179,20 @@ def validate_content(check_injected: bool = True) -> list[str]:
     errors = []
     config_text = MYST_CONFIG.read_text(encoding="utf-8") if MYST_CONFIG.exists() else ""
     settings = load_settings(config_text)
-    tutorials_dir = Path(settings.tutorials_dir)
+    content_dirs = [Path(directory) for _, directory in settings.content_roots]
     config_problems = nma_feedback.config_errors(config_text)
     errors += config_problems
     errors += nma_branding.brand_errors(read_nma_block(config_text))
     has_config = not config_problems and nma_feedback.load_config(config_text) is not None
-    for path in sorted(tutorials_dir.rglob("*.ipynb")):
-        if ".ipynb_checkpoints" in path.parts:
-            continue
-        errors.append(
-            f"{path}: .ipynb files are not allowed in {tutorials_dir.as_posix()}/. Convert it with "
-            f"`jupytext --to md:myst` and commit only the .md."
-        )
-    for path in sorted(tutorials_dir.rglob("*.md")):
+    for content_dir in content_dirs:
+        for path in sorted(content_dir.rglob("*.ipynb")):
+            if ".ipynb_checkpoints" in path.parts:
+                continue
+            errors.append(
+                f"{path}: .ipynb files are not allowed in {content_dir.as_posix()}/. Convert it with "
+                f"`jupytext --to md:myst` and commit only the .md."
+            )
+    for path in sorted(p for d in content_dirs for p in d.rglob("*.md")):
         if has_code_cells(path) and not has_kernelspec(path):
             errors.append(
                 f"{path}: contains {{code-cell}} blocks but no `kernelspec` in its "
@@ -392,7 +395,7 @@ def build_notebooks(source_file: Path, out_path: Path, github_repo: str, dry_run
     and add badges.
     """
     settings = settings or Settings(github_repo)
-    rel_dir, _ = page_location(settings, source_file)
+    location = page_location(settings, source_file)
     branch = settings.notebooks_branch
     instructor_path = out_path.parent / "instructor" / out_path.name
     solutions_dir = out_path.parent / "solutions"
@@ -422,7 +425,7 @@ def build_notebooks(source_file: Path, out_path: Path, github_repo: str, dry_run
     declared = nma_assets.parse_data_directive(source_text)
     if nma_assets.strip_data_directives(nb):
         print(f"  Removed {{nma-data}} directive(s); declared {len(declared)} file(s)")
-    count = nma_assets.rewrite_markdown_images(nb, github_repo, branch, rel_dir, settings.assets_image_dir)
+    count = nma_assets.rewrite_markdown_images(nb, github_repo, branch, location.notebook_dir, settings.assets_image_dir)
     if count:
         print(f"  Rewrote {count} markdown image reference(s) to published URLs")
     copied = nma_assets.copy_declared_files(declared, source_file.parent, out_path.parent)
@@ -430,7 +433,7 @@ def build_notebooks(source_file: Path, out_path: Path, github_repo: str, dry_run
         print(f"  Copied {copied} data/image file(s) next to the notebook")
 
     student, instructor, files = nma_solutions.split_notebook(
-        nb, source_file.stem, rel_dir, github_repo, branch)
+        nb, source_file.stem, location.notebook_dir, github_repo, branch)
     for name, content in files.items():
         solutions_dir.mkdir(parents=True, exist_ok=True)
         (solutions_dir / name).write_text(content, encoding="utf-8")
@@ -438,26 +441,31 @@ def build_notebooks(source_file: Path, out_path: Path, github_repo: str, dry_run
         print(f"  Wrote {len(files)} solution file(s) to {solutions_dir}/")
 
     for nb_out, path in ((student, out_path), (instructor, instructor_path)):
-        nma_assets.insert_download_cell(nb_out, declared, github_repo, branch, rel_dir)
+        nma_assets.insert_download_cell(nb_out, declared, github_repo, branch, location.notebook_dir)
         notebook_rel = path.as_posix()
         write_notebook(add_badge_cell(nb_out, notebook_rel, github_repo, branch), path)
         print(f"  Wrote notebook with badges: {path}")
 
 
-def process_tutorials(settings: Settings, dry_run: bool, prepare_site: bool) -> int:
-    """Walk the tutorials dir and process all executable .md pages. Returns count processed."""
+def process_content(settings: Settings, dry_run: bool, prepare_site: bool) -> int:
+    """Walk every content dir (tutorials, projects) and process all executable
+    .md pages. Returns count processed."""
     count = 0
     github_repo = require_github_repo(settings)
     feedback_config = nma_feedback.load_config(MYST_CONFIG.read_text(encoding="utf-8"))
-    tutorials_dir = Path(settings.tutorials_dir)
+    pages = sorted(
+        source_file
+        for _, directory in settings.content_roots
+        for source_file in Path(directory).rglob("*.md")
+    )
 
-    for source_file in sorted(tutorials_dir.rglob("*.md")):
+    for source_file in pages:
         if not has_kernelspec(source_file):
             continue  # static page — skip
 
-        # Determine output path under notebooks/
-        relative_to_tutorials = source_file.relative_to(tutorials_dir)
-        out_path = NOTEBOOKS_DIR / relative_to_tutorials.with_suffix(".ipynb")
+        # Output path: notebooks/<root>/<relDir>/<stem>.ipynb
+        location = page_location(settings, source_file)
+        out_path = NOTEBOOKS_DIR / location.notebook_dir / f"{location.stem}.ipynb"
 
         if prepare_site:
             prepare_site_md(source_file, out_path.as_posix(), github_repo, dry_run,

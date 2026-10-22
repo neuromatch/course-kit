@@ -11,7 +11,8 @@ and the plugin (`nma.scrolly.pyodide_url`):
 
     nma:
       paths:
-        tutorials: tutorials        # where the course's .md pages live
+        tutorials: tutorials        # where the course's tutorial .md pages live
+        projects: projects          # where the course's project .md pages live
       notebooks:
         branch: notebooks-branch    # where generated notebooks are published
       assets:
@@ -21,11 +22,13 @@ and the plugin (`nma.scrolly.pyodide_url`):
 
 import re
 from dataclasses import dataclass, field
+from typing import NamedTuple
 from pathlib import Path, PurePosixPath
 
 import yaml
 
 DEFAULT_TUTORIALS_DIR = "tutorials"
+DEFAULT_PROJECTS_DIR = "projects"
 DEFAULT_NOTEBOOKS_BRANCH = "notebooks-branch"
 DEFAULT_DATA_DIR = "data"
 DEFAULT_IMAGE_DIR = "image"
@@ -51,6 +54,13 @@ class Settings:
     nma: dict = field(default_factory=dict)
     assets_data_dir: str = DEFAULT_DATA_DIR
     assets_image_dir: str = DEFAULT_IMAGE_DIR
+    projects_dir: str = DEFAULT_PROJECTS_DIR
+
+    @property
+    def content_roots(self) -> tuple[tuple[str, str], ...]:
+        """(name, directory) of each place pages live. The name is fixed (it is
+        the first folder under notebooks/); the directory is configurable."""
+        return (("tutorials", self.tutorials_dir), ("projects", self.projects_dir))
 
 
 def _yaml(text: str) -> dict:
@@ -89,6 +99,7 @@ def load_settings(myst_text: str) -> Settings:
         assets_data_dir=_setting(nma, "assets", "data", DEFAULT_DATA_DIR).strip("/"),
         assets_image_dir=_setting(nma, "assets", "image", DEFAULT_IMAGE_DIR).strip("/"),
         nma=nma,
+        projects_dir=_setting(nma, "paths", "projects", DEFAULT_PROJECTS_DIR).strip("/"),
     )
 
 
@@ -99,13 +110,27 @@ def read_settings(path: Path = MYST_CONFIG) -> Settings:
     return load_settings(path.read_text(encoding="utf-8"))
 
 
-def page_location(settings: Settings, page: str | Path) -> tuple[str, str] | None:
-    """(rel_dir, stem) of a page path relative to the course root, or None if
-    it is outside the tutorials dir. 'tutorials/W1/T1.md' -> ('W1', 'T1')."""
+class PageLocation(NamedTuple):
+    root: str      # content root name: 'tutorials' or 'projects'
+    rel_dir: str   # folder under the content root ('' at the top)
+    stem: str
+
+    @property
+    def notebook_dir(self) -> str:
+        """Folder under notebooks/ holding the page's generated files."""
+        return f"{self.root}/{self.rel_dir}" if self.rel_dir else self.root
+
+
+def page_location(settings: Settings, page: str | Path) -> PageLocation | None:
+    """Where a page (path relative to the course root) lives, or None if it is
+    outside every content root. 'tutorials/W1/T1.md' -> PageLocation('tutorials', 'W1', 'T1').
+    The deepest matching root wins."""
     path = PurePosixPath(Path(page).as_posix())
-    try:
-        rel = path.relative_to(settings.tutorials_dir)
-    except ValueError:
-        return None
-    rel_dir = rel.parent.as_posix()
-    return ("" if rel_dir == "." else rel_dir), rel.stem
+    for name, directory in sorted(settings.content_roots, key=lambda r: -len(r[1])):
+        try:
+            rel = path.relative_to(directory)
+        except ValueError:
+            continue
+        rel_dir = rel.parent.as_posix()
+        return PageLocation(name, "" if rel_dir == "." else rel_dir, rel.stem)
+    return None

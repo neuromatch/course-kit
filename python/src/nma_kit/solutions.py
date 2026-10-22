@@ -24,7 +24,7 @@ An {nma-solution} belongs to the exercise code cell directly above it.
 One source becomes:
   - student notebook: "Click for solution/explanation" link cells
   - instructor notebook: the solution as a code cell, the explanation as markdown
-  - solution files, written to notebooks/<day>/solutions/ on notebooks-branch
+  - solution files, written to notebooks/<root>/<day>/solutions/ on notebooks-branch
   - a hidden setup cell for the site that runs the reference solution when
     an unfinished exercise is executed, so "Run all" doesn't stop
 
@@ -230,9 +230,10 @@ def solution_filename(stem: str, kind: str, n: int) -> str:
     return FILE_PATTERNS[kind].format(stem=stem, n=n)
 
 
-def solution_url(repo: str, rel_dir: str, filename: str, branch: str = NOTEBOOKS_BRANCH) -> str:
-    """GitHub URL of a solution file. rel_dir is the page's folder under the tutorials dir."""
-    path = "/".join(p for p in ("notebooks", rel_dir, "solutions", filename) if p)
+def solution_url(repo: str, notebook_dir: str, filename: str, branch: str = NOTEBOOKS_BRANCH) -> str:
+    """GitHub URL of a solution file. notebook_dir is the page's folder under
+    notebooks/ (PageLocation.notebook_dir, e.g. 'tutorials/W1D1')."""
+    path = "/".join(p for p in ("notebooks", notebook_dir, "solutions", filename) if p)
     return f"https://github.com/{repo}/blob/{branch}/{path}"
 
 
@@ -303,7 +304,7 @@ def _instructor_cell(item: Item, cell_id: str) -> dict:
     }
 
 
-def split_notebook(nb: dict, stem: str, rel_dir: str, repo: str,
+def split_notebook(nb: dict, stem: str, notebook_dir: str, repo: str,
                    branch: str = NOTEBOOKS_BRANCH) -> tuple[dict, dict, dict]:
     """
     Build the student and instructor versions of a jupytext-generated notebook.
@@ -334,7 +335,7 @@ def split_notebook(nb: dict, stem: str, rel_dir: str, repo: str,
                 fragment = _markdown(prose, f"{base}-m{k}")
                 student.append(fragment)
                 instructor.append(fragment)
-            url = solution_url(repo, rel_dir, item.filename, branch)
+            url = solution_url(repo, notebook_dir, item.filename, branch)
             student.append(_student_cell(item, url, f"{base}-s{k}"))
             instructor.append(_instructor_cell(item, f"{base}-i{k}"))
             files[item.filename] = item.content

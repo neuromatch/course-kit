@@ -30,7 +30,7 @@ The website side is js/src/scrolly/plugin.mjs. These rules must match it:
   - is_scrolly()     <-> isScrolly()
   - cell_key()       <-> cellKey()       (fixture tests/fixtures/scrolly/cell_keys.json)
   - parse_params()   <-> parseParams()   (fixture tests/fixtures/scrolly/params.json)
-  - render file path _build/scrolly/<relDir>/<stem>.json
+  - render file path _build/scrolly/<root>/<relDir>/<stem>.json
 """
 
 import hashlib
@@ -364,18 +364,18 @@ def rewrite_notebook_params(nb: dict) -> int:
 #
 # `nma-kit render-scrolly` runs every scrolly page with a
 # kernelspec headless and writes its outputs to
-# _build/scrolly/<relDir>/<stem>.json = {cell_key: {stdout, images, error}}.
+# _build/scrolly/<root>/<relDir>/<stem>.json = {cell_key: {stdout, images, error}}.
 # js/src/scrolly/plugin.mjs embeds them so readers see real figures before
 # starting Python.
 
-from nma_kit.config import DEFAULT_TUTORIALS_DIR as TUTORIALS_DIR  # noqa: E402
 RENDER_DIR = "_build/scrolly"
 RENDER_TIMEOUT = 300
 
 
-def render_path(rel_dir: str, stem: str):
+def render_path(notebook_dir: str, stem: str):
+    """notebook_dir is PageLocation.notebook_dir, e.g. 'tutorials/W1D1'."""
     from pathlib import Path
-    return Path(RENDER_DIR, *([rel_dir] if rel_dir else []), f"{stem}.json")
+    return Path(RENDER_DIR, *([notebook_dir] if notebook_dir else []), f"{stem}.json")
 
 
 def _source_cells(text: str) -> dict:
@@ -399,7 +399,7 @@ def _outputs(cell: dict) -> dict:
     return {"stdout": stdout, "images": images, "error": None}
 
 
-def execution_notebook(page, rel_dir: str, repo: str = "org/repo") -> dict:
+def execution_notebook(page, notebook_dir: str, repo: str = "org/repo") -> dict:
     """
     The page's instructor notebook, ready to run: flattened, solutions filled
     in, `# @param` cells left as plain assignments (so they run with their
@@ -419,7 +419,7 @@ def execution_notebook(page, rel_dir: str, repo: str = "org/repo") -> dict:
         if result.returncode != 0:
             raise RuntimeError(f"jupytext failed:\n{result.stderr}")
         nb = json.loads(out.read_text(encoding="utf-8"))
-    _, instructor, _ = nma_solutions.split_notebook(nb, page.stem, rel_dir, repo)
+    _, instructor, _ = nma_solutions.split_notebook(nb, page.stem, notebook_dir, repo)
     cells = []
     for cell in instructor["cells"]:
         if cell.get("cell_type") != "code":
@@ -431,7 +431,7 @@ def execution_notebook(page, rel_dir: str, repo: str = "org/repo") -> dict:
     return {**instructor, "cells": cells}
 
 
-def render_page(page, rel_dir: str) -> tuple[dict | None, str | None]:
+def render_page(page, notebook_dir: str) -> tuple[dict | None, str | None]:
     """Run one page. Returns (render data, None) or (None, error message)."""
     import nbformat
     from nbclient import NotebookClient
@@ -439,7 +439,7 @@ def render_page(page, rel_dir: str) -> tuple[dict | None, str | None]:
 
     text = page.read_text(encoding="utf-8")
     lines_by_key = _source_cells(text)
-    nb = nbformat.from_dict(execution_notebook(page, rel_dir))
+    nb = nbformat.from_dict(execution_notebook(page, notebook_dir))
     client = NotebookClient(nb, timeout=RENDER_TIMEOUT, kernel_name="python3",
                             resources={"metadata": {"path": str(page.parent)}})
     try:
@@ -463,27 +463,28 @@ def render_page(page, rel_dir: str) -> tuple[dict | None, str | None]:
     return data, None
 
 
-def render_all(root: str = TUTORIALS_DIR) -> int:
-    """Render every scrolly page with a kernelspec under `root`. Returns an exit code."""
+def render_all(settings) -> int:
+    """Render every scrolly page with a kernelspec under the content dirs. Returns an exit code."""
     import json
     from pathlib import Path
 
     from nma_kit import convert as convert_to_notebooks
+    from nma_kit.config import page_location
 
     failed = False
-    for page in sorted(Path(root).rglob("*.md")):
+    pages = sorted(p for _, directory in settings.content_roots for p in Path(directory).rglob("*.md"))
+    for page in pages:
         text = page.read_text(encoding="utf-8")
         if not (is_scrolly(text) and convert_to_notebooks.has_kernelspec(page)):
             continue
-        rel = page.relative_to(root)
-        rel_dir = rel.parent.as_posix() if rel.parent != Path(".") else ""
+        location = page_location(settings, page)
         print(f"Rendering {page}")
-        data, error = render_page(page, rel_dir)
+        data, error = render_page(page, location.notebook_dir)
         if error:
             print(f"  ERROR {error}", file=sys.stderr)
             failed = True
             continue
-        out = render_path(rel_dir, page.stem)
+        out = render_path(location.notebook_dir, page.stem)
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(data), encoding="utf-8")
         print(f"  Wrote {out} ({len(data)} cell(s))")

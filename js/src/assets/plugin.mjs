@@ -10,7 +10,7 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 
-import { courseSettings, pageLocation } from '../shared/paths.mjs';
+import { courseSettings, notebookDir, pageLocation } from '../shared/paths.mjs';
 import { assetUrlFor, parseDataDirective, validateDataDirectives } from './model.mjs';
 
 export { parseDataDirective, validateDataDirectives, assetUrlFor };
@@ -78,7 +78,7 @@ function urlFor(filePath) {
   const { githubRepo, notebooksBranch } = courseSettings();
   const location = pageLocation(filePath);
   if (!githubRepo || !location) return (p) => p;
-  return (p) => assetUrlFor(githubRepo, notebooksBranch, location.relDir, p);
+  return (p) => assetUrlFor(githubRepo, notebooksBranch, notebookDir(location), p);
 }
 
 const nmaData = {

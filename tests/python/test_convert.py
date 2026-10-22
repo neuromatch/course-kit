@@ -116,7 +116,7 @@ def test_build_notebooks_expands_feedback(tmp_path, monkeypatch):
     page = tmp_path / "tutorials" / "D" / "T.md"
     page.parent.mkdir(parents=True)
     page.write_text(FEEDBACK_PAGE)
-    out = tmp_path / "notebooks" / "D" / "T.ipynb"
+    out = tmp_path / "notebooks" / "tutorials" / "D" / "T.ipynb"
     config = nma_feedback.FeedbackConfig("https://e.org", "proj", "key")
 
     convert_md_to_notebook(page.relative_to(tmp_path), out, dry_run=False)
@@ -182,7 +182,7 @@ def test_build_notebooks_flattens_scrolly_pages(tmp_path, monkeypatch):
     page = tmp_path / "tutorials" / "D" / "T.md"
     page.parent.mkdir(parents=True)
     page.write_text(SCROLLY_PAGE)
-    out = tmp_path / "notebooks" / "D" / "T.ipynb"
+    out = tmp_path / "notebooks" / "tutorials" / "D" / "T.ipynb"
 
     convert_md_to_notebook(page.relative_to(tmp_path), out, dry_run=False)
     build_notebooks(page.relative_to(tmp_path), out.relative_to(tmp_path), "org/repo", False, None)
@@ -278,11 +278,11 @@ def test_build_notebooks_adds_download_cell_rewrites_images_and_copies_files(tmp
     day = _asset_course(tmp_path, monkeypatch)
     settings = read_settings()
     page = Path("tutorials/D/T.md")
-    out = Path("notebooks/D/T.ipynb")
+    out = Path("notebooks/tutorials/D/T.ipynb")
     convert_md_to_notebook(page, out, dry_run=False)
     build_notebooks(page, out, "org/repo", False, None, settings)
 
-    base = "https://raw.githubusercontent.com/org/repo/notebooks-branch/notebooks/D/"
+    base = "https://raw.githubusercontent.com/org/repo/notebooks-branch/notebooks/tutorials/D/"
     for path in (out, out.parent / "instructor" / out.name):
         cells = json.loads(path.read_text())["cells"]
         sources = ["".join(c["source"]) for c in cells]
@@ -292,9 +292,9 @@ def test_build_notebooks_adds_download_cell_rewrites_images_and_copies_files(tmp
         assert cells[1]["metadata"]["tags"] == ["hide-cell"]
         assert f"![fig]({base}image/pic.png)" in "\n".join(sources)
         assert not any("nma-data" in s for s in sources)
-    assert (Path("notebooks/D/data/a.npz")).read_bytes() == b"bytes:data/a.npz"
-    assert (Path("notebooks/D/image/pic.png")).exists()
-    assert not (Path("notebooks/D/instructor/data")).exists()
+    assert (Path("notebooks/tutorials/D/data/a.npz")).read_bytes() == b"bytes:data/a.npz"
+    assert (Path("notebooks/tutorials/D/image/pic.png")).exists()
+    assert not (Path("notebooks/tutorials/D/instructor/data")).exists()
 
 
 def test_page_without_assets_is_unaffected(tmp_path, monkeypatch):
@@ -304,7 +304,7 @@ def test_page_without_assets_is_unaffected(tmp_path, monkeypatch):
     from nma_kit.convert import build_notebooks, convert_md_to_notebook
 
     _asset_course(tmp_path, monkeypatch, page_text=PAGE, files=())
-    page, out = Path("tutorials/D/T.md"), Path("notebooks/D/T.ipynb")
+    page, out = Path("tutorials/D/T.md"), Path("notebooks/tutorials/D/T.ipynb")
     convert_md_to_notebook(page, out, dry_run=False)
     build_notebooks(page, out, "org/repo", False, None, read_settings())
     sources = ["".join(c["source"]) for c in json.loads(out.read_text())["cells"]]

@@ -11,7 +11,7 @@ on:
     inputs:
       python-version:
         type: string
-        default: "3.12"
+        default: "3.14"
       requirements:
         description: The course's own Python packages (relative to working-directory). Skipped if missing.
         type: string
@@ -46,6 +46,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
         with:
+          version: "0.13.4"
           enable-cache: true
           cache-dependency-glob: "**/requirements*.txt"
 

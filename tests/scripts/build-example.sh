@@ -13,7 +13,7 @@ fi
 
 cd "$KIT/tests/example-course"
 # prepare-site edits the pages in place; never leave that behind.
-trap 'git checkout -- tutorials myst.yml' EXIT
+trap 'git checkout -- tutorials projects myst.yml' EXIT
 nma-kit check
 nma-kit render-scrolly
 nma-kit prepare-site
