@@ -6,7 +6,7 @@
 // placeholders in document order and builds the links. The file naming and URL
 // rules must stay in sync with nma_kit.solutions.
 
-import { contentRoots, notebookDir, pageLocation, solutionUrl } from '../shared/paths.mjs';
+import { contentRoots, courseSettings, notebookDir, pageLocation, solutionUrl } from '../shared/paths.mjs';
 import { findPlaceholders, replaceNode, text } from '../shared/tree.mjs';
 
 const SOLUTION_KINDS = {

@@ -135,7 +135,7 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   change), `--nma-cell-*` and `--nma-tok-*` (read by `cells/assets/cells.css`).
   Syntax-token colours are fixed on purpose (chosen for contrast).
 - Settings are validated by `branding.brand_errors` inside `check`.
-- `tests/scripts/build-example.sh` ends with `git checkout -- tutorials myst.yml`
+- `tests/scripts/build-example.sh` ends with `git checkout -- tutorials projects myst.yml`
   to undo `prepare-site`: stage (`git add`) edits to the example course's
   `myst.yml` before running it, or they are reverted too.
 
