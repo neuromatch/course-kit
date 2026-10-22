@@ -76,6 +76,8 @@ jobs:
         with:
           ref: ${{ needs.release-please.outputs.tag }}
       - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.13.4"
       - run: uv build --out-dir dist python
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
