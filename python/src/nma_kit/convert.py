@@ -381,6 +381,7 @@ def add_badge_cell(nb: dict, notebook_rel_path: str, github_repo: str,
 
 
 def write_notebook(nb: dict, path: Path) -> None:
+    """Write a notebook dict as JSON, creating parent folders."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as fh:
         json.dump(nb, fh, indent=1, ensure_ascii=False)

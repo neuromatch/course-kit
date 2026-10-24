@@ -36,6 +36,7 @@ DIRECTIVE_RE = re.compile(r"^\{(nma-data)\}\s*(.*?)\s*$")
 
 @dataclass
 class DataDirective:
+    """One top-level `{nma-data}` directive found in a page (see `find_data_directives`)."""
     arg: str                 # inline argument (always an error; the directive takes none)
     paths: list              # declared file paths (non-blank body lines)
     start: int               # 0-based line index of the opening fence
@@ -304,6 +305,7 @@ _OPTION_RE = re.compile(r"^:([\w-]+):\s*(.*?)\s*$")
 
 @dataclass
 class ImageDirective:
+    """One top-level `{figure}` or `{image}` directive found in a page."""
     kind: str                # "figure" or "image"
     path: str                # the directive argument (image path or URL)
     options: dict            # :alt:, :width:, ... (as written)

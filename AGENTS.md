@@ -1,5 +1,7 @@
 # AGENTS.md (course kit)
 
+Human contributors: start with [CONTRIBUTING.md](CONTRIBUTING.md); this file is the internals reference.
+
 Context for AI agents working on the Neuromatch course kit. Authoring
 conventions for course content (directives, frontmatter, exercises, scrolly
 pages) live in the course template's AGENTS.md; this file covers how the kit
@@ -38,7 +40,7 @@ js/
   build.mjs                   # esbuild: dist/nma.mjs + dist/assets/<feature>/ (+ dist/nma.yml on release)
   nma.yml.tmpl                # the config courses `extend:`
 python/src/nma_kit/
-  cli.py                      # nma-kit check | notebooks | render-scrolly | prepare-site | publish-notebooks
+  cli.py                      # nma-kit check | notebooks | render-scrolly | sync-assets | prepare-site | publish-notebooks
   config.py                   # Settings from myst.yml (github repo, nma.paths.tutorials, nma.notebooks.branch)
   convert.py                  # content rules, jupytext conversion, badges, prepare-site
   media.py solutions.py feedback.py scrolly.py cells.py assets.py   # Python side of each feature
@@ -48,10 +50,12 @@ python/src/nma_kit/
   publish.py                  # push notebooks/ to the notebooks branch (orphan branch if missing)
 tests/
   python/ js/ e2e/            # unit tests (pytest, node:test) and the browser smoke test
-  fixtures/                   # shared by Python and JS tests (nma_config, scrolly, cells, config)
+  fixtures/                   # shared by Python and JS tests (nma_config, scrolly, cells, config, assets)
+  twins.json                  # registry of Python/JS twins, checked by tests/python/test_twins.py
   example-course/             # minimal course: built by CI with the dev bundle, target of the e2e tests
   scripts/build-example.sh    # build the example course like a course's CI does
   scripts/compare_builds.py   # golden check: two course builds produce the same notebooks and pages
+docs/releasing.md             # maintainers: how releases are set up (CONTRIBUTING.md is the contributor guide)
 templates/course.yml          # the workflow courses copy (calls the reusable workflows @v0.1)
 templates/wheels.yml          # optional caller for course-wheels.yml
 .github/workflows/            # course-check.yml, course-publish.yml, course-preview.yml, course-wheels.yml (reusable), ci.yml, release.yml
@@ -62,7 +66,10 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - **Features are separate.** `js/src/<feature>/` imports only from itself and
   `shared/` (enforced by `tests/js/structure.test.mjs`). The Python side uses
   the same feature names.
-- **Python/JS twins stay in sync**, tested against the same fixtures:
+- **Python/JS twins stay in sync**, tested against the same fixtures. Every twin is
+  listed in `tests/twins.json` (symbols, fixture) and `tests/python/test_twins.py` fails when
+  one is renamed, removed or untested; add an entry when you write a twin
+  (see CONTRIBUTING.md). Current pairs:
   - URL templates (`VIDEO_SOURCES` in `media/plugin.mjs` and `media.py`).
   - `{nma-data}` parsing/validation and the asset URL (`assets/model.mjs` / `assets.py`: `parseDataDirective`/`parse_data_directive`,
     `validateDataDirectives`/`validate_data_directives`, `assetUrlFor`/`asset_url`), `tests/fixtures/assets/directives.json`.
@@ -280,7 +287,7 @@ downloads); CI retries failed tests once.
   `RELEASE_PLEASE_TOKEN` secret (a PAT or app token with Contents, Pull
   requests and Workflows access), because it edits `KIT_VERSION` in
   `.github/workflows/` and the default token may not; the token also makes CI
-  run on the release PR. Setup: README, "Releasing".
+  run on the release PR. Setup: docs/releasing.md.
 - `course-publish.yml` job order: check -> notebooks -> publish-notebooks ->
   render-scrolly -> prepare-site -> myst build -> Pages deploy. One run per
   repository at a time (notebook pushes never race). No CNAME step: with the

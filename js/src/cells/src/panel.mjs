@@ -7,6 +7,7 @@ import { statusText } from './model.mjs';
 
 const LABEL = { edit: 'Python', collapsed: 'Python · code hidden', output: 'Output' };
 
+/** anywidget module: `render` builds one cell's panel from the widget model (`index`, `mode`, `exercise`, `code`). */
 export default {
   render({ model, el }) {
     const index = model.get('index');

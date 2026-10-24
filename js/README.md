@@ -29,6 +29,7 @@ for the full course setup.
 |---|---|
 | `{nma-video}`, `{nma-slides}` | Embedded YouTube, Bilibili or OSF videos and slide decks |
 | `{nma-solution}`, `{nma-explanation}` | A "Click for solution" link; the solution text itself is never on the page |
+| `{nma-data}` | A "Data used by this notebook" note; the declared files are embedded for the page's editable cells |
 | `{nma-feedback}` | A feedback widget that posts to datatops from the browser |
 | `layout: scrolly`, `{step}`, `{stage}` | Scrollytelling pages with live Python (Pyodide) |
 | Editable cells | Code cells become editable and runnable in the browser on pages with a `kernelspec`; `runtime: colab` pages get a Colab banner instead |

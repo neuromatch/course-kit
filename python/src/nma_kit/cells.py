@@ -19,6 +19,7 @@ def runtime_of(text: str) -> str:
 
 
 def validate(text: str) -> list[str]:
+    """Human-readable errors for the page's `runtime:` key (unknown value, or `colab` combined with `layout: scrolly`)."""
     errors = []
     runtime = runtime_of(text)
     if runtime not in RUNTIMES:

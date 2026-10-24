@@ -185,6 +185,7 @@ def parse_param_line(line: str) -> dict:
 
 
 def is_param_line(line: str) -> bool:
+    """True if the line carries a `# @param` marker."""
     return bool(PARAM_MARK_RE.search(line))
 
 

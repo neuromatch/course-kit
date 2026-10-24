@@ -75,6 +75,7 @@ const solutionLinks = {
   },
 };
 
+/** The solutions plugin: the two directives and the transform that numbers them and links the files. */
 export default {
   name: 'Neuromatch solutions',
   directives: [

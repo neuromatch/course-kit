@@ -25,6 +25,7 @@ from nma_kit.publish import PublishError, publish_notebooks
 
 
 class UsageError(Exception):
+    """A problem with how the command was used or with the course layout. `main` prints it and exits 2."""
     pass
 
 
@@ -47,6 +48,7 @@ def _settings():
 
 
 def cmd_check(args) -> int:
+    """`nma-kit check`: validate content rules and the `nma:` block. Exit 1 on problems."""
     read_settings()
     if not _validate(check_injected=True):
         return 1
@@ -55,6 +57,7 @@ def cmd_check(args) -> int:
 
 
 def cmd_notebooks(args) -> int:
+    """`nma-kit notebooks`: validate, then write student/instructor notebooks and solution files under `notebooks/`."""
     settings = _settings()
     if not _validate(check_injected=True):
         return 1
@@ -64,10 +67,12 @@ def cmd_notebooks(args) -> int:
 
 
 def cmd_render_scrolly(args) -> int:
+    """`nma-kit render-scrolly`: run each scrolly page and save its outputs to `_build/scrolly/`."""
     return scrolly.render_all(read_settings())
 
 
 def cmd_sync_assets(args) -> int:
+    """`nma-kit sync-assets`: write the site branding to `_nma/`."""
     settings = read_settings()
     for path in branding.sync_assets(settings):
         print(f"  wrote {path.as_posix()}")
@@ -75,6 +80,7 @@ def cmd_sync_assets(args) -> int:
 
 
 def cmd_prepare_site(args) -> int:
+    """`nma-kit prepare-site` (CI only): add badges and fallback cells to the pages in place, sync branding and pin the kit URL in `myst.yml`."""
     settings = _settings()
     if not _validate(check_injected=False):
         return 1
@@ -91,6 +97,7 @@ def cmd_prepare_site(args) -> int:
 
 
 def cmd_publish_notebooks(args) -> int:
+    """`nma-kit publish-notebooks`: push `notebooks/` to the notebooks branch."""
     settings = read_settings()
     src = Path("notebooks")
     if not src.is_dir():
@@ -103,6 +110,7 @@ def cmd_publish_notebooks(args) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """The argparse parser with every subcommand. Each subcommand sets `func` to its `cmd_*` handler."""
     parser = argparse.ArgumentParser(prog="nma-kit", description="Neuromatch course kit")
     parser.add_argument("--version", action="version", version=f"nma-kit {__version__}")
     sub = parser.add_subparsers(dest="command")
@@ -131,6 +139,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Entry point. Returns the exit code: 0 ok, 1 content or publish problems, 2 usage or configuration errors."""
     parser = build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "func", None):
