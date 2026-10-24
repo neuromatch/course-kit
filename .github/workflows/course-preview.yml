@@ -1,0 +1,231 @@
+# Reusable: a public preview of a pull request on Cloudflare Pages.
+#
+# On open/push: build the PR like course-publish does, push its notebooks to
+# `notebooks-pr-<n>` (never to the production notebooks branch: the job sets
+# NMA_NOTEBOOKS_BRANCH, which every generated link follows), deploy the site as
+# Pages branch `pr-<n>` (https://pr-<n>.<project>.pages.dev) and keep one
+# comment with the link. On close: delete the branch and the deployments.
+# Same-repository pull requests only (fork PRs get no secrets).
+#
+#   on:
+#     pull_request:
+#       types: [opened, synchronize, reopened, closed]
+#   jobs:
+#     preview:
+#       if: github.event.pull_request.head.repo.full_name == github.repository
+#       uses: neuromatch/course-kit/.github/workflows/course-preview.yml@v0.1
+#       with:
+#         pr-number: ${{ github.event.pull_request.number }}
+#         action: ${{ github.event.action == 'closed' && 'cleanup' || 'deploy' }}
+#         cloudflare-project: ${{ vars.CLOUDFLARE_PROJECT }}
+#       secrets: inherit
+#       permissions: { contents: write, pull-requests: write }
+#
+# Setup in the course repo: secrets CLOUDFLARE_API_TOKEN (permission
+# "Cloudflare Pages: Edit") and CLOUDFLARE_ACCOUNT_ID, variable
+# CLOUDFLARE_PROJECT. Without them the build still runs and the deploy is
+# skipped with a notice.
+name: Course preview
+
+on:
+  workflow_call:
+    inputs:
+      pr-number:
+        description: The pull request number.
+        type: number
+        required: true
+      action:
+        description: "`deploy` (opened, pushed, reopened) or `cleanup` (closed)."
+        type: string
+        default: deploy
+      cloudflare-project:
+        description: The Cloudflare Pages project name (created on first deploy).
+        type: string
+        default: ""
+      python-version:
+        type: string
+        default: "3.14"
+      requirements:
+        description: The course's own Python packages (relative to working-directory). Skipped if missing.
+        type: string
+        default: requirements.txt
+      kit-version:
+        description: Override the kit version (an exact version or `latest`). Default is this release.
+        type: string
+        default: ""
+      working-directory:
+        description: The course root (the folder with myst.yml).
+        type: string
+        default: "."
+      kit-source:
+        description: "`pypi` (courses) or `local` (the kit's own CI: install ./python and build ./js)."
+        type: string
+        default: pypi
+    secrets:
+      CLOUDFLARE_API_TOKEN:
+        required: false
+      CLOUDFLARE_ACCOUNT_ID:
+        required: false
+
+env:
+  KIT_VERSION: 0.1.4 # x-release-please-version
+  WRANGLER: wrangler@4
+  MARKER: "<!-- nma-kit-preview -->"
+
+jobs:
+  preview:
+    if: inputs.action != 'cleanup' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push notebooks-pr-<n>
+      pull-requests: write # the comment
+    # A newer push replaces a running preview of the same pull request.
+    concurrency:
+      group: course-preview-${{ github.repository }}-${{ inputs.pr-number }}
+      cancel-in-progress: true
+    env:
+      # Every notebook link, badge and solution link follows this branch.
+      NMA_NOTEBOOKS_BRANCH: notebooks-pr-${{ inputs.pr-number }}
+      PR_NUMBER: ${{ inputs.pr-number }}
+      PROJECT: ${{ inputs.cloudflare-project }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      GH_TOKEN: ${{ github.token }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.13.4"
+          enable-cache: true
+          cache-dependency-glob: "**/requirements*.txt"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install the course kit and the course's packages
+        env:
+          REQUIREMENTS: ${{ inputs.requirements }}
+          KIT_SOURCE: ${{ inputs.kit-source }}
+          REQUESTED: ${{ inputs.kit-version }}
+        run: |
+          uv venv --python "${{ inputs.python-version }}"
+          reqs=(); [ -f "$REQUIREMENTS" ] && reqs=(-r "$REQUIREMENTS")
+          if [ "$KIT_SOURCE" = local ]; then
+            uv pip install "${reqs[@]}" "$GITHUB_WORKSPACE/python"
+            (cd "$GITHUB_WORKSPACE/js" && npm ci --no-audit --no-fund && npm run build:dev)
+          else
+            version="${REQUESTED:-$KIT_VERSION}"
+            if [ "$version" = latest ]; then spec=neuromatch-course-kit; else spec="neuromatch-course-kit==$version"; fi
+            uv pip install "${reqs[@]}" "$spec"
+          fi
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Check content
+        run: nma-kit check
+
+      - name: Generate notebooks
+        run: nma-kit notebooks
+
+      # Pushes to notebooks-pr-<n> (NMA_NOTEBOOKS_BRANCH), created if missing.
+      - name: Push notebooks to the PR notebooks branch
+        run: nma-kit publish-notebooks
+
+      - name: Pre-render scrolly pages
+        run: nma-kit render-scrolly
+
+      - name: Prepare pages
+        run: nma-kit prepare-site
+
+      - name: Build the site
+        run: myst build --html
+
+      - name: Check Cloudflare setup
+        id: cf
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && [ -n "$PROJECT" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Preview not deployed: set the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets and the CLOUDFLARE_PROJECT variable."
+          fi
+
+      - name: Deploy to Cloudflare Pages
+        if: steps.cf.outputs.enabled == 'true'
+        run: |
+          # Fails when the project exists already; a real problem (bad token)
+          # makes the deploy below fail loudly.
+          npx --yes "$WRANGLER" pages project create "$PROJECT" --production-branch main || true
+          npx --yes "$WRANGLER" pages deploy _build/html \
+            --project-name "$PROJECT" --branch "pr-$PR_NUMBER" \
+            --commit-hash "$GITHUB_SHA" --commit-dirty=true
+
+      - name: Comment the preview link
+        if: steps.cf.outputs.enabled == 'true'
+        run: |
+          url="https://pr-$PR_NUMBER.$PROJECT.pages.dev"
+          body="$MARKER
+          **Preview:** $url
+          Built from \`${GITHUB_SHA::7}\`. Notebook buttons open \`$NMA_NOTEBOOKS_BRANCH\`. Removed when this pull request closes."
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
+            --jq ".[] | select(.body | contains(\"$MARKER\")) | .id" | head -n 1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body" >/dev/null
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -f body="$body" >/dev/null
+          fi
+
+  cleanup:
+    if: inputs.action == 'cleanup' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # delete notebooks-pr-<n>
+      pull-requests: write
+    concurrency:
+      group: course-preview-${{ github.repository }}-${{ inputs.pr-number }}
+      cancel-in-progress: false
+    env:
+      PR_NUMBER: ${{ inputs.pr-number }}
+      PROJECT: ${{ inputs.cloudflare-project }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      # By API, not a checkout: a closed PR's merge ref may be gone.
+      - name: Delete the PR notebooks branch
+        run: |
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/notebooks-pr-$PR_NUMBER" \
+            || echo "No notebooks-pr-$PR_NUMBER branch to delete."
+
+      - name: Delete the Cloudflare deployments
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$PROJECT" ]; then
+            echo "::notice::Cloudflare is not configured: no deployments to delete."
+            exit 0
+          fi
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT/deployments"
+          auth="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+          # Collect every id first: deleting while paging would skip entries.
+          ids=""; page=1
+          while :; do
+            result=$(curl -fsS -H "$auth" "$api?per_page=25&page=$page")
+            ids="$ids $(echo "$result" | jq -r --arg b "pr-$PR_NUMBER" \
+              '.result[] | select(.deployment_trigger.metadata.branch == $b) | .id')"
+            [ "$(echo "$result" | jq '.result | length')" -lt 25 ] && break
+            page=$((page + 1))
+          done
+          for id in $ids; do
+            curl -fsS -X DELETE -H "$auth" "$api/$id?force=true" >/dev/null && echo "Deleted deployment $id"
+          done
+
+      - name: Update the comment
+        run: |
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
+            --jq ".[] | select(.body | contains(\"$MARKER\")) | .id" | head -n 1)
+          [ -n "$id" ] && gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" \
+            -f body="$MARKER
+          Preview removed (pull request closed)." >/dev/null || true

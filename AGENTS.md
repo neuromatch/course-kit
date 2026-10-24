@@ -54,7 +54,7 @@ tests/
   scripts/compare_builds.py   # golden check: two course builds produce the same notebooks and pages
 templates/course.yml          # the workflow courses copy (calls the reusable workflows @v0.1)
 templates/wheels.yml          # optional caller for course-wheels.yml
-.github/workflows/            # course-check.yml, course-publish.yml, course-wheels.yml (reusable), ci.yml, release.yml
+.github/workflows/            # course-check.yml, course-publish.yml, course-preview.yml, course-wheels.yml (reusable), ci.yml, release.yml
 ```
 
 ## Rules
@@ -69,6 +69,8 @@ templates/wheels.yml          # optional caller for course-wheels.yml
     The strict code-reference scan and the notebook download cell are Python-only.
   - Solution file naming and URLs (`solutions/plugin.mjs`, `shared/paths.mjs` / `solutions.py`).
   - Course settings and page location (`shared/config.mjs`, `shared/paths.mjs` / `config.py`), `tests/fixtures/config/settings.json`.
+  - The notebooks branch: `NMA_NOTEBOOKS_BRANCH` overrides `nma.notebooks.branch` in
+    `load_settings` / `loadSettings` (blank is ignored), `tests/fixtures/config/settings.json` (`env`).
   - The `nma:` block reader (`readNmaConfig` / `read_nma_block`, both YAML), `tests/fixtures/nma_config/`.
     `nma-kit check` still rejects non-string values, lists and deeper nesting.
   - `isScrolly`/`is_scrolly`, `cellKey`/`cell_key`, `parseParams`/`parse_params`, `tests/fixtures/scrolly/`.
@@ -244,6 +246,24 @@ a second. Keep it that way when adding tests.
 
 The e2e suite is timing-sensitive on cold caches (first Pyodide/JupyterLite
 downloads); CI retries failed tests once.
+
+## PR previews (internals)
+
+- `course-preview.yml` (called from the course's `pull_request` workflow, `action`
+  = `deploy` or `cleanup`) builds the PR like `course-publish.yml`, but its job
+  sets `NMA_NOTEBOOKS_BRANCH=notebooks-pr-<n>`. `nma-kit publish-notebooks`, the
+  badges, solution links and the download cell all read `settings.notebooks_branch`,
+  so the override is the only coupling; no preview-specific code in the CLI or plugin.
+- Deploy: `wrangler pages deploy --branch pr-<n>` (direct upload; the project is
+  created on first use). Cleanup uses the GitHub and Cloudflare APIs, not a
+  checkout (a closed PR's merge ref may be gone).
+- Never `pull_request_target` (it would hand secrets to PR code); jobs are limited
+  to same-repo PRs. `tests/python/test_preview_workflow.py` pins these rules; the
+  Cloudflare calls themselves are only checked on a real course PR.
+- The kit's own `ci.yml` does not run it on the example course: it would push
+  `notebooks-pr-<n>` branches to the kit repo.
+- Registered for releases like the other reusable workflows (`KIT_VERSION` marker,
+  `release-please-config.json`, `REUSABLE` in `test_release.py`).
 
 ## CI
 

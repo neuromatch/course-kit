@@ -15,12 +15,15 @@ and the plugin (`nma.scrolly.pyodide_url`):
         projects: projects          # where the course's project .md pages live
       notebooks:
         branch: notebooks-branch    # where generated notebooks are published
+                                    # (the env var NMA_NOTEBOOKS_BRANCH overrides it: PR previews)
       assets:
         data: data                  # folder (in each day folder) for data files
         image: image                # folder (in each day folder) for images
 """
 
+import os
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import NamedTuple
 from pathlib import Path, PurePosixPath
@@ -30,6 +33,7 @@ import yaml
 DEFAULT_TUTORIALS_DIR = "tutorials"
 DEFAULT_PROJECTS_DIR = "projects"
 DEFAULT_NOTEBOOKS_BRANCH = "notebooks-branch"
+NOTEBOOKS_BRANCH_ENV = "NMA_NOTEBOOKS_BRANCH"  # overrides the branch (PR previews)
 DEFAULT_DATA_DIR = "data"
 DEFAULT_IMAGE_DIR = "image"
 NOTEBOOKS_DIR = "notebooks"
@@ -89,13 +93,20 @@ def _setting(nma: dict, section: str, key: str, default: str) -> str:
     return value if isinstance(value, str) and value.strip() else default
 
 
-def load_settings(myst_text: str) -> Settings:
+def _notebooks_branch(nma: dict, env: Mapping[str, str]) -> str:
+    """NMA_NOTEBOOKS_BRANCH (set by PR previews) wins over nma.notebooks.branch."""
+    override = env.get(NOTEBOOKS_BRANCH_ENV, "").strip()
+    return override or _setting(nma, "notebooks", "branch", DEFAULT_NOTEBOOKS_BRANCH)
+
+
+def load_settings(myst_text: str, env: Mapping[str, str] | None = None) -> Settings:
+    env = os.environ if env is None else env
     data = _yaml(myst_text)
     nma = read_nma_block(myst_text)
     return Settings(
         github_repo=_github_repo(data),
         tutorials_dir=_setting(nma, "paths", "tutorials", DEFAULT_TUTORIALS_DIR).strip("/"),
-        notebooks_branch=_setting(nma, "notebooks", "branch", DEFAULT_NOTEBOOKS_BRANCH),
+        notebooks_branch=_notebooks_branch(nma, env),
         assets_data_dir=_setting(nma, "assets", "data", DEFAULT_DATA_DIR).strip("/"),
         assets_image_dir=_setting(nma, "assets", "image", DEFAULT_IMAGE_DIR).strip("/"),
         nma=nma,

@@ -1,5 +1,5 @@
 {
-  "_doc": "Shared by tests/python/test_config.py and tests/js/config.test.mjs. Each case: a course myst.yml, a page path relative to the course root, and what both sides must compute for it (null = page is outside every content dir). `notebookDir` is the folder under notebooks/.",
+  "_doc": "Shared by tests/python/test_config.py and tests/js/config.test.mjs. Each case: a course myst.yml, a page path relative to the course root, and what both sides must compute for it (null = page is outside every content dir). `notebookDir` is the folder under notebooks/. Optional `env` is the environment passed to the loaders (default {}): NMA_NOTEBOOKS_BRANCH overrides the notebooks branch.",
   "cases": [
     {
       "name": "defaults without an nma block",
@@ -95,6 +95,60 @@
         "colab": "https://colab.research.google.com/github/o/r/blob/notebooks-branch/notebooks/projects/P1.ipynb",
         "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/o/r/notebooks-branch/notebooks/projects/P1.ipynb",
         "solution1": "https://github.com/o/r/blob/notebooks-branch/notebooks/projects/solutions/P1_Solution_1.py"
+      }
+    },
+    {
+      "name": "NMA_NOTEBOOKS_BRANCH overrides the default",
+      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\n",
+      "env": {
+        "NMA_NOTEBOOKS_BRANCH": "notebooks-pr-7"
+      },
+      "page": "tutorials/Day1/T1.md",
+      "expect": {
+        "relDir": "Day1",
+        "stem": "T1",
+        "notebook": "notebooks/tutorials/Day1/T1.ipynb",
+        "colab": "https://colab.research.google.com/github/org/r/blob/notebooks-pr-7/notebooks/tutorials/Day1/T1.ipynb",
+        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/org/r/notebooks-pr-7/notebooks/tutorials/Day1/T1.ipynb",
+        "solution1": "https://github.com/org/r/blob/notebooks-pr-7/notebooks/tutorials/Day1/solutions/T1_Solution_1.py",
+        "root": "tutorials",
+        "notebookDir": "tutorials/Day1"
+      }
+    },
+    {
+      "name": "NMA_NOTEBOOKS_BRANCH overrides nma.notebooks.branch",
+      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\nnma:\n  notebooks:\n    branch: nb\n",
+      "env": {
+        "NMA_NOTEBOOKS_BRANCH": "notebooks-pr-7"
+      },
+      "page": "tutorials/Day1/T1.md",
+      "expect": {
+        "relDir": "Day1",
+        "stem": "T1",
+        "notebook": "notebooks/tutorials/Day1/T1.ipynb",
+        "colab": "https://colab.research.google.com/github/org/r/blob/notebooks-pr-7/notebooks/tutorials/Day1/T1.ipynb",
+        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/org/r/notebooks-pr-7/notebooks/tutorials/Day1/T1.ipynb",
+        "solution1": "https://github.com/org/r/blob/notebooks-pr-7/notebooks/tutorials/Day1/solutions/T1_Solution_1.py",
+        "root": "tutorials",
+        "notebookDir": "tutorials/Day1"
+      }
+    },
+    {
+      "name": "blank NMA_NOTEBOOKS_BRANCH falls back to myst.yml",
+      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\nnma:\n  notebooks:\n    branch: nb\n",
+      "env": {
+        "NMA_NOTEBOOKS_BRANCH": "  "
+      },
+      "page": "tutorials/Day1/T1.md",
+      "expect": {
+        "relDir": "Day1",
+        "stem": "T1",
+        "notebook": "notebooks/tutorials/Day1/T1.ipynb",
+        "colab": "https://colab.research.google.com/github/org/r/blob/nb/notebooks/tutorials/Day1/T1.ipynb",
+        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/org/r/nb/notebooks/tutorials/Day1/T1.ipynb",
+        "solution1": "https://github.com/org/r/blob/nb/notebooks/tutorials/Day1/solutions/T1_Solution_1.py",
+        "root": "tutorials",
+        "notebookDir": "tutorials/Day1"
       }
     }
   ]

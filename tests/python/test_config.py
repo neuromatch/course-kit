@@ -46,7 +46,7 @@ def test_nma_block_is_exposed():
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c["name"])
 def test_shared_fixture_cases(case):
-    s = load_settings(case["myst"])
+    s = load_settings(case["myst"], env=case.get("env", {}))
     location = page_location(s, case["page"])
     expect = case["expect"]
     if expect is None:
