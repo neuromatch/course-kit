@@ -205,3 +205,31 @@ def test_restart(page, base_url):
     run(last)
     expect(status(last)).to_contain_text("✓")
     assert FALLBACK_NOTE in out_text(panel_with(page, "def integrate_exponential"))
+
+
+SCROLLY_DATA_TUTORIAL = "/tutorials/w1d1-gettingstarted/w1d1-tutorial5/"
+
+
+def test_scrolly_page_gets_declared_data_and_image_files(page, base_url):
+    """{nma-data} files are written into the scrolly page's own Pyodide (py.FS).
+
+    render-scrolly pre-fills each cell's output, so the cells are edited to print
+    something the pre-rendered output can't contain.
+    """
+    page.goto(base_url + SCROLLY_DATA_TUTORIAL)
+    page.wait_for_selector(".scrolly-runnable")
+    # anywidget's shadow container carries the host's class: match the light DOM only.
+    boxes = page.locator("css:light=.scrolly-runnable")
+    assert boxes.count() == 2
+
+    def edit_and_run(i, code, expected):
+        box = boxes.nth(i)
+        # A stage view is only visible while its step is in view; card 0 is the hero.
+        page.locator(".scrolly-step").nth(i + 1).evaluate("el => el.scrollIntoView({block: 'center'})")
+        expect(box).to_be_visible(timeout=30_000)
+        box.locator("textarea.fl-ta").fill(code)
+        box.locator(".fl-run").click()
+        expect(box.locator(".fl-stdout")).to_contain_text(expected, timeout=180_000)
+
+    edit_and_run(0, 'print(open("data/demo.txt").read().strip().upper())', "HELLO FROM THE DAY DATA FOLDER")
+    edit_and_run(1, 'print("size", len(open("image/demo.png", "rb").read()))', "size 69")
