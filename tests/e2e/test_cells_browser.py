@@ -224,6 +224,9 @@ def test_scrolly_page_gets_declared_data_and_image_files(page, base_url):
 
     def edit_and_run(i, code, expected):
         box = boxes.nth(i)
+        # A stage view is only visible while its step is in view; card 0 is the hero.
+        page.locator(".scrolly-step").nth(i + 1).evaluate("el => el.scrollIntoView({block: 'center'})")
+        expect(box).to_be_visible(timeout=30_000)
         box.locator("textarea.fl-ta").fill(code)
         box.locator(".fl-run").click()
         expect(box.locator(".fl-stdout")).to_contain_text(expected, timeout=180_000)
