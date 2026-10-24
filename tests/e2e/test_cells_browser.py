@@ -31,17 +31,13 @@ def visible_cell_count(md: str) -> int:
 def open_page(page, base_url, path, boot=True):
     """Open a page with editable cells and wait for its panels.
 
-    boot=True also waits for the kernel's "ready" signal (the Restart button
-    appears), i.e. Pyodide has finished booting (a minute or more on a CI
-    runner). `networkidle` is not used: it never fires while anything keeps
-    polling. Tests that
-    never run Python pass boot=False: they don't need it, and a kernel booting
-    in the background only slows the other tests running in parallel.
+    The Pyodide kernel boots lazily, on the first Run, and `run()` waits for it,
+    so nothing here waits for the kernel. `boot` is kept so callers still say
+    whether they intend to run Python. `networkidle` is not used: the video and
+    slide iframes (and later the kernel boot) keep the network busy.
     """
     page.goto(base_url + path)
     page.wait_for_selector(".myst-anywidget.nma-cell")
-    if boot:
-        page.locator("button.restart:visible").first.wait_for(timeout=180_000)
     page.wait_for_timeout(2000)  # let hydration settle
 
 
