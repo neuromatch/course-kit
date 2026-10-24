@@ -69,7 +69,7 @@ on:
 
 env:
   KIT_VERSION: 0.1.5 # x-release-please-version
-  WRANGLER: wrangler@4
+  WRANGLER_VERSION: 4.152.0 # pinned: bump deliberately
   MARKER: "<!-- nma-kit-preview -->"
 
 jobs:
@@ -88,13 +88,50 @@ jobs:
       NMA_NOTEBOOKS_BRANCH: notebooks-pr-${{ inputs.pr-number }}
       PR_NUMBER: ${{ inputs.pr-number }}
       PROJECT: ${{ inputs.cloudflare-project }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # The Cloudflare secrets are set only on the steps that need them, never
+      # on steps that run PR code (pip install, nma-kit, myst build).
       GH_TOKEN: ${{ github.token }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
     steps:
+      - name: Check Cloudflare setup
+        id: cf
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && [ -n "$PROJECT" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Preview not deployed: set the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets and the CLOUDFLARE_PROJECT variable."
+          fi
+
+      # One sticky comment, updated through the run: building -> link or failure.
+      - name: Write the comment helper
+        run: |
+          cat > "$RUNNER_TEMP/comment.sh" <<'SH'
+          #!/usr/bin/env bash
+          # usage: comment.sh <body>; creates or updates the marked comment
+          set -euo pipefail
+          body="$MARKER
+          $1"
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
+            --jq ".[] | select(.body | contains(\"$MARKER\")) | .id" | head -n 1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body" >/dev/null
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -f body="$body" >/dev/null
+          fi
+          SH
+          chmod +x "$RUNNER_TEMP/comment.sh"
+
+      - name: Comment that the preview is building
+        if: steps.cf.outputs.enabled == 'true'
+        run: |
+          "$RUNNER_TEMP/comment.sh" "**Preview:** building \`${GITHUB_SHA::7}\` ([run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)). The previous preview link, if any, shows older content."
+
       - uses: actions/checkout@v4
 
       - uses: astral-sh/setup-uv@v5
@@ -144,40 +181,55 @@ jobs:
       - name: Build the site
         run: myst build --html
 
-      - name: Check Cloudflare setup
-        id: cf
+      - name: Cache wrangler
+        if: steps.cf.outputs.enabled == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: wrangler-${{ env.WRANGLER_VERSION }}
+
+      - name: Ensure the Pages project exists
+        if: steps.cf.outputs.enabled == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && [ -n "$PROJECT" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Preview not deployed: set the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets and the CLOUDFLARE_PROJECT variable."
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT"
+          status() { curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$api"; }
+          code=$(status)
+          if [ "$code" = 404 ]; then
+            # A parallel run may create it first: re-check before failing.
+            npx --yes "wrangler@$WRANGLER_VERSION" pages project create "$PROJECT" --production-branch main \
+              || [ "$(status)" = 200 ]
+          elif [ "$code" != 200 ]; then
+            echo "::error::Cloudflare returned HTTP $code for project $PROJECT: check the token (Pages: Edit), account id and project name."
+            exit 1
           fi
 
       - name: Deploy to Cloudflare Pages
         if: steps.cf.outputs.enabled == 'true'
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          # Fails when the project exists already; a real problem (bad token)
-          # makes the deploy below fail loudly.
-          npx --yes "$WRANGLER" pages project create "$PROJECT" --production-branch main || true
-          npx --yes "$WRANGLER" pages deploy _build/html \
+          # Previews are for reviewers, not search engines.
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' >> _build/html/_headers
+          npx --yes "wrangler@$WRANGLER_VERSION" pages deploy _build/html \
             --project-name "$PROJECT" --branch "pr-$PR_NUMBER" \
-            --commit-hash "$GITHUB_SHA" --commit-dirty=true
+            --commit-hash "$GITHUB_SHA" --commit-message "PR #$PR_NUMBER (${GITHUB_SHA::7})" \
+            --commit-dirty=true
 
       - name: Comment the preview link
         if: steps.cf.outputs.enabled == 'true'
         run: |
-          url="https://pr-$PR_NUMBER.$PROJECT.pages.dev"
-          body="$MARKER
-          **Preview:** $url
+          "$RUNNER_TEMP/comment.sh" "**Preview:** https://pr-$PR_NUMBER.$PROJECT.pages.dev
           Built from \`${GITHUB_SHA::7}\`. Notebook buttons open \`$NMA_NOTEBOOKS_BRANCH\`. Removed when this pull request closes."
-          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
-            --jq ".[] | select(.body | contains(\"$MARKER\")) | .id" | head -n 1)
-          if [ -n "$id" ]; then
-            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body" >/dev/null
-          else
-            gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -f body="$body" >/dev/null
-          fi
+
+      - name: Comment that the preview failed
+        if: failure() && steps.cf.outputs.enabled == 'true'
+        run: |
+          "$RUNNER_TEMP/comment.sh" "**Preview:** the build for \`${GITHUB_SHA::7}\` failed ([run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)). Any earlier preview link shows older content."
 
   cleanup:
     if: inputs.action == 'cleanup' && github.event.pull_request.head.repo.full_name == github.repository
@@ -218,9 +270,16 @@ jobs:
             [ "$(echo "$result" | jq '.result | length')" -lt 25 ] && break
             page=$((page + 1))
           done
+          # Keep going when one delete fails; report at the end.
+          failed=0
           for id in $ids; do
-            curl -fsS -X DELETE -H "$auth" "$api/$id?force=true" >/dev/null && echo "Deleted deployment $id"
+            if curl -fsS -X DELETE -H "$auth" "$api/$id?force=true" >/dev/null; then
+              echo "Deleted deployment $id"
+            else
+              echo "::warning::Could not delete deployment $id"; failed=1
+            fi
           done
+          exit $failed
 
       - name: Update the comment
         run: |

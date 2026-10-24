@@ -45,8 +45,35 @@ def test_comment_is_sticky():
     wf = workflow()
     assert wf["env"]["MARKER"] == MARKER
     steps = wf["jobs"]["preview"]["steps"]
-    comment = next(s for s in steps if s.get("name") == "Comment the preview link")["run"]
-    assert "PATCH" in comment and "POST" in comment and "$MARKER" in comment
+    helper = next(s for s in steps if s.get("name") == "Write the comment helper")["run"]
+    assert "PATCH" in helper and "POST" in helper and "$MARKER" in helper
+    names = [s.get("name") for s in steps]
+    assert names.index("Comment that the preview is building") < names.index("Comment the preview link")
+    failed = next(s for s in steps if s.get("name") == "Comment that the preview failed")
+    assert "failure()" in failed["if"]
+
+
+def test_cloudflare_secrets_only_on_steps_that_need_them():
+    job = workflow()["jobs"]["preview"]
+    assert "CLOUDFLARE_API_TOKEN" not in job["env"]
+    with_secret = {s["name"] for s in job["steps"] if "CLOUDFLARE_API_TOKEN" in s.get("env", {})}
+    assert with_secret == {"Check Cloudflare setup", "Ensure the Pages project exists", "Deploy to Cloudflare Pages"}
+
+
+def test_wrangler_is_pinned_exactly():
+    text = PREVIEW.read_text()
+    assert re.search(r"WRANGLER_VERSION: \d+\.\d+\.\d+", text)
+    assert "wrangler@4 " not in text and "wrangler@4\n" not in text
+
+
+def test_project_create_does_not_swallow_errors():
+    assert "|| true" not in PREVIEW.read_text().split("cleanup:")[0]
+
+
+def test_previews_are_noindex():
+    steps = workflow()["jobs"]["preview"]["steps"]
+    deploy = next(s for s in steps if s.get("name") == "Deploy to Cloudflare Pages")["run"]
+    assert "X-Robots-Tag: noindex" in deploy
 
 
 def test_cloudflare_is_optional():
