@@ -2,6 +2,14 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.1.5](https://github.com/neuromatch/course-kit/compare/v0.1.4...v0.1.5) (2026-10-24)
+
+
+### Features
+
+* course-preview workflow (Cloudflare Pages PR previews) ([1e4095e](https://github.com/neuromatch/course-kit/commit/1e4095ec2d5d70d1b82da8290ca2aad92dd9d1ff))
+* NMA_NOTEBOOKS_BRANCH overrides the notebooks branch ([ad7f2e2](https://github.com/neuromatch/course-kit/commit/ad7f2e2d7558c8d4a138ffffec47b4f52c418934))
+
 ## [0.1.4](https://github.com/neuromatch/course-kit/compare/v0.1.3...v0.1.4) (2026-10-24)
 
 

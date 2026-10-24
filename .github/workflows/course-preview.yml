@@ -68,7 +68,7 @@ on:
         required: false
 
 env:
-  KIT_VERSION: 0.1.4 # x-release-please-version
+  KIT_VERSION: 0.1.5 # x-release-please-version
   WRANGLER: wrangler@4
   MARKER: "<!-- nma-kit-preview -->"
 
