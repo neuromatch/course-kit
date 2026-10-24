@@ -2,6 +2,13 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.1.6](https://github.com/neuromatch/course-kit/compare/v0.1.5...v0.1.6) (2026-10-24)
+
+
+### Features
+
+* update preview workflow ([b235e2f](https://github.com/neuromatch/course-kit/commit/b235e2fd358bc4fc83704530d67353ce7a8dc50d))
+
 ## [0.1.5](https://github.com/neuromatch/course-kit/compare/v0.1.4...v0.1.5) (2026-10-24)
 
 

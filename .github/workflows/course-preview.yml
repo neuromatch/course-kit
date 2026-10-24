@@ -68,7 +68,7 @@ on:
         required: false
 
 env:
-  KIT_VERSION: 0.1.5 # x-release-please-version
+  KIT_VERSION: 0.1.6 # x-release-please-version
   WRANGLER_VERSION: 4.152.0 # pinned: bump deliberately
   MARKER: "<!-- nma-kit-preview -->"
 
