@@ -14,14 +14,19 @@ const here = dirname(fileURLToPath(import.meta.url));
 const { cases } = JSON.parse(readFileSync(join(here, '..', 'fixtures', 'config', 'settings.json'), 'utf8'));
 const start = process.cwd();
 
-function inCourse(myst, fn) {
+function inCourse(myst, fn, env = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'nma-course-'));
   writeFileSync(join(dir, 'myst.yml'), myst);
   process.chdir(dir);
+  const saved = process.env.NMA_NOTEBOOKS_BRANCH;
+  delete process.env.NMA_NOTEBOOKS_BRANCH;
+  Object.assign(process.env, env);
   try {
     return fn(dir);
   } finally {
     process.chdir(start);
+    if (saved === undefined) delete process.env.NMA_NOTEBOOKS_BRANCH;
+    else process.env.NMA_NOTEBOOKS_BRANCH = saved;
   }
 }
 
@@ -40,7 +45,7 @@ for (const c of cases) {
       assert.deepEqual(notebookUrls(page), { colabUrl: c.expect.colab, kaggleUrl: c.expect.kaggle });
       const s = courseSettings();
       assert.equal(solutionUrl(s.githubRepo, notebookDir(location), `${location.stem}_Solution_1.py`, s.notebooksBranch), c.expect.solution1);
-    });
+    }, c.env);
   });
 }
 
@@ -54,6 +59,13 @@ test('defaults without an nma block', () => {
     assetsImageDir: 'image',
     nma: {},
   });
+});
+
+test('NMA_NOTEBOOKS_BRANCH: explicit env wins, blank is ignored', () => {
+  const myst = 'nma:\n  notebooks:\n    branch: nb\n';
+  assert.equal(loadSettings(myst, { NMA_NOTEBOOKS_BRANCH: 'x' }).notebooksBranch, 'x');
+  assert.equal(loadSettings(myst, { NMA_NOTEBOOKS_BRANCH: ' ' }).notebooksBranch, 'nb');
+  assert.equal(loadSettings('', {}).notebooksBranch, 'notebooks-branch');
 });
 
 test('settings are re-read when the working directory changes', () => {

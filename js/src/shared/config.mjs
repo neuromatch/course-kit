@@ -8,6 +8,7 @@
 //       projects: projects          # where the course's project .md pages live
 //     notebooks:
 //       branch: notebooks-branch    # where generated notebooks are published
+//                                   # (the env var NMA_NOTEBOOKS_BRANCH overrides it: PR previews)
 //     assets:
 //       data: data                  # folder (in each day folder) for data files
 //       image: image                # folder (in each day folder) for images
@@ -17,6 +18,7 @@ import { parse } from 'yaml';
 export const DEFAULT_TUTORIALS_DIR = 'tutorials';
 export const DEFAULT_PROJECTS_DIR = 'projects';
 export const DEFAULT_NOTEBOOKS_BRANCH = 'notebooks-branch';
+export const NOTEBOOKS_BRANCH_ENV = 'NMA_NOTEBOOKS_BRANCH'; // overrides the branch (PR previews)
 export const DEFAULT_DATA_DIR = 'data';
 export const DEFAULT_IMAGE_DIR = 'image';
 const GITHUB_RE = /github\.com\/([^\s'"]+?)\/?$/;
@@ -44,7 +46,7 @@ function setting(nma, section, key, fallback) {
 }
 
 /** {githubRepo, tutorialsDir, projectsDir, notebooksBranch, assetsDataDir, assetsImageDir, nma} from myst.yml text. */
-export function loadSettings(text) {
+export function loadSettings(text, env = process.env) {
   const data = parseYaml(text);
   const nma = readNmaConfig(text);
   const url = isMapping(data.project) ? data.project.github : undefined;
@@ -53,7 +55,7 @@ export function loadSettings(text) {
     githubRepo: match ? match[1] : null,
     tutorialsDir: setting(nma, 'paths', 'tutorials', DEFAULT_TUTORIALS_DIR).replace(/^\/+|\/+$/g, ''),
     projectsDir: setting(nma, 'paths', 'projects', DEFAULT_PROJECTS_DIR).replace(/^\/+|\/+$/g, ''),
-    notebooksBranch: setting(nma, 'notebooks', 'branch', DEFAULT_NOTEBOOKS_BRANCH),
+    notebooksBranch: (env[NOTEBOOKS_BRANCH_ENV] || '').trim() || setting(nma, 'notebooks', 'branch', DEFAULT_NOTEBOOKS_BRANCH),
     assetsDataDir: setting(nma, 'assets', 'data', DEFAULT_DATA_DIR).replace(/^\/+|\/+$/g, ''),
     assetsImageDir: setting(nma, 'assets', 'image', DEFAULT_IMAGE_DIR).replace(/^\/+|\/+$/g, ''),
     nma,
