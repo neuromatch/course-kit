@@ -4,7 +4,7 @@
 PY := cd python && uv run --no-sync
 .DEFAULT_GOAL := help
 
-.PHONY: help setup lint test test-py test-js build example e2e clean
+.PHONY: help setup lint test test-py test-js build build-dev example e2e clean
 
 help: ## List the tasks
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-9s %s\n", $$1, $$2}'
@@ -24,13 +24,16 @@ build: ## Build the JS bundle (release build, as published)
 test-py: ## Python unit tests
 	$(PY) pytest -q ../tests/python
 
-test-js: build ## JS unit tests (rebuilds first: tests read dist/)
-	cd js && npm test
+build-dev: ## Build the JS bundle for local use (asset paths next to the bundle)
+	cd js && npm run build:dev
+
+test-js: ## JS unit tests against both builds (tests read dist/, so it rebuilds; ends on the release build)
+	cd js && npm run build:dev && npm test
+	cd js && npm run build && npm test
 
 test: lint test-py test-js ## Lint and all unit tests (what CI runs first)
 
-example: ## Build tests/example-course with the dev bundle
-	cd js && npm run build:dev
+example: ## Build tests/example-course with the dev bundle (the script builds the bundle)
 	tests/scripts/build-example.sh
 
 e2e: ## Browser tests against a built example course (see AGENTS.md)

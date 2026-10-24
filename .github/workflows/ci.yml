@@ -63,11 +63,9 @@ jobs:
           cache: npm
           cache-dependency-path: js/package-lock.json
       - run: npm ci --no-audit --no-fund
-      - name: Release build + tests
+      - name: Dev and release builds + tests
         run: make test-js
         working-directory: .
-      - name: Dev build + tests
-        run: npm run build:dev && npm test
 
   # The slowest job. A release PR only changes version strings and the
   # changelog, so it is skipped there (a skipped job counts as passing for
