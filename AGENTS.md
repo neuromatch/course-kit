@@ -260,8 +260,10 @@ downloads); CI retries failed tests once.
 - Never `pull_request_target` (it would hand secrets to PR code); jobs are limited
   to same-repo PRs. `tests/python/test_preview_workflow.py` pins these rules; the
   Cloudflare calls themselves are only checked on a real course PR.
-- The kit's own `ci.yml` does not run it on the example course: it would push
-  `notebooks-pr-<n>` branches to the kit repo.
+- The kit previews its own PRs through `preview.yml` (example course, `kit-source: local`),
+  separate from `ci.yml` so CI does not rerun when a PR closes. The example course publishes
+  to this repo, so each open PR has a `notebooks-pr-<n>` branch here until it closes. It is
+  skipped for the release-please PR (version strings only), like the e2e job in `ci.yml`.
 - Registered for releases like the other reusable workflows (`KIT_VERSION` marker,
   `release-please-config.json`, `REUSABLE` in `test_release.py`).
 
