@@ -25,6 +25,7 @@ is the compatible line. See README.md.
 
 ```
 js/
+  biome.json                  # JS lint config
   src/
     index.mjs                 # merges every feature plugin (transform order: solutions, feedback, scrolly, cells)
     shared/                   # config.mjs (myst.yml settings, YAML), paths.mjs (page location, notebook/solution URLs),
@@ -41,6 +42,7 @@ js/
   nma.yml.tmpl                # the config courses `extend:`
 python/src/nma_kit/
   cli.py                      # nma-kit check | notebooks | render-scrolly | sync-assets | prepare-site | publish-notebooks
+  constants.json, constants.py  # values shared with the JS plugin (single source, see Rules)
   config.py                   # Settings from myst.yml (github repo, nma.paths.tutorials, nma.notebooks.branch)
   convert.py                  # content rules, jupytext conversion, badges, prepare-site
   media.py solutions.py feedback.py scrolly.py cells.py assets.py   # Python side of each feature
@@ -56,6 +58,8 @@ tests/
   scripts/build-example.sh    # build the example course like a course's CI does
   scripts/compare_builds.py   # golden check: two course builds produce the same notebooks and pages
 docs/releasing.md             # maintainers: how releases are set up (CONTRIBUTING.md is the contributor guide)
+Makefile, ruff.toml           # contributor tasks (make help); Python lint config (JS: js/biome.json)
+.pre-commit-config.yaml       # runs the linters on commit (installed by make setup)
 templates/course.yml          # the workflow courses copy (calls the reusable workflows @v0.1)
 templates/wheels.yml          # optional caller for course-wheels.yml
 .github/workflows/            # course-check.yml, course-publish.yml, course-preview.yml, course-wheels.yml (reusable), ci.yml, release.yml
@@ -66,6 +70,9 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - **Features are separate.** `js/src/<feature>/` imports only from itself and
   `shared/` (enforced by `tests/js/structure.test.mjs`). The Python side uses
   the same feature names.
+- **Shared values live in one file.** Constants both languages need are in
+  `python/src/nma_kit/constants.json` (read by `constants.py`, inlined by
+  `js/src/shared/constants.mjs`). Never redeclare them on one side.
 - **Python/JS twins stay in sync**, tested against the same fixtures. Every twin is
   listed in `tests/twins.json` (symbols, fixture) and `tests/python/test_twins.py` fails when
   one is renamed, removed or untested; add an entry when you write a twin
@@ -83,8 +90,8 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   - `isScrolly`/`is_scrolly`, `cellKey`/`cell_key`, `parseParams`/`parse_params`, `tests/fixtures/scrolly/`.
     `cell_key` = first 16 hex chars of sha256 of the code with CRLF -> LF,
     trailing spaces/tabs stripped per line, outer blank lines stripped.
-  - `runtimeOf`/`runtime_of`, `tests/fixtures/cells/runtime.json`. `NO_FALLBACK_MARKER`
-    in `solutions.py` and `cells/src/model.mjs` must match.
+  - `runtimeOf`/`runtime_of`, `tests/fixtures/cells/runtime.json`. `NO_FALLBACK_MARKER` is
+    shared through `constants.json`.
 - **Asset URLs** come from `shared/assets.mjs`:
   - release build: `https://cdn.jsdelivr.net/npm/@neuromatch/course-kit@<exact version>/dist/assets/<rel>`.
     MyST downloads these at build time and serves them from the site (`build/<md5>.mjs`),
@@ -171,7 +178,7 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - `nma-kit check` errors: bad/missing declared files; code that uses a strict literal `data/x.ext` / `image/x.ext`
   that no `{nma-data}` declares; f-string paths (`f"data/{x}.npz"`) under a folder where the page declares no file;
   page images (markdown, `<img>`, `{figure}`) under `image/` that aren't declared (they'd work on the site but never
-  reach Colab); declared files over `MAX_EMBED_BYTES` (2 MB total, twin in `assets/plugin.mjs`, which skips
+  reach Colab); declared files over `MAX_EMBED_BYTES` (2 MB total, `max_embed_bytes` in `constants.json`; `assets/plugin.mjs` skips
   embedding with a warning). Other dynamic paths can't be detected: declare every file the code can reach.
 - The embedded bytes grow the page: keep tutorial files small; large datasets use the author's own download cell.
 - Limits: the download cell needs Internet (on Kaggle it must be turned on; the cell says so on failure), and raw
@@ -222,6 +229,9 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   A raising cell fails CI with `file:line`.
 
 ## Commands
+
+`make help` lists the shortcuts (`make setup`, `make test`, `make lint`, `make example`); `ruff.toml`
+and `js/biome.json` configure the linters (CI runs the same). The underlying commands:
 
 ```bash
 # Python

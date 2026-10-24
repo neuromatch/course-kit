@@ -26,32 +26,45 @@ content and writes the notebooks. Both halves must agree; see
 
 ## Set up
 
-You need [uv](https://docs.astral.sh/uv/) and Node 22.
+You need [uv](https://docs.astral.sh/uv/), Node 22 and `make`.
 
 ```bash
-# Python
-cd python && uv venv && uv pip install -e '.[test]' -r ../tests/example-course/requirements.txt
-uv run pytest -q ../tests/python
-
-# JavaScript (build first: some tests read dist/)
-cd js && npm ci
-npm run build && npm test          # release build: CDN asset URLs
-npm run build:dev && npm test      # dev build: local asset paths
+make setup    # Python + JS dependencies and the pre-commit hook
+make test     # lint, Python tests, JS tests (builds the bundle first)
+make help     # every task
 ```
 
-If a JS test says `dist` has the wrong version, rebuild: `dist/` is gitignored
-and goes stale after a version bump or a `git pull`.
+`make test` rebuilds the JS bundle because some JS tests read `js/dist/`,
+which is gitignored and goes stale after a version bump or a `git pull`. If
+you run `npm test` yourself and it complains about the `dist` version, run
+`make build`.
+
+Without `make`, the same steps are:
+
+```bash
+cd python && uv venv && uv pip install -e '.[test,dev]' -r ../tests/example-course/requirements.txt
+uv run pytest -q ../tests/python
+cd ../js && npm ci && npm run build && npm test && npm run build:dev && npm test
+```
+
+## Linting
+
+`make lint` runs [ruff](https://docs.astral.sh/ruff/) (`ruff.toml`) on the
+Python and [Biome](https://biomejs.dev) (`js/biome.json`) on the JS, and CI
+runs the same. The pre-commit hook from `make setup` runs them on commit.
+Neither tool formats code: match the style of the file you are in. Ruff also
+requires a docstring on every public module, class and function.
 
 ## Test layers
 
 | Layer | Command | Covers |
 |---|---|---|
-| Python unit | `uv run pytest -q ../tests/python` (in `python/`) | CLI, conversion, checks, workflows, release consistency, twin registry |
-| JS unit | `npm test` (in `js/`, after a build) | plugin logic, bundle contents, feature boundaries |
-| Example course | `tests/scripts/build-example.sh` | a real `myst build` with the dev bundle |
-| Browser | see "Commands" in [AGENTS.md](AGENTS.md) | editable cells, branding, in Chromium (slow: each page boots Pyodide) |
+| Python unit | `make test-py` | CLI, conversion, checks, workflows, release consistency, twin registry |
+| JS unit | `make test-js` | plugin logic, bundle contents, feature boundaries |
+| Example course | `make example` | a real `myst build` with the dev bundle |
+| Browser | `make e2e` prints the steps (details in [AGENTS.md](AGENTS.md)) | editable cells, branding, in Chromium (slow: each page boots Pyodide) |
 
-CI runs all of them on pull requests. Run the first two locally before you push.
+CI runs all of them on pull requests. Run `make test` before you push.
 
 ## Python and JS twins
 
@@ -69,8 +82,12 @@ silently, so:
 3. **Test both sides against the same fixture.** Change a rule by changing
    the fixture first, then make both implementations pass.
 4. If you write a new twin, add a registry entry and a fixture in the same PR.
-   Prefer not to write one at all: data that is the same on both sides
-   belongs in one file both read.
+5. **Prefer not to write a twin at all.** Values that are the same on both
+   sides (defaults, the notebooks-branch env var, the embed limit, the
+   no-fallback marker) live in
+   [`python/src/nma_kit/constants.json`](python/src/nma_kit/constants.json).
+   Python reads it (`nma_kit/constants.py`) and the JS bundle inlines it
+   (`js/src/shared/constants.mjs`). Add shared values there, never in both.
 
 ## Adding or changing a feature
 

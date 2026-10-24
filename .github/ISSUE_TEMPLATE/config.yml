@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Course authoring question
+    url: https://github.com/neuromatch/course-template
+    about: Conventions for writing course content live in the course template.

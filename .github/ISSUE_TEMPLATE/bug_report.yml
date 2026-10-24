@@ -1,0 +1,27 @@
+name: Bug report
+description: Something in the kit (plugin, CLI or workflows) does not work
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: The smallest page or `myst.yml` that shows it, and the command or workflow that failed.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Kit version
+      description: "`nma-kit --version`, or the workflow ref (for example `@v0.1`)."
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output or logs
+      render: shell
