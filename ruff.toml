@@ -1,0 +1,18 @@
+# Python lint (run from the repo root: `make lint`, the pre-commit hook, CI).
+# Lint only: no formatter is enforced.
+line-length = 120
+target-version = "py310"
+src = ["python/src", "tests"]
+extend-exclude = ["tests/example-course"]
+
+[lint]
+# E/F/W: pycodestyle and pyflakes; I: import order; B: likely bugs; UP: modern syntax;
+# D100-D103: every public module, class, method and function has a docstring.
+select = ["E", "F", "W", "I", "B", "UP", "D100", "D101", "D102", "D103"]
+ignore = [
+  "E501",  # long lines: some are generated-code templates
+  "UP031", # %-formatting is used on purpose in a few templates
+]
+
+[lint.per-file-ignores]
+"tests/**" = ["E402", "D"]  # tests group imports with the code they test
