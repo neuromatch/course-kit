@@ -63,7 +63,11 @@ from pathlib import Path
 import yaml
 
 from nma_kit import assets as nma_assets
+from nma_kit import branding as nma_branding
 from nma_kit import cells as nma_cells
+from nma_kit import feedback as nma_feedback
+from nma_kit import scrolly as nma_scrolly
+from nma_kit import solutions as nma_solutions
 from nma_kit.config import (
     DEFAULT_NOTEBOOKS_BRANCH,
     MYST_CONFIG,
@@ -73,12 +77,7 @@ from nma_kit.config import (
     read_nma_block,
     read_settings,
 )
-from nma_kit import branding as nma_branding
-from nma_kit import feedback as nma_feedback
-from nma_kit import scrolly as nma_scrolly
-from nma_kit import solutions as nma_solutions
 from nma_kit.media import expand_notebook, find_directives, validate_directive
-
 
 NOTEBOOKS_DIR = Path("notebooks")
 

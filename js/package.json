@@ -19,7 +19,8 @@
   "scripts": {
     "build": "node build.mjs --release",
     "build:dev": "node build.mjs",
-    "test": "node --test ../tests/js/*.test.mjs"
+    "test": "node --test ../tests/js/*.test.mjs",
+    "lint": "biome lint --error-on-warnings ."
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.3",
@@ -32,6 +33,7 @@
     "yaml": "2.9.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.3",
     "esbuild": "0.28.2"
   },
   "publishConfig": {

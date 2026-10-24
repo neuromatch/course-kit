@@ -15,12 +15,15 @@
 
 import { parse } from 'yaml';
 
-export const DEFAULT_TUTORIALS_DIR = 'tutorials';
-export const DEFAULT_PROJECTS_DIR = 'projects';
-export const DEFAULT_NOTEBOOKS_BRANCH = 'notebooks-branch';
-export const NOTEBOOKS_BRANCH_ENV = 'NMA_NOTEBOOKS_BRANCH'; // overrides the branch (PR previews)
-export const DEFAULT_DATA_DIR = 'data';
-export const DEFAULT_IMAGE_DIR = 'image';
+import {
+  DEFAULT_DATA_DIR,
+  DEFAULT_IMAGE_DIR,
+  DEFAULT_NOTEBOOKS_BRANCH,
+  DEFAULT_PROJECTS_DIR,
+  DEFAULT_TUTORIALS_DIR,
+  NOTEBOOKS_BRANCH_ENV,
+} from './constants.mjs';
+
 const GITHUB_RE = /github\.com\/([^\s'"]+?)\/?$/;
 
 const isMapping = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);

@@ -1,7 +1,10 @@
-// Pure helpers for editable cells (no imports: used by Node tests, the MyST
+// Pure helpers for editable cells (no side effects: used by Node tests, the MyST
 // plugin and the browser bundles).
 
-export const NO_FALLBACK_MARKER = 'nma-no-fallback'; // sync: nma_kit.solutions
+import { NO_FALLBACK_MARKER } from '../../shared/constants.mjs';
+
+export { NO_FALLBACK_MARKER };
+
 export const UNFINISHED_RE = /^[ \t]*raise NotImplementedError/m; // sync: nma_kit.solutions
 
 export const isExercise = (code) => UNFINISHED_RE.test(code);

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
+  "files": {
+    "includes": [
+      "src/**",
+      "build.mjs",
+      "../tests/js/**"
+    ]
+  },
+  "formatter": {
+    "enabled": false
+  },
+  "assist": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "useIterableCallbackReturn": "off",
+        "noAssignInExpressions": "off"
+      },
+      "complexity": {
+        "noImportantStyles": "off",
+        "useOptionalChain": "off",
+        "noCommaOperator": "off",
+        "useIndexOf": "off"
+      },
+      "style": {
+        "useTemplate": "off",
+        "noDescendingSpecificity": "off"
+      }
+    }
+  }
+}

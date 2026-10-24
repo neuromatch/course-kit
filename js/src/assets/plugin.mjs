@@ -8,15 +8,16 @@
 // browser cells can write them into the kernel's filesystem without any fetch.
 
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { dirname, isAbsolute, relative, resolve } from 'node:path';
 
+import { MAX_EMBED_BYTES } from '../shared/constants.mjs';
 import { courseSettings, notebookDir, pageLocation } from '../shared/paths.mjs';
 import { assetUrlFor, parseDataDirective, validateDataDirectives } from './model.mjs';
 
 export { parseDataDirective, validateDataDirectives, assetUrlFor };
 
-// Python twin: MAX_EMBED_BYTES in nma_kit.assets. `nma-kit check` reports it as an error.
-export const MAX_EMBED_BYTES = 2 * 1024 * 1024;
+// Shared with the CLI (constants.json); `nma-kit check` reports going over it as an error.
+export { MAX_EMBED_BYTES };
 
 const text = (value) => ({ type: 'text', value });
 const link = (url, label) => ({ type: 'link', url, children: [text(label)] });
