@@ -218,7 +218,8 @@ def test_scrolly_page_gets_declared_data_and_image_files(page, base_url):
     """
     page.goto(base_url + SCROLLY_DATA_TUTORIAL)
     page.wait_for_selector(".scrolly-runnable")
-    boxes = page.locator(".scrolly-runnable")
+    # anywidget's shadow container carries the host's class: match the light DOM only.
+    boxes = page.locator("css:light=.scrolly-runnable")
     assert boxes.count() == 2
 
     def edit_and_run(i, code, expected):
