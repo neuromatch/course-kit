@@ -11,7 +11,7 @@ import nma_kit
 
 KIT = Path(__file__).resolve().parents[2]
 WORKFLOWS = KIT / ".github" / "workflows"
-REUSABLE = ["course-check.yml", "course-publish.yml"]
+REUSABLE = ["course-check.yml", "course-publish.yml", "course-preview.yml"]
 MARKER = "x-release-please-version"
 
 
