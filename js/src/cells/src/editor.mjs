@@ -29,6 +29,16 @@ const theme = EditorView.theme({
   '&.cm-focused': { outline: '2px solid var(--nma-cell-accent)' },
 });
 
+/**
+ * Mount a CodeMirror editor.
+ * @param {object} opts
+ * @param {HTMLElement} opts.parent element to mount into
+ * @param {ShadowRoot|Document} opts.root root the editor lives in (for styles)
+ * @param {string} opts.doc initial code
+ * @param {(code: string) => void} opts.onChange called on every edit
+ * @param {() => void} opts.onRun called on Shift-Enter or Mod-Enter
+ * @returns {{text: () => string, setText: (s: string) => void, destroy: () => void}} handle to read, replace and dispose the editor
+ */
 export function createEditor({ parent, root, doc, onChange, onRun }) {
   // Prec.highest: the default keymap otherwise swallows Shift-Enter.
   const runKeys = Prec.highest(

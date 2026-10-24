@@ -55,6 +55,7 @@ TO_REMOVE_RE = re.compile(r"^\s*#\s*to_remove\b")
 
 @dataclass
 class Block:
+    """One fenced block found in a page: a solution, an explanation, an exercise cell or another code cell."""
     kind: str           # "nma-solution", "nma-explanation", "exercise" or "code-cell"
     start: int          # 0-based line of the opening fence
     end: int = -1       # 0-based line of the closing fence; -1 if unclosed
@@ -170,6 +171,7 @@ def solution_code(block: Block) -> str | None:
 
 
 def explanation_text(block: Block) -> str:
+    """The Markdown inside an `{nma-explanation}` block."""
     return "\n".join(block.body_lines).strip("\n")
 
 
@@ -227,6 +229,9 @@ NOTEBOOKS_BRANCH = "notebooks-branch"  # default; courses override with nma.note
 
 
 def solution_filename(stem: str, kind: str, n: int) -> str:
+    """File name for the n-th solution or explanation of a page, e.g. `W1D1_Tutorial1_Solution_1.py`.
+
+    JS twin: js/src/solutions/plugin.mjs (same patterns)."""
     return FILE_PATTERNS[kind].format(stem=stem, n=n)
 
 
@@ -239,6 +244,7 @@ def solution_url(repo: str, notebook_dir: str, filename: str, branch: str = NOTE
 
 @dataclass
 class Item:
+    """A numbered solution or explanation to write to a file."""
     kind: str       # SOLUTION or EXPLANATION
     n: int          # 1-based position among directives of the same kind
     filename: str
@@ -350,6 +356,7 @@ def split_notebook(nb: dict, stem: str, notebook_dir: str, repo: str,
 
 
 def text_of_cell(cell: dict) -> str:
+    """A notebook cell's source as one string (nbformat allows a string or a list of lines)."""
     source = cell.get("source", "")
     return "".join(source) if isinstance(source, list) else source
 
@@ -409,6 +416,9 @@ NO_FALLBACK_MARKER = "nma-no-fallback"  # keep in sync with js/src/cells/src/mod
 
 
 def fallback_cell_source(pairs: list[tuple[str, str]]) -> str:
+    """Source of the hidden cell that runs the reference solution of an exercise the reader has not completed.
+
+    `pairs` are (exercise code, solution code)."""
     exercises = "[\n" + "".join(f"    ({e!r}, {s!r}),\n" for e, s in pairs) + "]"
     return Template(FALLBACK_TEMPLATE).substitute(
         sentinel=FALLBACK_SENTINEL,

@@ -42,3 +42,7 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Agent workflow scratch
+.superpowers/
+docs/superpowers/

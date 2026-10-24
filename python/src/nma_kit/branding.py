@@ -105,6 +105,7 @@ def brand_overrides(nma: dict) -> str:
 
 
 def font_face_css() -> str:
+    """`@font-face` rules for the bundled Rubik font, with the files embedded as base64 data URIs (so the stylesheet makes no font requests)."""
     rules = []
     for weight, style, name in FONTS:
         data = base64.b64encode((ASSETS / "fonts" / name).read_bytes()).decode("ascii")
@@ -121,6 +122,7 @@ def font_face_css() -> str:
 
 
 def extra_css_path(settings: Settings) -> Path | None:
+    """The course's `nma.style.extra` CSS file (relative to the course root), or None if unset."""
     extra = _section(settings.nma, "style").get("extra")
     return Path(extra) if isinstance(extra, str) and extra.strip() else None
 

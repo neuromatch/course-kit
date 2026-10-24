@@ -100,6 +100,7 @@ const nmaSlides = {
   },
 };
 
+/** The media plugin: the `{nma-video}` and `{nma-slides}` directives. */
 export default {
   name: 'Neuromatch media',
   directives: [nmaVideo, nmaSlides],

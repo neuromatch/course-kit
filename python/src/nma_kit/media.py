@@ -29,6 +29,7 @@ OPTION_RE = re.compile(r"^:([A-Za-z][\w-]*):\s*(.*?)\s*$")
 
 @dataclass
 class MediaDirective:
+    """One `{nma-video}` or `{nma-slides}` directive found in a page (see `find_directives`)."""
     kind: str                 # "nma-video" or "nma-slides"
     arg: str                  # video title, or OSF id for slides
     options: dict             # option name -> value
@@ -174,11 +175,13 @@ IFrame(src=f"https://mfr.ca-1.osf.io/render?url=https://osf.io/{link_id}/?direct
 
 
 def video_cell_source(d: MediaDirective) -> str:
+    """Notebook code that shows the video(s) of a `{nma-video}` directive, one tab per source."""
     video_ids = [(label, d.options[name]) for name, label in VIDEO_SOURCES if d.options.get(name)]
     return VIDEO_TEMPLATE.substitute(title=d.arg, video_ids=repr(video_ids))
 
 
 def slides_cell_source(d: MediaDirective) -> str:
+    """Notebook code that shows the slides of a `{nma-slides}` directive."""
     title = d.options.get("title") or DEFAULT_SLIDES_TITLE
     return SLIDES_TEMPLATE.substitute(title=title, link_id=d.arg)
 
@@ -188,6 +191,7 @@ def _lines(text: str) -> list[str]:
 
 
 def make_code_cell(d: MediaDirective, cell_id: str) -> dict:
+    """A hidden notebook code cell replacing a media directive."""
     source = video_cell_source(d) if d.kind == "nma-video" else slides_cell_source(d)
     return {
         "cell_type": "code",

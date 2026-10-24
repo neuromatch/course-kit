@@ -78,6 +78,9 @@ nma:
     user_key: ...
   scrolly:
     pyodide_url: https://cdn.jsdelivr.net/pyodide/v314.0.7/full/
+  assets:                         # folders (inside a day folder) for {nma-data} files
+    data: data
+    image: image
   brand:                          # colours, see "Site branding"
     primary: "#008CBF"
   style:
@@ -199,50 +202,12 @@ uv run nma-kit render-scrolly   # optional: real outputs on scrolly pages
 uv run myst start
 ```
 
-## Developing the kit
+## Contributing
 
-See [AGENTS.md](AGENTS.md) for the layout, the Python/JS twin rules and the
-test commands. In short:
-
-```bash
-(cd python && uv venv && uv pip install -e '.[test]' -r ../tests/example-course/requirements.txt && uv run pytest -q ../tests/python)
-(cd js && npm ci && npm run build && npm test && npm run build:dev && npm test)
-tests/scripts/build-example.sh   # build tests/example-course with the dev bundle
-```
-
-To try a kit change in a course without releasing, point the course's
-`project.plugins` at a local dev bundle (`npm run build:dev`) and install the
-CLI with `uv pip install -e <kit>/python`.
-
-## Releasing
-
-Commits on `main` use conventional messages (`fix:`, `feat:`, `feat!:`).
-release-please keeps a release PR open; merging it tags `vX.Y.Z`, publishes
-npm and PyPI, and moves the `vX.Y` and `vX` tags.
-
-The release flow is already set up. This is what it depends on, in case it
-has to be rebuilt:
-
-1. **npm**: the `neuromatch` organization owns `@neuromatch/course-kit`. The
-   first version was published by hand
-   (`cd js && npm run build && npm publish --otp=<code>`), because npm trusted
-   publishing can only be configured on an existing package. The package has a
-   trusted publisher: repository `neuromatch/course-kit`, workflow
-   `release.yml`, no environment, direct publishing allowed (the workflow runs
-   a plain `npm publish --provenance`), dist-tag management off.
-2. **PyPI**: the project `neuromatch-course-kit` has a trusted publisher:
-   repository `neuromatch/course-kit`, workflow `release.yml`, environment
-   `release`.
-3. Create the `release` environment in the repo settings.
-4. Add a second owner/maintainer on npm and PyPI.
-5. Create a fine-grained personal access token (or GitHub App) for this repo
-   with read/write on Contents, Pull requests and Workflows, and save it as
-   the repository secret `RELEASE_PLEASE_TOKEN`. release-please edits
-   `KIT_VERSION` in `.github/workflows/`, which the default `GITHUB_TOKEN`
-   may not do.
-6. Branch protection on `main`: require pull requests, the CI checks, and
-   "Require branches to be up to date before merging". CI runs on pull
-   requests only.
+Bug reports and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md)
+covers setup, tests, the Python/JS "twin" rule and how to add a feature;
+[AGENTS.md](AGENTS.md) describes how each feature is built. Maintainers: see
+[docs/releasing.md](docs/releasing.md).
 
 ## License
 

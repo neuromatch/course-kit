@@ -52,6 +52,9 @@ class MissingConfig(Exception):
 
 @dataclass(frozen=True)
 class Settings:
+    """Course settings read from `myst.yml` (the `project.github` repo and the `nma:` block), with defaults filled in.
+
+    JS twin: `loadSettings` in js/src/shared/config.mjs, tested with tests/fixtures/config/settings.json."""
     github_repo: str | None
     tutorials_dir: str = DEFAULT_TUTORIALS_DIR
     notebooks_branch: str = DEFAULT_NOTEBOOKS_BRANCH
@@ -100,6 +103,7 @@ def _notebooks_branch(nma: dict, env: Mapping[str, str]) -> str:
 
 
 def load_settings(myst_text: str, env: Mapping[str, str] | None = None) -> Settings:
+    """Build `Settings` from the text of `myst.yml`. `env` (default `os.environ`) supplies the `NMA_NOTEBOOKS_BRANCH` override."""
     env = os.environ if env is None else env
     data = _yaml(myst_text)
     nma = read_nma_block(myst_text)
@@ -115,6 +119,7 @@ def load_settings(myst_text: str, env: Mapping[str, str] | None = None) -> Setti
 
 
 def read_settings(path: Path = MYST_CONFIG) -> Settings:
+    """Read `myst.yml` (from the current directory by default). Raises `MissingConfig` if the file is absent."""
     path = Path(path)
     if not path.is_file():
         raise MissingConfig(path)
@@ -122,6 +127,7 @@ def read_settings(path: Path = MYST_CONFIG) -> Settings:
 
 
 class PageLocation(NamedTuple):
+    """Where a page lives: its content root, the folder under that root, and the file stem."""
     root: str      # content root name: 'tutorials' or 'projects'
     rel_dir: str   # folder under the content root ('' at the top)
     stem: str

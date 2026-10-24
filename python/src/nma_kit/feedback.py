@@ -50,6 +50,7 @@ HIDDEN = {"cellView": "form", "tags": ["hide-input"]}
 
 @dataclass(frozen=True)
 class FeedbackConfig:
+    """Where `{nma-feedback}` widgets post: the `nma.feedback` keys `url`, `project` and `user_key`."""
     url: str
     project: str
     user_key: str
@@ -111,6 +112,7 @@ def _frontmatter(text: str) -> dict:
 
 
 def default_prefix(stem: str) -> str:
+    """Feedback prefix from a page stem: `W1D2_Tutorial3` -> `W1D2_T3`; other stems are returned unchanged."""
     match = DEFAULT_PREFIX_RE.match(stem)
     return f"{match.group(1)}_T{match.group(2)}" if match else stem
 
@@ -184,6 +186,7 @@ def legacy_cell_errors(text: str) -> list[str]:
 # --- notebooks --------------------------------------------------------------
 
 def gadget_cell_source(prefix: str, config: FeedbackConfig) -> str:
+    """Source of the notebook cell that installs `vibecheck` and defines `content_review()`."""
     return f'''\
 # @title Import feedback gadget
 %pip install -q vibecheck datatops
@@ -205,6 +208,7 @@ feedback_prefix = {prefix!r}'''
 
 
 def feedback_cell_source(name: str) -> str:
+    """Source of the notebook cell for one `{nma-feedback}` directive named `name`."""
     return f'# @title Submit your feedback\ncontent_review(f"{{feedback_prefix}}_{name}")'
 
 
