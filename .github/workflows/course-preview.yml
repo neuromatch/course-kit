@@ -215,16 +215,31 @@ jobs:
         run: |
           # Previews are for reviewers, not search engines.
           printf '/*\n  X-Robots-Tag: noindex, nofollow\n' >> _build/html/_headers
+          export WRANGLER_OUTPUT_FILE_PATH="$RUNNER_TEMP/wrangler-output.ndjson"
           npx --yes "wrangler@$WRANGLER_VERSION" pages deploy _build/html \
             --project-name "$PROJECT" --branch "pr-$PR_NUMBER" \
             --commit-hash "$GITHUB_SHA" --commit-message "PR #$PR_NUMBER (${GITHUB_SHA::7})" \
             --commit-dirty=true
+          # The URL of this exact deployment (the pr-<n> URL moves with each push).
+          url=$(jq -rs 'map(select(.type == "pages-deploy-detail") | .url) | last // empty' "$WRANGLER_OUTPUT_FILE_PATH" 2>/dev/null || true)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Comment the preview link
         if: steps.cf.outputs.enabled == 'true'
+        env:
+          COMMIT_URL: ${{ steps.deploy.outputs.url }}
         run: |
-          "$RUNNER_TEMP/comment.sh" "**Preview:** https://pr-$PR_NUMBER.$PROJECT.pages.dev
-          Built from \`${GITHUB_SHA::7}\`. Notebook buttons open \`$NMA_NOTEBOOKS_BRANCH\`. Removed when this pull request closes."
+          url="https://pr-$PR_NUMBER.$PROJECT.pages.dev"
+          line="Built from \`${GITHUB_SHA::7}\`"
+          if [ -n "$COMMIT_URL" ]; then line="$line ([this exact build]($COMMIT_URL))"; fi
+          "$RUNNER_TEMP/comment.sh" "**Preview:** $url
+          $line. Notebook buttons open \`$NMA_NOTEBOOKS_BRANCH\`. Removed when this pull request closes."
+          {
+            echo "### Preview"
+            echo "- Latest: $url"
+            if [ -n "$COMMIT_URL" ]; then echo "- This build (\`${GITHUB_SHA::7}\`): $COMMIT_URL"; fi
+            echo "- Notebooks: branch \`$NMA_NOTEBOOKS_BRANCH\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comment that the preview failed
         if: failure() && steps.cf.outputs.enabled == 'true'
@@ -285,6 +300,8 @@ jobs:
         run: |
           id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
             --jq ".[] | select(.body | contains(\"$MARKER\")) | .id" | head -n 1)
-          [ -n "$id" ] && gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" \
-            -f body="$MARKER
-          Preview removed (pull request closed)." >/dev/null || true
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" \
+              -f body="$MARKER
+          Preview removed (pull request closed)." >/dev/null
+          fi

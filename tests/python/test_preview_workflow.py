@@ -67,7 +67,9 @@ def test_wrangler_is_pinned_exactly():
 
 
 def test_project_create_does_not_swallow_errors():
-    assert "|| true" not in PREVIEW.read_text().split("cleanup:")[0]
+    steps = workflow()["jobs"]["preview"]["steps"]
+    ensure = next(s for s in steps if s.get("name") == "Ensure the Pages project exists")["run"]
+    assert "|| true" not in ensure
 
 
 def test_previews_are_noindex():
@@ -96,3 +98,16 @@ def test_template_has_preview_job():
     assert job["secrets"] == "inherit"
     assert set(job["with"]) >= {"pr-number", "action", "cloudflare-project"}
     assert re.search(r"closed.*cleanup.*deploy", job["with"]["action"])
+
+
+def test_summary_and_exact_build_url():
+    steps = workflow()["jobs"]["preview"]["steps"]
+    deploy = next(s for s in steps if s.get("name") == "Deploy to Cloudflare Pages")
+    assert "WRANGLER_OUTPUT_FILE_PATH" in deploy["run"] and "url=" in deploy["run"]
+    comment = next(s for s in steps if s.get("name") == "Comment the preview link")
+    assert "GITHUB_STEP_SUMMARY" in comment["run"]
+
+
+def test_ci_lints_workflows():
+    ci = (KIT / ".github" / "workflows" / "ci.yml").read_text()
+    assert "rhysd/actionlint:" in ci
