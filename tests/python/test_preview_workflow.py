@@ -111,3 +111,13 @@ def test_summary_and_exact_build_url():
 def test_ci_lints_workflows():
     ci = (KIT / ".github" / "workflows" / "ci.yml").read_text()
     assert "rhysd/actionlint:" in ci
+
+
+def test_steps_before_checkout_do_not_use_the_course_directory():
+    # defaults.run.working-directory is the course folder, which only exists after checkout.
+    steps = workflow()["jobs"]["preview"]["steps"]
+    for step in steps:
+        if "actions/checkout" in step.get("uses", ""):
+            break
+        if "run" in step:
+            assert step.get("working-directory") == "${{ github.workspace }}", step["name"]
