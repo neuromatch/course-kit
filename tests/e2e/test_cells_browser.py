@@ -31,14 +31,12 @@ def visible_cell_count(md: str) -> int:
 def open_page(page, base_url, path, boot=True):
     """Open a page with editable cells and wait for its panels.
 
-    boot=True also waits for the network to go quiet, which means the Pyodide
-    kernel has finished booting (a minute or more on a CI runner). Tests that
-    never run Python pass boot=False: they don't need it, and a kernel booting
-    in the background only slows the other tests running in parallel.
+    The Pyodide kernel boots lazily, on the first Run, and `run()` waits for it,
+    so nothing here waits for the kernel. `boot` is kept so callers still say
+    whether they intend to run Python. `networkidle` is not used: the video and
+    slide iframes (and later the kernel boot) keep the network busy.
     """
     page.goto(base_url + path)
-    if boot:
-        page.wait_for_load_state("networkidle")
     page.wait_for_selector(".myst-anywidget.nma-cell")
     page.wait_for_timeout(2000)  # let hydration settle
 
@@ -129,6 +127,30 @@ def test_interact_slider_updates_plot(page, base_url):
         arg=[".nma-cell-out img", before],
         timeout=10_000,
     )
+
+
+DATA_TUTORIAL = "/tutorials/w1d1-gettingstarted/w1d1-tutorial4/"
+
+
+def test_declared_data_and_image_files_are_readable_in_cells(page, base_url):
+    """{nma-data} files are written into the kernel, so plain relative paths work."""
+    open_page(page, base_url, DATA_TUTORIAL)
+    data_cell = panel_with(page, 'open("data/demo.txt")')
+    run(data_cell)
+    expect(status(data_cell)).to_contain_text("\u2713")
+    assert "hello from the day data folder" in out_text(data_cell)
+    image_cell = panel_with(page, 'open("image/demo.png", "rb")')
+    run(image_cell)
+    expect(status(image_cell)).to_contain_text("\u2713")
+    assert "True" in out_text(image_cell)
+
+
+def test_data_note_lists_declared_files(page, base_url):
+    open_page(page, base_url, DATA_TUTORIAL, boot=False)
+    note = page.get_by_text("Data used by this notebook")
+    expect(note).to_be_visible()
+    note.click()
+    expect(page.locator("a[href$='data/demo.txt']").first).to_be_visible()
 
 
 def go_next(page, expected):

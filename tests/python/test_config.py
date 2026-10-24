@@ -27,6 +27,13 @@ def test_custom_paths():
     assert s.github_repo is None
 
 
+def test_asset_dirs_default_and_custom():
+    d = load_settings("project:\n  github: https://github.com/o/r\n")
+    assert (d.assets_data_dir, d.assets_image_dir) == ("data", "image")
+    c = load_settings("nma:\n  assets:\n    data: files\n    image: pics/\n")
+    assert (c.assets_data_dir, c.assets_image_dir) == ("files", "pics")
+
+
 def test_custom_projects_dir():
     s = load_settings("nma:\n  paths:\n    projects: capstone/\n")
     assert s.content_roots == (("tutorials", "tutorials"), ("projects", "capstone"))

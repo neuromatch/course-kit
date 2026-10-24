@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from nma_kit.convert import add_badge_cell, prepare_site_md
 from nma_kit.solutions import FALLBACK_SENTINEL
 
@@ -230,3 +232,109 @@ def test_validate_content_reports_runtime_errors(tmp_path, monkeypatch):
     (tmp_path / "tutorials").mkdir()
     (tmp_path / "tutorials" / "P.md").write_text("---\ntitle: P\nruntime: gpu\n---\n")
     assert any("runtime: 'gpu'" in e for e in validate_content())
+
+
+ASSET_PAGE = """---
+title: T
+kernelspec:
+  name: python3
+  display_name: Python 3
+---
+
+# Title
+
+![fig](image/pic.png)
+
+:::{nma-data}
+data/a.npz
+image/pic.png
+:::
+
+```{code-cell} python
+import numpy as np
+arr = np.load("data/a.npz")
+```
+"""
+
+
+def _asset_course(tmp_path, monkeypatch, page_text=ASSET_PAGE, files=("data/a.npz", "image/pic.png")):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "myst.yml").write_text("project:\n  github: https://github.com/org/repo\n")
+    day = tmp_path / "tutorials" / "D"
+    day.mkdir(parents=True)
+    (day / "T.md").write_text(page_text)
+    for f in files:
+        (day / f).parent.mkdir(parents=True, exist_ok=True)
+        (day / f).write_bytes(b"bytes:" + f.encode())
+    return day
+
+
+def test_build_notebooks_adds_download_cell_rewrites_images_and_copies_files(tmp_path, monkeypatch):
+    import json
+
+    from nma_kit.config import read_settings
+    from nma_kit.convert import build_notebooks, convert_md_to_notebook
+
+    day = _asset_course(tmp_path, monkeypatch)
+    settings = read_settings()
+    page = Path("tutorials/D/T.md")
+    out = Path("notebooks/tutorials/D/T.ipynb")
+    convert_md_to_notebook(page, out, dry_run=False)
+    build_notebooks(page, out, "org/repo", False, None, settings)
+
+    base = "https://raw.githubusercontent.com/org/repo/notebooks-branch/notebooks/tutorials/D/"
+    for path in (out, out.parent / "instructor" / out.name):
+        cells = json.loads(path.read_text())["cells"]
+        sources = ["".join(c["source"]) for c in cells]
+        assert "colab-badge.svg" in sources[0]
+        assert sources[1].startswith("# @title Download course data")
+        assert "data/a.npz" in sources[1] and base in sources[1]
+        assert cells[1]["metadata"]["tags"] == ["hide-cell"]
+        assert f"![fig]({base}image/pic.png)" in "\n".join(sources)
+        assert not any("nma-data" in s for s in sources)
+    assert (Path("notebooks/tutorials/D/data/a.npz")).read_bytes() == b"bytes:data/a.npz"
+    assert (Path("notebooks/tutorials/D/image/pic.png")).exists()
+    assert not (Path("notebooks/tutorials/D/instructor/data")).exists()
+
+
+def test_page_without_assets_is_unaffected(tmp_path, monkeypatch):
+    import json
+
+    from nma_kit.config import read_settings
+    from nma_kit.convert import build_notebooks, convert_md_to_notebook
+
+    _asset_course(tmp_path, monkeypatch, page_text=PAGE, files=())
+    page, out = Path("tutorials/D/T.md"), Path("notebooks/tutorials/D/T.ipynb")
+    convert_md_to_notebook(page, out, dry_run=False)
+    build_notebooks(page, out, "org/repo", False, None, read_settings())
+    sources = ["".join(c["source"]) for c in json.loads(out.read_text())["cells"]]
+    assert not any("Download course data" in s for s in sources)
+    assert not (out.parent / "data").exists()
+
+
+def test_validate_content_reports_asset_problems(tmp_path, monkeypatch):
+    from nma_kit.convert import validate_content
+
+    page = ASSET_PAGE.replace("data/a.npz\nimage", "data/a.npz\ndata/gone.npz\nimage")
+    _asset_course(tmp_path, monkeypatch, page_text=page)
+    errors = validate_content()
+    assert any("data/gone.npz" in e and "T.md" in e for e in errors)
+
+    undeclared = ASSET_PAGE.replace('np.load("data/a.npz")', 'np.load("data/other.npz")')
+    (tmp_path / "tutorials" / "D" / "T.md").write_text(undeclared)
+    assert any("data/other.npz" in e and "no {nma-data}" in e for e in validate_content())
+
+
+def test_validate_content_accepts_declared_assets(tmp_path, monkeypatch):
+    from nma_kit.convert import validate_content
+
+    _asset_course(tmp_path, monkeypatch)
+    assert validate_content() == []
+
+
+def test_committed_download_cell_is_rejected():
+    from nma_kit.assets import DOWNLOAD_SENTINEL
+    from nma_kit.convert import injected_content_errors
+
+    text = f"---\ntitle: T\n---\n\n```{{code-cell}} python\n{DOWNLOAD_SENTINEL}\nimport os\n```\n"
+    assert any("download" in e.lower() for e in injected_content_errors(text))

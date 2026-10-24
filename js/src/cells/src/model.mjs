@@ -51,3 +51,20 @@ export function statusText(e) {
   if (e.state === 'done') return `[${e.count}] ✓`;
   return '';
 }
+
+/**
+ * Python that writes the page's embedded assets ({path, b64}) into the kernel's
+ * working directory, creating parent folders. '' when there are none.
+ */
+export function assetsPrelude(assets) {
+  if (!assets?.length) return '';
+  const files = assets.map((a) => `(${JSON.stringify(a.path)}, ${JSON.stringify(a.b64)})`).join(',\n    ');
+  return [
+    'import base64, os',
+    `for _p, _b in [\n    ${files},\n]:`,
+    '    os.makedirs(os.path.dirname(_p) or ".", exist_ok=True)',
+    '    open(_p, "wb").write(base64.b64decode(_b))',
+    'del _p, _b',
+    '',
+  ].join('\n');
+}

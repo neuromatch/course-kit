@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const src = join(here, '..', '..', 'js', 'src');
-const FEATURES = ['media', 'solutions', 'feedback', 'scrolly', 'cells'];
+const FEATURES = ['media', 'solutions', 'feedback', 'assets', 'scrolly', 'cells'];
 
 function files(dir) {
   return readdirSync(dir).flatMap((name) => {
@@ -50,12 +50,12 @@ test('index.mjs bundles every directive and keeps the transform order', async ()
   const { default: kit } = await import(join(src, 'index.mjs'));
   assert.deepEqual(
     kit.directives.map((d) => d.name),
-    ['nma-video', 'nma-slides', 'nma-solution', 'nma-explanation', 'nma-feedback', 'step', 'stage'],
+    ['nma-video', 'nma-slides', 'nma-solution', 'nma-explanation', 'nma-feedback', 'nma-data', 'step', 'stage'],
   );
   // Same order as the old myst.yml plugin list: nma.mjs (solution links,
   // feedback widgets), then scrolly, then cells.
   assert.deepEqual(
     kit.transforms.map((t) => t.name),
-    ['nma-solution-links', 'nma-feedback-widgets', 'nma-scrolly', 'nma-cells'],
+    ['nma-solution-links', 'nma-feedback-widgets', 'nma-assets', 'nma-scrolly', 'nma-cells'],
   );
 });

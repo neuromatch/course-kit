@@ -4,7 +4,7 @@ The tooling behind Neuromatch courses built with [MyST](https://mystmd.org),
 in one versioned package:
 
 - **MyST plugin**: `{nma-video}`, `{nma-slides}`, `{nma-solution}`,
-  `{nma-explanation}`, `{nma-feedback}`, scrollytelling pages (`{step}`,
+  `{nma-explanation}`, `{nma-feedback}`, `{nma-data}` (data and image files), scrollytelling pages (`{step}`,
   `{stage}`) and editable, runnable code cells.
 - **`nma-kit` CLI**: content checks, notebook generation (student, instructor,
   solutions), scrolly pre-rendering, site preparation, notebook publishing.

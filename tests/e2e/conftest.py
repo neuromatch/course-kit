@@ -50,6 +50,16 @@ def page(_browser):
             "**/require.min.js",
             lambda route: route.fulfill(path=REQUIREJS, content_type="application/javascript"),
         )
+    # Video/slide embeds are third-party iframes: they keep the network busy and
+    # compete with the kernel boot for CPU, and no test looks inside them.
+    context.route(
+        "**/*",
+        lambda route: route.abort()
+        if route.request.resource_type == "document"
+        and route.request.frame.parent_frame is not None
+        and not route.request.url.startswith(BASE_URL)
+        else route.fallback(),
+    )
     page = context.new_page()
     # Pages boot a Pyodide kernel, and several run in parallel on a 4-core CI runner:
     # 120 s was too close for the slowest tests. A passing test never waits this long.

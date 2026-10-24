@@ -99,6 +99,18 @@ def _nma_figures():
     return out
 `;
 
+/** Write the page's embedded {nma-data} files ({path, b64}) into Pyodide's working directory. */
+export function writeAssets(py, assets) {
+  for (const { path, b64 } of assets || []) {
+    const slash = path.lastIndexOf('/');
+    if (slash > 0) py.FS.mkdirTree(path.slice(0, slash));
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    py.FS.writeFile(path, bytes);
+  }
+}
+
 function createRuntime() {
   return {
     state: 'idle', // idle | loading | ready | error
@@ -121,6 +133,7 @@ function createRuntime() {
           const { loadPyodide } = await import(/* webpackIgnore: true */ url + 'pyodide.mjs');
           const py = await loadPyodide({ indexURL: url });
           await py.runPythonAsync(PY_SETUP);
+          writeAssets(py, window.NMA_SCROLLY && window.NMA_SCROLLY.assets);
           this.py = py;
           this.set('ready', 'Python is running in your browser');
           return py;

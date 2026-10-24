@@ -62,6 +62,7 @@ from pathlib import Path
 
 import yaml
 
+from nma_kit import assets as nma_assets
 from nma_kit import cells as nma_cells
 from nma_kit.config import (
     DEFAULT_NOTEBOOKS_BRANCH,
@@ -160,6 +161,9 @@ def injected_content_errors(text: str) -> list[str]:
     if any(b.kind == "code-cell" and not b.nested and b.body_lines[:1] == [nma_solutions.FALLBACK_SENTINEL]
            for b in nma_solutions.find_blocks(body)):
         errors.append("contains the generated run-all fallback cell, which CI adds at build time")
+    if any(b.kind == "code-cell" and not b.nested and b.body_lines[:1] == [nma_assets.DOWNLOAD_SENTINEL]
+           for b in nma_solutions.find_blocks(body)):
+        errors.append("contains the generated data download cell, which CI adds to notebooks at build time")
     return [
         f"{e}. Remove it (this usually means `nma-kit prepare-site` output was committed; "
         f"revert with `git checkout -- tutorials/`)" for e in errors
@@ -208,6 +212,15 @@ def validate_content(check_injected: bool = True) -> list[str]:
         for problem in nma_scrolly.validate(text):
             errors.append(f"{path}: {problem}")
         for problem in nma_cells.validate(text):
+            errors.append(f"{path}: {problem}")
+        for problem in (
+            nma_assets.validate_data_directives(text, settings.assets_data_dir, settings.assets_image_dir)
+            + nma_assets.missing_file_errors(text, path.parent)
+            + nma_assets.undeclared_reference_errors(text, settings.assets_data_dir, settings.assets_image_dir)
+            + nma_assets.dynamic_reference_errors(text, settings.assets_data_dir, settings.assets_image_dir)
+            + nma_assets.undeclared_image_errors(text, settings.assets_image_dir)
+            + nma_assets.embed_size_errors(text, path.parent)
+        ):
             errors.append(f"{path}: {problem}")
         if not has_config and not config_problems and nma_feedback.find_directives(text):
             errors.append(
@@ -408,6 +421,17 @@ def build_notebooks(source_file: Path, out_path: Path, github_repo: str, dry_run
         if count:
             print(f"  Expanded {count} feedback directive(s) (prefix {prefix})")
 
+    source_text = source_file.read_text(encoding="utf-8")
+    declared = nma_assets.parse_data_directive(source_text)
+    if nma_assets.strip_data_directives(nb):
+        print(f"  Removed {{nma-data}} directive(s); declared {len(declared)} file(s)")
+    count = nma_assets.rewrite_markdown_images(nb, github_repo, branch, location.notebook_dir, settings.assets_image_dir)
+    if count:
+        print(f"  Rewrote {count} markdown image reference(s) to published URLs")
+    copied = nma_assets.copy_declared_files(declared, source_file.parent, out_path.parent)
+    if copied:
+        print(f"  Copied {copied} data/image file(s) next to the notebook")
+
     student, instructor, files = nma_solutions.split_notebook(
         nb, source_file.stem, location.notebook_dir, github_repo, branch)
     for name, content in files.items():
@@ -417,6 +441,7 @@ def build_notebooks(source_file: Path, out_path: Path, github_repo: str, dry_run
         print(f"  Wrote {len(files)} solution file(s) to {solutions_dir}/")
 
     for nb_out, path in ((student, out_path), (instructor, instructor_path)):
+        nma_assets.insert_download_cell(nb_out, declared, github_repo, branch, location.notebook_dir)
         notebook_rel = path.as_posix()
         write_notebook(add_badge_cell(nb_out, notebook_rel, github_repo, branch), path)
         print(f"  Wrote notebook with badges: {path}")

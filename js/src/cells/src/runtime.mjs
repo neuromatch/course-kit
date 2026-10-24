@@ -5,7 +5,9 @@
 //
 // window and location are only read inside functions, so tests can set globals.
 
-import { thebeId, thebeScriptUrls, withNoFallback } from './model.mjs';
+import { assetsPrelude, thebeId, thebeScriptUrls, withNoFallback } from './model.mjs';
+
+const ASSETS_CELL = 'nma-assets';
 
 const STARTING = 'Starting Python… the first run takes about 10 seconds';
 
@@ -34,6 +36,7 @@ export class PageRuntime {
   constructor(path) {
     this.path = path;
     this.cells = null; // manifest from the runtime widget
+    this.assets = []; // [{path, b64}] files to write into the kernel before any cell
     this.edits = {}; // index -> edited source (in memory only)
     this.ran = new Set(); // indices run in the current kernel
     this.ready = null; // thebe handles once booted
@@ -43,6 +46,10 @@ export class PageRuntime {
     this.listeners = new Set();
     this.outs = new Map(); // index -> the panel's current light-DOM output element
     this.cellsReady = new Promise((resolve) => (this._resolveCells = resolve));
+  }
+
+  setAssets(assets) {
+    this.assets = assets ?? [];
   }
 
   setCells(cells) {
@@ -84,12 +91,16 @@ export class PageRuntime {
       const rendermime = api.makeRenderMimeRegistry(config.mathjax);
       const cells = await this.cellsReady;
       const nb = api.setupNotebookFromBlocks(
-        cells.map((c) => ({ id: thebeId(c.index), source: c.code })),
+        [
+          ...cells.map((c) => ({ id: thebeId(c.index), source: c.code })),
+          { id: ASSETS_CELL, source: '' },
+        ],
         config,
         rendermime,
       );
       const session = await server.startNewSession(rendermime);
       nb.attachSession(session);
+      await this.writeAssets(nb);
       this.ready = { api, config, server, rendermime, session, nb };
       // attachToDOM replaces the element's contents (e.g. the "Run to see output" hint).
       for (const [index, el] of this.outs) nb.getCellById(thebeId(index))?.attachToDOM(el);
@@ -142,6 +153,16 @@ export class PageRuntime {
     return job;
   }
 
+  /** Write the page's embedded data/image files into the kernel (once per session). */
+  async writeAssets(nb) {
+    const code = assetsPrelude(this.assets);
+    if (!code) return;
+    const res = await nb.getCellById(ASSETS_CELL)?.execute(code);
+    if (res === null || res === undefined || res.error?.[0]) {
+      throw new Error(`could not write data files into the kernel: ${res?.error?.[0]?.evalue ?? 'internal error'}`);
+    }
+  }
+
   async exec(k, index, source) {
     const cell = k.nb.getCellById(thebeId(index));
     this.emit({ index, state: 'running' });
@@ -162,6 +183,7 @@ export class PageRuntime {
     const session = await k.server.startNewSession(k.rendermime);
     k.nb.attachSession(session);
     k.session = session;
+    await this.writeAssets(k.nb);
     this.ran.clear();
     this.queue = Promise.resolve();
     this.emit({ kernel: 'ready', restarted: true });

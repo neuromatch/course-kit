@@ -1,0 +1,142 @@
+{
+  "parse": [
+    {
+      "name": "single block",
+      "text": ":::{nma-data}\ndata/a.npz\nimage/b.png\n:::\n",
+      "paths": [
+        "data/a.npz",
+        "image/b.png"
+      ]
+    },
+    {
+      "name": "dedupe across blocks in order",
+      "text": ":::{nma-data}\ndata/a.npz\n:::\n\n:::{nma-data}\ndata/a.npz\ndata/c.npz\n:::\n",
+      "paths": [
+        "data/a.npz",
+        "data/c.npz"
+      ]
+    },
+    {
+      "name": "blank lines ignored",
+      "text": ":::{nma-data}\n\ndata/a.npz\n\n:::\n",
+      "paths": [
+        "data/a.npz"
+      ]
+    },
+    {
+      "name": "fenced example ignored",
+      "text": "````markdown\n:::{nma-data}\ndata/a.npz\n:::\n````\n",
+      "paths": []
+    },
+    {
+      "name": "backtick fence",
+      "text": "```{nma-data}\ndata/a.npz\n```\n",
+      "paths": [
+        "data/a.npz"
+      ]
+    },
+    {
+      "name": "no directive",
+      "text": "Just prose.\n",
+      "paths": []
+    }
+  ],
+  "asset_url": [
+    {
+      "repo": "org/repo",
+      "branch": "nb",
+      "day": "W1D1",
+      "path": "data/a.npz",
+      "url": "https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/data/a.npz"
+    },
+    {
+      "repo": "org/repo",
+      "branch": "nb",
+      "day": "",
+      "path": "image/b.png",
+      "url": "https://raw.githubusercontent.com/org/repo/nb/notebooks/image/b.png"
+    }
+  ],
+  "scan": [
+    {
+      "name": "literal load",
+      "code": "arr = np.load(\"data/a.npz\")",
+      "data_dir": "data",
+      "image_dir": "image",
+      "refs": [
+        "data/a.npz"
+      ]
+    },
+    {
+      "name": "single quotes and image",
+      "code": "img = plt.imread('image/b.png')",
+      "data_dir": "data",
+      "image_dir": "image",
+      "refs": [
+        "image/b.png"
+      ]
+    },
+    {
+      "name": "f-string skipped",
+      "code": "np.load(f\"data/{n}.npz\")",
+      "data_dir": "data",
+      "image_dir": "image",
+      "refs": []
+    },
+    {
+      "name": "no extension skipped",
+      "code": "x = \"data/raw\"",
+      "data_dir": "data",
+      "image_dir": "image",
+      "refs": []
+    },
+    {
+      "name": "mimetype not path",
+      "code": "m = \"image/png\"",
+      "data_dir": "data",
+      "image_dir": "image",
+      "refs": []
+    },
+    {
+      "name": "custom dirs",
+      "code": "np.load('assets/a.npz')",
+      "data_dir": "assets",
+      "image_dir": "pics",
+      "refs": [
+        "assets/a.npz"
+      ]
+    }
+  ],
+  "validate": [
+    {
+      "name": "ok",
+      "text": ":::{nma-data}\ndata/a.npz\nimage/b.png\n:::\n",
+      "errors": 0
+    },
+    {
+      "name": "unknown prefix and escape",
+      "text": ":::{nma-data}\nfoo/a.npz\n../x.npz\n:::\n",
+      "errors": 2
+    },
+    {
+      "name": "absolute",
+      "text": ":::{nma-data}\n/etc/passwd\n:::\n",
+      "errors": 1
+    },
+    {
+      "name": "unclosed",
+      "text": ":::{nma-data}\ndata/a.npz\n",
+      "errors": 1
+    },
+    {
+      "name": "inline arg",
+      "text": ":::{nma-data} oops\ndata/a.npz\n:::\n",
+      "errors": 1
+    },
+    {
+      "name": "empty",
+      "text": ":::{nma-data}\n:::\n",
+      "errors": 1
+    }
+  ]
+}

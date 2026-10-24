@@ -73,6 +73,7 @@ export default {
     installPageStyles(el);
     const rt = pageRuntime();
     rt.bundleUrl ||= import.meta.url;
+    rt.setAssets(model.get('assets') ?? []);
     rt.setCells(model.get('cells'));
     mountRunAll(rt);
   },

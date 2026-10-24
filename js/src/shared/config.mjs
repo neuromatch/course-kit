@@ -8,12 +8,17 @@
 //       projects: projects          # where the course's project .md pages live
 //     notebooks:
 //       branch: notebooks-branch    # where generated notebooks are published
+//     assets:
+//       data: data                  # folder (in each day folder) for data files
+//       image: image                # folder (in each day folder) for images
 
 import { parse } from 'yaml';
 
 export const DEFAULT_TUTORIALS_DIR = 'tutorials';
 export const DEFAULT_PROJECTS_DIR = 'projects';
 export const DEFAULT_NOTEBOOKS_BRANCH = 'notebooks-branch';
+export const DEFAULT_DATA_DIR = 'data';
+export const DEFAULT_IMAGE_DIR = 'image';
 const GITHUB_RE = /github\.com\/([^\s'"]+?)\/?$/;
 
 const isMapping = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -38,7 +43,7 @@ function setting(nma, section, key, fallback) {
   return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
-/** {githubRepo, tutorialsDir, projectsDir, notebooksBranch, nma} from myst.yml text. */
+/** {githubRepo, tutorialsDir, projectsDir, notebooksBranch, assetsDataDir, assetsImageDir, nma} from myst.yml text. */
 export function loadSettings(text) {
   const data = parseYaml(text);
   const nma = readNmaConfig(text);
@@ -49,6 +54,8 @@ export function loadSettings(text) {
     tutorialsDir: setting(nma, 'paths', 'tutorials', DEFAULT_TUTORIALS_DIR).replace(/^\/+|\/+$/g, ''),
     projectsDir: setting(nma, 'paths', 'projects', DEFAULT_PROJECTS_DIR).replace(/^\/+|\/+$/g, ''),
     notebooksBranch: setting(nma, 'notebooks', 'branch', DEFAULT_NOTEBOOKS_BRANCH),
+    assetsDataDir: setting(nma, 'assets', 'data', DEFAULT_DATA_DIR).replace(/^\/+|\/+$/g, ''),
+    assetsImageDir: setting(nma, 'assets', 'image', DEFAULT_IMAGE_DIR).replace(/^\/+|\/+$/g, ''),
     nma,
   };
 }

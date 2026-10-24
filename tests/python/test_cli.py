@@ -151,3 +151,28 @@ def test_publish_notebooks_reports_git_errors_without_traceback(tmp_path, monkey
     err = capsys.readouterr().err
     assert "Traceback" not in err
     assert "git ls-remote" in err and "origin" in err  # the failing command and git's own message
+
+
+def test_example_course_data_tutorial_builds_notebook_with_assets(tmp_path, monkeypatch):
+    """The example course's data & images tutorial passes `check` and converts."""
+    import json
+    import shutil
+    from pathlib import Path
+
+    from nma_kit.config import read_settings
+    from nma_kit.convert import build_notebooks, convert_md_to_notebook, validate_content
+
+    course = Path(__file__).resolve().parents[1] / "example-course"
+    shutil.copytree(course, tmp_path / "c", ignore=shutil.ignore_patterns("_build", "_nma", "notebooks"))
+    monkeypatch.chdir(tmp_path / "c")
+    assert validate_content() == []
+    page = Path("tutorials/W1D1_GettingStarted/W1D1_Tutorial4.md")
+    out = Path("notebooks/tutorials/W1D1_GettingStarted/W1D1_Tutorial4.ipynb")
+    convert_md_to_notebook(page, out, dry_run=False)
+    build_notebooks(page, out, "neuromatch/course-kit", False, None, read_settings())
+    sources = ["".join(c["source"]) for c in json.loads(out.read_text())["cells"]]
+    base = "https://raw.githubusercontent.com/neuromatch/course-kit/notebooks-branch/notebooks/tutorials/W1D1_GettingStarted/"
+    assert sources[1].startswith("# @title Download course data")
+    assert base in sources[1] and "'data/demo.txt'" in sources[1] and "'image/demo.png'" in sources[1]
+    assert f"![A single red pixel]({base}image/demo.png)" in "\n".join(sources)
+    assert (out.parent / "data" / "demo.txt").exists()
