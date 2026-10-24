@@ -1,7 +1,7 @@
 # One-command tasks for contributors. Run `make help`.
 # Needs uv (https://docs.astral.sh/uv/) and Node 22.
 
-PY := cd python && uv run
+PY := cd python && uv run --no-sync
 .DEFAULT_GOAL := help
 
 .PHONY: help setup lint test test-py test-js build example e2e clean

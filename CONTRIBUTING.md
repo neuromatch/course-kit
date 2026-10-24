@@ -126,6 +126,20 @@ silently, so:
   point-in-time specs or plans; they go stale. Durable decisions belong in the
   rules and internals of `AGENTS.md`.
 
+## Workflows
+
+`ci.yml` calls the same `make` targets you run locally (`lint`, `test-py`,
+`test-js`), so a green `make test` means a green CI for those jobs. The
+reusable course workflows (`course-*.yml`) cannot use `make`: a course has no
+Makefile.
+
+Those three workflows repeat the same setup steps (uv, Node, install the kit).
+A shared composite action would remove that, but a reusable workflow cannot
+pin it to its own release: a floating tag mixes versions, and an exact tag
+doesn't exist yet on the release PR. Until that is solved,
+`tests/python/test_workflow_setup.py` fails if the copies differ. Change all
+three together.
+
 ## Commits and pull requests
 
 - Use [conventional commits](https://www.conventionalcommits.org): `fix:` for
