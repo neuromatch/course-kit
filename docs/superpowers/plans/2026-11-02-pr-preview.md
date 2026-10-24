@@ -81,7 +81,6 @@
 
 **Files:**
 - Modify: `templates/course.yml`, `tests/python/test_release.py::test_course_template_calls_the_v0_1_line` only if its regex needs it
-- Modify: `.github/workflows/ci.yml` (job running `course-preview.yml` against `tests/example-course`, `kit-source: local`, `action: deploy`, no secrets)
 - Modify: `README.md`, `AGENTS.md`
 - Test: `tests/python/test_preview_workflow.py` (template assertions)
 
@@ -90,7 +89,7 @@
 
 - [ ] **Step 1: Failing tests:** `test_template_has_preview_job` (a job calling `course-preview.yml@v0.1`, guarded by `github.event.pull_request.head.repo.full_name == github.repository`, with `permissions` `contents: write` and `pull-requests: write`, `secrets: inherit`, and `pull_request` types including `closed`), and the existing `@v0.1` check still passes. Run, expect FAIL.
 - [ ] **Step 2: Update `templates/course.yml`:** `pull_request` gets `types: [opened, synchronize, reopened, closed]`; `check` runs when the PR is not closed; new `preview` job passes `pr-number`, `action: ${{ github.event.action == 'closed' && 'cleanup' || 'deploy' }}` and `cloudflare-project: ${{ vars.CLOUDFLARE_PROJECT }}`.
-- [ ] **Step 3: Kit CI:** add the example-course preview job to `ci.yml` (skips the deploy through the missing-secret path; proves the build and the `notebooks-pr-*` env wiring). Keep it out of the release-please-only skip rule, matching the example-course build job.
+- [ ] **Step 3: Kit CI (dropped):** no preview job in `ci.yml`: it would push `notebooks-pr-<n>` branches to the kit repo, and the build steps are the same ones `course-check` already runs on the example course.
 - [ ] **Step 4: README:** add "Pull request previews" (what it does; setup steps: create the Cloudflare API token with *Cloudflare Pages: Edit*, add the two secrets and the `CLOUDFLARE_PROJECT` variable, copy the updated template; behaviour: public URL, per-PR notebooks branch, cleanup on close, same-repo PRs only, public repo needed for Colab/Kaggle links). Add it to the "Using the kit in a course" steps and document `NMA_NOTEBOOKS_BRANCH` next to the `notebooks.branch` setting.
 - [ ] **Step 5: AGENTS.md:** add `course-preview.yml` to the layout tree and the CI section; add the env override to the twin-rules list (config bullet) and a short "PR previews (internals)" section: branch naming, cleanup, why `pull_request_target` is not used.
 - [ ] **Step 6: Verify:** `uv run pytest -q ../tests/python`, `cd js && npm test`; `rg -n "course-publish" README.md AGENTS.md` and confirm each place that lists the reusable workflows also lists the preview one.

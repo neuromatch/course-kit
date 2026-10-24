@@ -10,8 +10,8 @@ in one versioned package:
   solutions), scrolly pre-rendering, site preparation, notebook publishing.
 - **Site branding**: the Neuromatch stylesheet, Rubik font, logos and favicon,
   written into a course by `nma-kit sync-assets`.
-- **Reusable GitHub workflows**: check pull requests, publish notebooks and the
-  site to GitHub Pages.
+- **Reusable GitHub workflows**: check pull requests, preview them on
+  Cloudflare Pages, publish notebooks and the site to GitHub Pages.
 
 Courses *use* a version of the kit instead of carrying a copy, so a fix
 ships once. Start a course from
@@ -42,7 +42,8 @@ which teaches the authoring conventions.
    ```
 
 2. Copy [`templates/course.yml`](templates/course.yml) to
-   `.github/workflows/course.yml`. Pull requests are checked; pushes to `main`
+   `.github/workflows/course.yml`. Pull requests are checked and previewed
+   (see [Pull request previews](#pull-request-previews)); pushes to `main`
    publish the notebooks (to `notebooks-branch`, created automatically) and
    the site.
 3. In the repo's **Settings → Pages**, set **Source** to **GitHub Actions**
@@ -70,6 +71,7 @@ nma:
     projects: projects            # where the project .md pages live
   notebooks:
     branch: notebooks-branch      # where generated notebooks are published
+                                  # (the NMA_NOTEBOOKS_BRANCH env var overrides it; PR previews use it)
   feedback:                       # needed if any page uses {nma-feedback}
     url: https://...
     project: ...
@@ -81,6 +83,41 @@ nma:
   style:
     extra: _static/extra.css      # your own CSS, appended after the kit's
 ```
+
+## Pull request previews
+
+Reviewers read markdown diffs, so they never see scrolly pages, editable cells
+or the Colab buttons. The `preview` job in the template builds each pull
+request and deploys it to [Cloudflare Pages](https://pages.cloudflare.com) at
+a public URL, `https://pr-<number>.<project>.pages.dev`, which updates on every
+push. One comment on the pull request carries the link.
+
+- **Notebook buttons open the PR's notebooks.** The preview pushes them to the
+  branch `notebooks-pr-<number>` and sets `NMA_NOTEBOOKS_BRANCH`, which every
+  Colab, Kaggle, solution and data-download link follows. The production
+  `notebooks-branch` and the Pages site are never touched. The branch is
+  public like the repo (Colab and Kaggle read raw GitHub URLs, so the repo
+  must be public).
+- **Cleanup.** Closing the pull request deletes the branch and the Cloudflare
+  deployments and marks the comment as removed.
+- **Same-repository pull requests only.** Pull requests from forks get no
+  secrets, so they get no preview (the check still runs).
+
+Setup, once per course repository:
+
+1. In Cloudflare, create an API token (My Profile → API Tokens → Custom
+   token) with **Account → Cloudflare Pages → Edit**, and note the account ID
+   (Workers & Pages overview).
+2. In the repo (Settings → Secrets and variables → Actions), add the secrets
+   `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, and the variable
+   `CLOUDFLARE_PROJECT` (the Pages project name; the first preview creates it).
+3. Use the `preview` job from [`templates/course.yml`](templates/course.yml)
+   (and its `pull_request` types, which include `closed`). The job needs
+   `contents: write` and `pull-requests: write`.
+
+Without the secrets the job still builds the site and skips the deploy with a
+notice, so a course can adopt the template before it has Cloudflare. Delete
+the job to turn previews off.
 
 ## Site branding
 
