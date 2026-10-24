@@ -263,7 +263,8 @@ downloads); CI retries failed tests once.
 - The kit previews its own PRs through `preview.yml` (example course, `kit-source: local`),
   separate from `ci.yml` so CI does not rerun when a PR closes. The example course publishes
   to this repo, so each open PR has a `notebooks-pr-<n>` branch here until it closes. It is
-  skipped for the release-please PR (version strings only), like the e2e job in `ci.yml`.
+  skipped for the release-please PR (version strings only), like the e2e job in `ci.yml`; both match
+  the branch prefix `release-please--`, not the full name (which encodes the target branch and component).
 - Registered for releases like the other reusable workflows (`KIT_VERSION` marker,
   `release-please-config.json`, `REUSABLE` in `test_release.py`).
 

@@ -47,7 +47,7 @@ jobs:
   # required checks).
   # It builds the JS bundle itself, so it runs in parallel with the unit tests.
   example-course:
-    if: github.head_ref != 'release-please--branches--main--components--course-kit'
+    if: ${{ !startsWith(github.head_ref, 'release-please--') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
