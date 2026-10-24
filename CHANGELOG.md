@@ -2,6 +2,24 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.1.4](https://github.com/neuromatch/course-kit/compare/v0.1.3...v0.1.4) (2026-10-24)
+
+
+### Features
+
+* **assets:** embed declared bytes, site note, pyodide fs prefill ([8716cac](https://github.com/neuromatch/course-kit/commit/8716caceda115622df74ad867c936b92059d89bf))
+* **assets:** figure/image directives, scrolly data, undeclared-image/dynamic-path checks, embed size guard ([daee7bc](https://github.com/neuromatch/course-kit/commit/daee7bc6f2f2b41b5ad8f51d5d62bf0e8144ae98))
+* **assets:** js twin parser, url builder, validation ([1a7c50b](https://github.com/neuromatch/course-kit/commit/1a7c50b1e812ce355de9eb22780aabacbd7b7441))
+* **assets:** nma-data directive parsing and validation ([c4f8271](https://github.com/neuromatch/course-kit/commit/c4f827165a04b2179c9730e3b180b7d1606eb7e4))
+* **assets:** notebook download cell and markdown image rewrite ([120b43c](https://github.com/neuromatch/course-kit/commit/120b43c173dca28d766c16159c1ce6ebdc13f619))
+* **assets:** url builder and strict undeclared-reference scan ([c4d6c08](https://github.com/neuromatch/course-kit/commit/c4d6c0844e1e80521cbe288ca11bc31a24bc5268))
+* **assets:** wire nma-data into settings, check, notebooks, publish ([9a0bee5](https://github.com/neuromatch/course-kit/commit/9a0bee5a7fff7304fe27f7baa8fbd546d1609c37))
+
+
+### Bug Fixes
+
+* **assets:** rewrite markdown images that carry a title ([d67b8ba](https://github.com/neuromatch/course-kit/commit/d67b8bae036c5d51ae6bdb98655fbd747b66ff45))
+
 ## [0.1.3](https://github.com/neuromatch/course-kit/compare/v0.1.2...v0.1.3) (2026-10-20)
 
 
