@@ -2,6 +2,14 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.1.7](https://github.com/neuromatch/course-kit/compare/v0.1.6...v0.1.7) (2026-10-25)
+
+
+### Features
+
+* Chore/tooling ([a0c15b6](https://github.com/neuromatch/course-kit/commit/a0c15b611ccfccdaeedd02fb4bc58c9385a8aa65))
+* share constants between the CLI and the plugin, document the public API ([35353e0](https://github.com/neuromatch/course-kit/commit/35353e03e1e18826dc04c80de33197073e520e01))
+
 ## [0.1.6](https://github.com/neuromatch/course-kit/compare/v0.1.5...v0.1.6) (2026-10-24)
 
 
