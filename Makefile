@@ -35,7 +35,8 @@ dist-py: ## Build the wheel and sdist into dist/ (what the release publishes to 
 	uv build --out-dir dist python
 
 dist-js: build ## Build the release bundle and pack the npm tarball into dist/ (npm publishes from js/)
-	cd js && npm pack --pack-destination ../dist --silent
+	mkdir -p dist
+	cd js && npm pack --pack-destination ../dist
 
 dist: ## Build every release artifact into dist/ without publishing
 	rm -rf dist
