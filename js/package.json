@@ -1,6 +1,6 @@
 {
   "name": "@neuromatch/course-kit",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Neuromatch course kit: MyST plugins for Neuromatch courses",
   "repository": {
     "type": "git",

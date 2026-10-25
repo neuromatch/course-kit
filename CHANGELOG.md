@@ -2,6 +2,14 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.1.9](https://github.com/neuromatch/course-kit/compare/v0.1.8...v0.1.9) (2026-10-25)
+
+
+### Features
+
+* add nma-kit init to scaffold a starter course ([6adeec7](https://github.com/neuromatch/course-kit/commit/6adeec718bb73994b1d55ec37a05413baa8ca177))
+* add nma-kit init to scaffold a starter course ([f90f480](https://github.com/neuromatch/course-kit/commit/f90f4806b424f5fbf91c602c2de1e2ddaa86e886))
+
 ## [0.1.8](https://github.com/neuromatch/course-kit/compare/v0.1.7...v0.1.8) (2026-10-25)
 
 
