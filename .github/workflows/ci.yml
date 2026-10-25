@@ -39,6 +39,29 @@ jobs:
       - run: uv venv python/.venv && VIRTUAL_ENV=python/.venv uv pip install ruff
       - run: make lint
 
+  # The release builds with these targets on a fresh runner, so run them the same
+  # way here: from a clean checkout, with no dist/ left over from another step.
+  dist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v10.3.2
+        with:
+          version-file: .tool-versions
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .tool-versions
+          cache: npm
+          cache-dependency-path: js/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: js
+      - name: Build every release artifact
+        run: make dist
+      - name: Each package has what the release publishes
+        run: |
+          ls dist/*.whl dist/*.tar.gz dist/*.tgz
+          tar tzf dist/*.tgz | grep -q '^package/dist/nma.yml$'
+
   python:
     runs-on: ubuntu-latest
     steps:
