@@ -29,17 +29,27 @@ inputs:
 runs:
   using: composite
   steps:
+    # setup-node joins its file input to the workspace, so an absolute path
+    # (github.action_path) gets doubled. Hand both setup actions a workspace-relative one.
+    - id: kit
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        root=$(realpath --relative-to="$GITHUB_WORKSPACE" "$ACTION_PATH/../../..")
+        echo "tool-versions=$root/.tool-versions" >> "$GITHUB_OUTPUT"
+
     # uv and Python come from .tool-versions (setup-uv sets UV_PYTHON from it);
     # an explicit python-version overrides the Python.
     - uses: astral-sh/setup-uv@v10.3.2
       with:
-        version-file: ${{ github.action_path }}/../../../.tool-versions
+        version-file: ${{ steps.kit.outputs.tool-versions }}
         python-version: ${{ inputs.python-version }}
         cache-dependency-glob: "**/requirements*.txt"
 
     - uses: actions/setup-node@v4
       with:
-        node-version-file: ${{ github.action_path }}/../../../.tool-versions
+        node-version-file: ${{ steps.kit.outputs.tool-versions }}
 
     - name: Install the course kit and the course's packages
       shell: bash

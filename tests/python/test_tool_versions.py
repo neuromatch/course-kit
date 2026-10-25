@@ -36,11 +36,26 @@ def test_versions_are_declared():
     assert re.fullmatch(r"\d+\.\d+(\.\d+)?", TOOLS["python"])
 
 
+# The setup action cannot use an absolute path (setup-node joins it to the workspace), so it
+# passes the workspace-relative path that its first step computes.
+FROM_ACTION = "${{ steps.kit.outputs.tool-versions }}"
+
+
+def _reads_the_file(path: Path, value: str) -> bool:
+    return value == FROM_ACTION if path == ACTION else value.endswith(".tool-versions")
+
+
+def test_the_action_computes_a_workspace_relative_path():
+    (step,) = [s for s in _steps(ACTION) if s.get("id") == "kit"]
+    assert "realpath --relative-to=\"$GITHUB_WORKSPACE\"" in step["run"]
+    assert "tool-versions=" in step["run"] and "GITHUB_OUTPUT" in step["run"]
+
+
 def test_setup_node_reads_the_file_everywhere():
     steps = _uses("actions/setup-node@")
     assert steps
     for path, step in steps:
-        assert step["with"].get("node-version-file", "").endswith(".tool-versions"), path.name
+        assert _reads_the_file(path, step["with"].get("node-version-file", "")), path.name
         assert "node-version" not in step["with"], f"{path.name} hard-codes Node"
 
 
@@ -51,7 +66,7 @@ def test_setup_uv_is_one_pinned_release_that_reads_the_file():
         if path.name == "course-wheels.yml":
             assert step["with"]["version"] == TOOLS["uv"], "course-wheels.yml cannot read the file: keep its literal equal"
         else:
-            assert step["with"].get("version-file", "").endswith(".tool-versions"), path.name
+            assert _reads_the_file(path, step["with"].get("version-file", "")), path.name
             assert "version" not in step["with"], f"{path.name} hard-codes uv"
 
 
