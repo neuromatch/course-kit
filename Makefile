@@ -4,7 +4,7 @@
 PY := cd python && uv run --no-sync
 .DEFAULT_GOAL := help
 
-.PHONY: help setup lint test test-py test-js build build-dev dist dist-py dist-js example e2e clean
+.PHONY: help setup lint test test-py test-js build build-dev dist dist-py dist-js example e2e clean sync-templates
 
 help: ## List the tasks
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-9s %s\n", $$1, $$2}'
@@ -51,6 +51,10 @@ example: ## Build tests/example-course with the dev bundle (the script builds th
 e2e: ## Browser tests against a built example course (see AGENTS.md)
 	@echo "Serve tests/example-course/_build/html on :8765, then:"
 	@echo "  NMA_E2E_URL=http://localhost:8765 python/.venv/bin/pytest -q --reruns 1 -n 4 tests/e2e"
+
+sync-templates: ## Copy templates/*.yml into the Python package (the wheel can't ship files outside python/)
+	mkdir -p python/src/nma_kit/templates/workflows
+	cp templates/*.yml python/src/nma_kit/templates/workflows/
 
 clean: ## Remove build output and caches
 	rm -rf dist js/dist python/dist tests/example-course/_build tests/example-course/_nma .pytest_cache .ruff_cache

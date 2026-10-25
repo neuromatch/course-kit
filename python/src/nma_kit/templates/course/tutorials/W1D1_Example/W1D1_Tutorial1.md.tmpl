@@ -1,0 +1,100 @@
+---
+title: "Tutorial 1: An example tutorial"
+kernelspec:
+  name: python3
+  display_name: Python 3
+---
+
+# Tutorial 1: An example tutorial
+
+**Week 1, Day 1: Example**
+
+**By {{authors_inline}}**
+
+---
+# Tutorial Objectives
+
+*Estimated timing of tutorial: 10 minutes*
+
+In this tutorial you will fill in one function and check it with a plot.
+
+---
+# Setup
+
+```{code-cell} python
+import numpy as np
+import matplotlib.pyplot as plt
+```
+
+---
+# Section 1: Watch a video
+
+The video below is a placeholder. Replace the IDs with your own (`youtube`
+and `bilibili` are both optional; give at least one).
+
+:::{nma-video} Video 1: An example video
+:youtube: 87z6OR7-DBI
+:::
+
+---
+# Section 2: A coding exercise
+
+## Coding Exercise 1: Square a sequence
+
+Complete the function so it returns the square of every number in `x`.
+Students see the exercise; the solution is published as a separate file and
+linked below the cell.
+
+```{code-cell} python
+def square(x):
+  """Square every element of an array.
+
+  Args:
+    x (ndarray): numbers to square
+
+  Returns:
+    ndarray: the squares
+  """
+  ###################################################################
+  ## Fill out the following then remove
+  raise NotImplementedError("Student exercise: square the numbers")
+  ###################################################################
+  return ...
+
+
+x = np.linspace(-3, 3, 61)
+plt.plot(x, square(x))
+plt.xlabel("x")
+plt.ylabel("x squared")
+plt.show()
+```
+
+::::{nma-solution}
+```python
+def square(x):
+  """Square every element of an array.
+
+  Args:
+    x (ndarray): numbers to square
+
+  Returns:
+    ndarray: the squares
+  """
+  return x ** 2
+
+
+x = np.linspace(-3, 3, 61)
+plt.plot(x, square(x))
+plt.xlabel("x")
+plt.ylabel("x squared")
+plt.show()
+```
+::::
+
+---
+# Summary
+
+*Estimated timing of tutorial: 10 minutes*
+
+You wrote a function, plotted it, and saw how a video, an exercise and its
+solution appear on the site and in the generated notebooks.
