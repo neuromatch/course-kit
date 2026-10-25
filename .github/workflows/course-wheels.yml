@@ -31,9 +31,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
-          version: "0.13.4"
+          version: "0.13.4" # keep equal to uv in /.tool-versions (tests/python/test_tool_versions.py)
 
       - name: Build wheels into _wheels/
         env:

@@ -1,0 +1,11 @@
+{
+  "_doc": "Values the Python CLI and the JS plugin must agree on. Python reads this file at import (nma_kit/constants.py); the JS bundle inlines it (js/src/shared/constants.mjs). Change a value here, never in one language only.",
+  "default_tutorials_dir": "tutorials",
+  "default_projects_dir": "projects",
+  "default_notebooks_branch": "notebooks-branch",
+  "notebooks_branch_env": "NMA_NOTEBOOKS_BRANCH",
+  "default_data_dir": "data",
+  "default_image_dir": "image",
+  "max_embed_bytes": 2097152,
+  "no_fallback_marker": "nma-no-fallback"
+}

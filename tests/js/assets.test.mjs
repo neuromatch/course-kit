@@ -84,8 +84,7 @@ test('applyAssets refuses to embed more than MAX_EMBED_BYTES and says so', () =>
   assert.equal(tree.data, undefined);
 });
 
-test('MAX_EMBED_BYTES matches the Python twin', () => {
-  const py = readFileSync(join(here, '..', '..', 'python', 'src', 'nma_kit', 'assets.py'), 'utf8');
-  assert.match(py, /MAX_EMBED_BYTES = 2 \* 1024 \* 1024/);
-  assert.equal(MAX_EMBED_BYTES, 2 * 1024 * 1024);
+test('MAX_EMBED_BYTES comes from the constants file shared with the CLI', () => {
+  const shared = JSON.parse(readFileSync(join(here, '..', '..', 'python', 'src', 'nma_kit', 'constants.json'), 'utf8'));
+  assert.equal(MAX_EMBED_BYTES, shared.max_embed_bytes);
 });

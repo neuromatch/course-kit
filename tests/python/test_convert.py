@@ -275,7 +275,7 @@ def test_build_notebooks_adds_download_cell_rewrites_images_and_copies_files(tmp
     from nma_kit.config import read_settings
     from nma_kit.convert import build_notebooks, convert_md_to_notebook
 
-    day = _asset_course(tmp_path, monkeypatch)
+    _asset_course(tmp_path, monkeypatch)
     settings = read_settings()
     page = Path("tutorials/D/T.md")
     out = Path("notebooks/tutorials/D/T.ipynb")

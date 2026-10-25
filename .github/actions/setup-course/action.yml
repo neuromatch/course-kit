@@ -1,0 +1,75 @@
+# Shared setup for the reusable course workflows (course-check, course-publish,
+# course-preview): uv, Node, a virtualenv with the course's packages and the kit.
+#
+# Not for courses to call. The workflows fetch this repository's setup action,
+# .tool-versions and .release-please-manifest.json at their own commit
+# (job.workflow_sha) and run the action locally, so the tool versions and the
+# kit version always match the workflow that uses them, with nothing to pin or
+# bump. Paths below are relative to the action's own folder.
+name: Set up a course build
+description: Install uv, Node, the course kit and the course's own packages.
+
+inputs:
+  working-directory:
+    description: The course root (the folder with myst.yml).
+    default: "."
+  python-version:
+    description: Python for the virtualenv. Empty means the kit's pinned version (.tool-versions).
+    default: ""
+  requirements:
+    description: The course's own Python packages (relative to working-directory). Skipped if missing.
+    default: requirements.txt
+  kit-source:
+    description: "`pypi` (courses) or `local` (the kit's own CI: install ./python and build ./js)."
+    default: pypi
+  kit-version:
+    description: An exact kit version or `latest`. Empty means the release the calling workflow belongs to.
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    # setup-node joins its file input to the workspace, so an absolute path
+    # (github.action_path) gets doubled. Hand both setup actions a workspace-relative one.
+    - id: kit
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        root=$(realpath --relative-to="$GITHUB_WORKSPACE" "$ACTION_PATH/../../..")
+        echo "tool-versions=$root/.tool-versions" >> "$GITHUB_OUTPUT"
+
+    # uv and Python come from .tool-versions (setup-uv sets UV_PYTHON from it);
+    # an explicit python-version overrides the Python.
+    - uses: astral-sh/setup-uv@v10.3.2
+      with:
+        version-file: ${{ steps.kit.outputs.tool-versions }}
+        python-version: ${{ inputs.python-version }}
+        cache-dependency-glob: "**/requirements*.txt"
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: ${{ steps.kit.outputs.tool-versions }}
+
+    - name: Install the course kit and the course's packages
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        REQUIREMENTS: ${{ inputs.requirements }}
+        KIT_SOURCE: ${{ inputs.kit-source }}
+        REQUESTED: ${{ inputs.kit-version }}
+        MANIFEST: ${{ github.action_path }}/../../../.release-please-manifest.json
+      run: |
+        uv venv
+        echo "Python: $(.venv/bin/python --version)"
+        reqs=(); [ -f "$REQUIREMENTS" ] && reqs=(-r "$REQUIREMENTS")
+        if [ "$KIT_SOURCE" = local ]; then
+          uv pip install "${reqs[@]}" "$GITHUB_WORKSPACE/python"
+          (cd "$GITHUB_WORKSPACE/js" && npm ci --no-audit --no-fund && npm run build:dev)
+        else
+          # The release this workflow belongs to: release-please keeps the manifest at the released version.
+          version="${REQUESTED:-$(jq -r '.["."]' "$MANIFEST")}"
+          if [ "$version" = latest ]; then spec=neuromatch-course-kit; else spec="neuromatch-course-kit==$version"; fi
+          uv pip install "${reqs[@]}" "$spec"
+        fi
+        echo "$PWD/.venv/bin" >> "$GITHUB_PATH"

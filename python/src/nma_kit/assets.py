@@ -24,11 +24,12 @@ sync; both are tested against tests/fixtures/assets/directives.json.
 
 import re
 import shutil
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from string import Template
 
 from nma_kit import solutions as nma_solutions
+from nma_kit.constants import MAX_EMBED_BYTES
 
 ANY_FENCE_RE = re.compile(r"^(`{3,}|~{3,}|:{3,})(.*)$")
 DIRECTIVE_RE = re.compile(r"^\{(nma-data)\}\s*(.*?)\s*$")
@@ -205,8 +206,7 @@ def dynamic_reference_errors(text: str, data_dir: str, image_dir: str) -> list[s
 
 
 # Files declared by {nma-data} are embedded (base64) in the page for browser cells.
-# JS twin: MAX_EMBED_BYTES in js/src/assets/plugin.mjs.
-MAX_EMBED_BYTES = 2 * 1024 * 1024
+# MAX_EMBED_BYTES is shared with the JS plugin: see constants.json.
 
 
 def embed_size_errors(text: str, day_dir: Path) -> list[str]:

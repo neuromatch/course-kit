@@ -4,16 +4,16 @@ from pathlib import Path
 import pytest
 
 from nma_kit.assets import (
-    parse_data_directive,
-    find_data_directives,
-    validate_data_directives,
     asset_url,
+    download_cell_source,
+    find_data_directives,
+    insert_download_cell,
+    make_download_cell,
+    parse_data_directive,
+    rewrite_markdown_images,
     scan_code_references,
     undeclared_reference_errors,
-    download_cell_source,
-    make_download_cell,
-    insert_download_cell,
-    rewrite_markdown_images,
+    validate_data_directives,
 )
 
 FIXTURE = json.loads(
@@ -192,13 +192,13 @@ def test_rewrite_markdown_image_with_title():
 # --- {figure} / {image}, undeclared images, dynamic paths, size guard, download errors ---
 
 from nma_kit.assets import (  # noqa: E402
+    MAX_EMBED_BYTES,
     convert_image_directives,
     dynamic_reference_errors,
     embed_size_errors,
     find_image_directives,
     image_references,
     undeclared_image_errors,
-    MAX_EMBED_BYTES,
 )
 
 FIGURE = """Intro

@@ -1,0 +1,8 @@
+# actionlint does not know the `job.workflow_*` context properties yet (they
+# are documented: docs.github.com > Contexts > job context). The course
+# workflows use job.workflow_repository and job.workflow_sha to check out
+# their own setup action. Drop this file when actionlint learns them.
+paths:
+  .github/workflows/course-*.yml:
+    ignore:
+      - 'property "workflow_(repository|sha)" is not defined in object type'

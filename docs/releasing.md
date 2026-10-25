@@ -4,6 +4,15 @@ Commits on `main` use conventional messages (`fix:`, `feat:`, `feat!:`).
 release-please keeps a release PR open; merging it tags `vX.Y.Z`, publishes
 npm and PyPI, and moves the `vX.Y` and `vX` tags.
 
+To see what a release would publish without publishing anything, run
+`make dist`. It builds the release bundle and writes the wheel, the sdist and
+the npm tarball to `dist/`, so you can inspect them (`tar tzf dist/*.tgz`,
+`python3 -m zipfile -l dist/*.whl`). The release workflow builds with the same
+targets (`make test-js` and `make dist-js` before the npm publish, `make
+dist-py` before the PyPI publish), so what you inspect is what ships. The
+publish steps themselves (npm provenance, PyPI trusted publishing) stay in
+GitHub Actions.
+
 The release flow is already set up. This is what it depends on, in case it
 has to be rebuilt:
 
@@ -21,9 +30,9 @@ has to be rebuilt:
 4. Add a second owner/maintainer on npm and PyPI.
 5. Create a fine-grained personal access token (or GitHub App) for this repo
    with read/write on Contents, Pull requests and Workflows, and save it as
-   the repository secret `RELEASE_PLEASE_TOKEN`. release-please edits
-   `KIT_VERSION` in `.github/workflows/`, which the default `GITHUB_TOKEN`
-   may not do.
+   the repository secret `RELEASE_PLEASE_TOKEN`. Pull requests opened with the
+   default `GITHUB_TOKEN` do not trigger CI, so without it the release PR
+   would not be checked.
 6. Branch protection on `main`: require pull requests, the CI checks, and
    "Require branches to be up to date before merging". CI runs on pull
    requests only.

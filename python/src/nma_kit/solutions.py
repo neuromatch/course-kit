@@ -36,6 +36,8 @@ import re
 from dataclasses import dataclass, field
 from string import Template
 
+from nma_kit.constants import DEFAULT_NOTEBOOKS_BRANCH, NO_FALLBACK_MARKER
+
 FENCE_RE = re.compile(r"^(`{3,}|~{3,}|:{3,})(.*)$")
 DIRECTIVE_RE = re.compile(r"^\{([\w-]+)\}\s*(.*?)\s*$")
 OPTION_RE = re.compile(r"^:([A-Za-z][\w-]*):\s*(.*?)\s*$")
@@ -225,7 +227,7 @@ def validate(text: str) -> list[str]:
 
 # File naming. Keep in sync with js/src/solutions/plugin.mjs.
 FILE_PATTERNS = {SOLUTION: "{stem}_Solution_{n}.py", EXPLANATION: "{stem}_Explanation_{n}.md"}
-NOTEBOOKS_BRANCH = "notebooks-branch"  # default; courses override with nma.notebooks.branch
+NOTEBOOKS_BRANCH = DEFAULT_NOTEBOOKS_BRANCH  # courses override with nma.notebooks.branch
 
 
 def solution_filename(stem: str, kind: str, n: int) -> str:
@@ -412,7 +414,6 @@ del _nma_install_fallback'''
 FUZZY_THRESHOLD = 0.6
 # A cell containing this marker is never replaced by the fallback: the editable
 # panels append it to the cell the student explicitly runs.
-NO_FALLBACK_MARKER = "nma-no-fallback"  # keep in sync with js/src/cells/src/model.mjs
 
 
 def fallback_cell_source(pairs: list[tuple[str, str]]) -> str:

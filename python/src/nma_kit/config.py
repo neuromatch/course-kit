@@ -25,17 +25,20 @@ import os
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import NamedTuple
 from pathlib import Path, PurePosixPath
+from typing import NamedTuple
 
 import yaml
 
-DEFAULT_TUTORIALS_DIR = "tutorials"
-DEFAULT_PROJECTS_DIR = "projects"
-DEFAULT_NOTEBOOKS_BRANCH = "notebooks-branch"
-NOTEBOOKS_BRANCH_ENV = "NMA_NOTEBOOKS_BRANCH"  # overrides the branch (PR previews)
-DEFAULT_DATA_DIR = "data"
-DEFAULT_IMAGE_DIR = "image"
+from nma_kit.constants import (
+    DEFAULT_DATA_DIR,
+    DEFAULT_IMAGE_DIR,
+    DEFAULT_NOTEBOOKS_BRANCH,
+    DEFAULT_PROJECTS_DIR,
+    DEFAULT_TUTORIALS_DIR,
+    NOTEBOOKS_BRANCH_ENV,
+)
+
 NOTEBOOKS_DIR = "notebooks"
 MYST_CONFIG = Path("myst.yml")
 

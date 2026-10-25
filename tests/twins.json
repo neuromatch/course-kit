@@ -1,5 +1,5 @@
 {
-  "_doc": "Registry of Python/JS twins: logic written twice that must behave the same. Each entry names the symbol on both sides ('path::name'), the shared fixture that pins the behaviour (if any) and, in 'gap', any side a test does not yet reference by name. tests/python/test_twins.py checks the registry against the code. Add an entry here whenever you write a twin; see CONTRIBUTING.md.",
+  "_doc": "Registry of Python/JS twins: logic written twice that must behave the same. Each entry names the symbol on both sides ('path::name'), the shared fixture that pins the behaviour (if any) and, in 'gap', any side a test does not yet reference by name. tests/python/test_twins.py checks the registry against the code. Add an entry here whenever you write a twin; see CONTRIBUTING.md. Constants that are the same on both sides are not twins: they live in python/src/nma_kit/constants.json, which both languages read.",
   "twins": [
     {"what": "Course settings from myst.yml", "js": "js/src/shared/config.mjs::loadSettings", "py": "python/src/nma_kit/config.py::load_settings", "fixture": "config/settings.json"},
     {"what": "The nma: block reader", "js": "js/src/shared/config.mjs::readNmaConfig", "py": "python/src/nma_kit/config.py::read_nma_block", "fixture": "nma_config/"},
@@ -13,11 +13,9 @@
     {"what": "{nma-data} parsing", "js": "js/src/assets/model.mjs::parseDataDirective", "py": "python/src/nma_kit/assets.py::parse_data_directive", "fixture": "assets/directives.json"},
     {"what": "{nma-data} validation", "js": "js/src/assets/model.mjs::validateDataDirectives", "py": "python/src/nma_kit/assets.py::validate_data_directives", "fixture": "assets/directives.json"},
     {"what": "Published URL of a data file", "js": "js/src/assets/model.mjs::assetUrlFor", "py": "python/src/nma_kit/assets.py::asset_url", "fixture": "assets/directives.json"},
-    {"what": "Embed size limit", "js": "js/src/assets/plugin.mjs::MAX_EMBED_BYTES", "py": "python/src/nma_kit/assets.py::MAX_EMBED_BYTES", "gap": ["js", "py"]},
     {"what": "layout: scrolly detection", "js": "js/src/shared/frontmatter.mjs::isScrolly", "py": "python/src/nma_kit/scrolly.py::is_scrolly", "fixture": "scrolly/"},
     {"what": "Scrolly cell key (hash)", "js": "js/src/scrolly/plugin.mjs::cellKey", "py": "python/src/nma_kit/scrolly.py::cell_key", "fixture": "scrolly/cell_keys.json"},
     {"what": "# @param parsing", "js": "js/src/scrolly/plugin.mjs::parseParams", "py": "python/src/nma_kit/scrolly.py::parse_params", "fixture": "scrolly/params.json"},
-    {"what": "runtime: frontmatter", "js": "js/src/cells/src/model.mjs::runtimeOf", "py": "python/src/nma_kit/cells.py::runtime_of", "fixture": "cells/runtime.json"},
-    {"what": "No-fallback marker", "js": "js/src/cells/src/model.mjs::NO_FALLBACK_MARKER", "py": "python/src/nma_kit/solutions.py::NO_FALLBACK_MARKER", "gap": ["js", "py"]}
+    {"what": "runtime: frontmatter", "js": "js/src/cells/src/model.mjs::runtimeOf", "py": "python/src/nma_kit/cells.py::runtime_of", "fixture": "cells/runtime.json"}
   ]
 }

@@ -17,8 +17,7 @@ import os
 import sys
 from pathlib import Path
 
-from nma_kit import __version__
-from nma_kit import branding, convert, scrolly
+from nma_kit import __version__, branding, convert, scrolly
 from nma_kit.config import MYST_CONFIG, MissingConfig, read_settings
 from nma_kit.pin import pin_kit_url
 from nma_kit.publish import PublishError, publish_notebooks

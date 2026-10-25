@@ -25,6 +25,7 @@ is the compatible line. See README.md.
 
 ```
 js/
+  biome.json                  # JS lint config
   src/
     index.mjs                 # merges every feature plugin (transform order: solutions, feedback, scrolly, cells)
     shared/                   # config.mjs (myst.yml settings, YAML), paths.mjs (page location, notebook/solution URLs),
@@ -41,6 +42,7 @@ js/
   nma.yml.tmpl                # the config courses `extend:`
 python/src/nma_kit/
   cli.py                      # nma-kit check | notebooks | render-scrolly | sync-assets | prepare-site | publish-notebooks
+  constants.json, constants.py  # values shared with the JS plugin (single source, see Rules)
   config.py                   # Settings from myst.yml (github repo, nma.paths.tutorials, nma.notebooks.branch)
   convert.py                  # content rules, jupytext conversion, badges, prepare-site
   media.py solutions.py feedback.py scrolly.py cells.py assets.py   # Python side of each feature
@@ -56,8 +58,12 @@ tests/
   scripts/build-example.sh    # build the example course like a course's CI does
   scripts/compare_builds.py   # golden check: two course builds produce the same notebooks and pages
 docs/releasing.md             # maintainers: how releases are set up (CONTRIBUTING.md is the contributor guide)
+Makefile, ruff.toml           # contributor tasks (make help); Python lint config (JS: js/biome.json)
+.pre-commit-config.yaml       # runs the linters on commit (installed by make setup)
 templates/course.yml          # the workflow courses copy (calls the reusable workflows @v0.1)
 templates/wheels.yml          # optional caller for course-wheels.yml
+.github/actions/setup-course/   # shared setup (uv, Node, install the kit) used by the course-*.yml workflows
+.github/actionlint.yaml        # ignores the job.workflow_* property errors (actionlint doesn't know them yet)
 .github/workflows/            # course-check.yml, course-publish.yml, course-preview.yml, course-wheels.yml (reusable), ci.yml, release.yml
 ```
 
@@ -66,6 +72,9 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - **Features are separate.** `js/src/<feature>/` imports only from itself and
   `shared/` (enforced by `tests/js/structure.test.mjs`). The Python side uses
   the same feature names.
+- **Shared values live in one file.** Constants both languages need are in
+  `python/src/nma_kit/constants.json` (read by `constants.py`, inlined by
+  `js/src/shared/constants.mjs`). Never redeclare them on one side.
 - **Python/JS twins stay in sync**, tested against the same fixtures. Every twin is
   listed in `tests/twins.json` (symbols, fixture) and `tests/python/test_twins.py` fails when
   one is renamed, removed or untested; add an entry when you write a twin
@@ -83,8 +92,8 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   - `isScrolly`/`is_scrolly`, `cellKey`/`cell_key`, `parseParams`/`parse_params`, `tests/fixtures/scrolly/`.
     `cell_key` = first 16 hex chars of sha256 of the code with CRLF -> LF,
     trailing spaces/tabs stripped per line, outer blank lines stripped.
-  - `runtimeOf`/`runtime_of`, `tests/fixtures/cells/runtime.json`. `NO_FALLBACK_MARKER`
-    in `solutions.py` and `cells/src/model.mjs` must match.
+  - `runtimeOf`/`runtime_of`, `tests/fixtures/cells/runtime.json`. `NO_FALLBACK_MARKER` is
+    shared through `constants.json`.
 - **Asset URLs** come from `shared/assets.mjs`:
   - release build: `https://cdn.jsdelivr.net/npm/@neuromatch/course-kit@<exact version>/dist/assets/<rel>`.
     MyST downloads these at build time and serves them from the site (`build/<md5>.mjs`),
@@ -102,7 +111,11 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   MyST runs plugins from the course root and tests switch courses.
 - **One version everywhere.** `tests/python/test_release.py` checks that
   `js/package.json`, `python/pyproject.toml`, `nma_kit.__version__`,
-  `.release-please-manifest.json` and `KIT_VERSION` in the reusable workflows agree.
+  `.release-please-manifest.json` agree. The reusable workflows carry no version: the setup action
+  reads the manifest from the workflow's own commit.
+- **One toolchain.** `.tool-versions` (read by `setup-node`, `setup-uv`, `mise`, `asdf`) pins Node,
+  uv and Python; `tests/python/test_tool_versions.py` fails if a workflow hard-codes one. The one
+  literal that remains is the uv version in `course-wheels.yml`, which the test keeps equal.
 - The toolbar rule `.myst-jp-nb-toolbar { display: none !important; }`
   (editable cells replace JupyterLite's power button) is in the kit's
   `site.css`; courses no longer carry it.
@@ -171,7 +184,7 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - `nma-kit check` errors: bad/missing declared files; code that uses a strict literal `data/x.ext` / `image/x.ext`
   that no `{nma-data}` declares; f-string paths (`f"data/{x}.npz"`) under a folder where the page declares no file;
   page images (markdown, `<img>`, `{figure}`) under `image/` that aren't declared (they'd work on the site but never
-  reach Colab); declared files over `MAX_EMBED_BYTES` (2 MB total, twin in `assets/plugin.mjs`, which skips
+  reach Colab); declared files over `MAX_EMBED_BYTES` (2 MB total, `max_embed_bytes` in `constants.json`; `assets/plugin.mjs` skips
   embedding with a warning). Other dynamic paths can't be detected: declare every file the code can reach.
 - The embedded bytes grow the page: keep tutorial files small; large datasets use the author's own download cell.
 - Limits: the download cell needs Internet (on Kaggle it must be turned on; the cell says so on failure), and raw
@@ -223,12 +236,15 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 
 ## Commands
 
+`make help` lists the shortcuts (`make setup`, `make test`, `make lint`, `make example`); `ruff.toml`
+and `js/biome.json` configure the linters (CI runs the same). The underlying commands:
+
 ```bash
 # Python
 cd python && uv venv && uv pip install -e '.[test]' -r ../tests/example-course/requirements.txt
 uv run pytest -q ../tests/python
 
-# JS (Node 22)
+# JS (Node: see .tool-versions)
 cd js && npm ci
 npm run build && npm test        # release build: CDN asset URLs, dist/nma.yml
 npm run build:dev && npm test    # dev build: local asset paths
@@ -272,22 +288,28 @@ downloads); CI retries failed tests once.
   to this repo, so each open PR has a `notebooks-pr-<n>` branch here until it closes. It is
   skipped for the release-please PR (version strings only), like the e2e job in `ci.yml`; both match
   the branch prefix `release-please--`, not the full name (which encodes the target branch and component).
-- Registered for releases like the other reusable workflows (`KIT_VERSION` marker,
-  `release-please-config.json`, `REUSABLE` in `test_release.py`).
+- Registered with the other reusable workflows (`REUSABLE` in `test_release.py`). The kit version
+  comes from the manifest, so there is no version marker in the workflow.
 
 ## CI
 
 - `ci.yml` runs on pull requests only (branch protection requires PRs to be up
-  to date with `main`): pytest; JS release + dev builds with tests; example
+  to date with `main`), through the Makefile (`make lint | test-py | test-js`): lint; pytest; JS dev + release builds with tests; example
   course build + e2e (skipped on the release-please PR, which only changes
   version strings); the reusable `course-check.yml` run against
   `tests/example-course` with `kit-source: local`.
 - `release.yml`: release-please PR -> tag `vX.Y.Z` -> npm (provenance) and
-  PyPI (trusted publishing) -> move `vX.Y` and `vX`. release-please uses the
+  PyPI (trusted publishing) -> move `vX.Y` and `vX`. The jobs build with
+  `make test-js`, `make dist-js` and `make dist-py` (the publish steps stay in Actions). release-please uses the
   `RELEASE_PLEASE_TOKEN` secret (a PAT or app token with Contents, Pull
-  requests and Workflows access), because it edits `KIT_VERSION` in
-  `.github/workflows/` and the default token may not; the token also makes CI
-  run on the release PR. Setup: docs/releasing.md.
+  requests and Workflows access) so that CI runs on the release PR (PRs opened with
+  the default token do not trigger it). Setup: docs/releasing.md.
+- **Shared setup.** `course-check`, `course-publish` and `course-preview` fetch this repo at
+  `job.workflow_sha` (sparse checkout of `.github/actions/setup-course`, `.tool-versions` and
+  `.release-please-manifest.json` into `.course-kit/`) and run the action locally: uv, Node and Python
+  from `.tool-versions`, the kit version from the manifest, then the course's packages and the kit.
+  That pins the setup and the kit version to the workflow's own commit without a tag. The kit's own CI exercises it through
+  `ci.yml` (`course-check`) and `preview.yml`. `tests/python/test_workflow_setup.py` pins the shape.
 - `course-publish.yml` job order: check -> notebooks -> publish-notebooks ->
   render-scrolly -> prepare-site -> myst build -> Pages deploy. One run per
   repository at a time (notebook pushes never race). No CNAME step: with the

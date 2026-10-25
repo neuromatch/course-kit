@@ -26,32 +26,46 @@ content and writes the notebooks. Both halves must agree; see
 
 ## Set up
 
-You need [uv](https://docs.astral.sh/uv/) and Node 22.
+You need [uv](https://docs.astral.sh/uv/), `make`, and the Node, uv and Python versions pinned in
+[`.tool-versions`](.tool-versions) (`mise install` or `asdf install` reads it).
 
 ```bash
-# Python
-cd python && uv venv && uv pip install -e '.[test]' -r ../tests/example-course/requirements.txt
-uv run pytest -q ../tests/python
-
-# JavaScript (build first: some tests read dist/)
-cd js && npm ci
-npm run build && npm test          # release build: CDN asset URLs
-npm run build:dev && npm test      # dev build: local asset paths
+make setup    # Python + JS dependencies and the pre-commit hook
+make test     # lint, Python tests, JS tests (builds the bundle first)
+make help     # every task
 ```
 
-If a JS test says `dist` has the wrong version, rebuild: `dist/` is gitignored
-and goes stale after a version bump or a `git pull`.
+`make test` rebuilds the JS bundle because some JS tests read `js/dist/`,
+which is gitignored and goes stale after a version bump or a `git pull`. If
+you run `npm test` yourself and it complains about the `dist` version, run
+`make build`.
+
+Without `make`, the same steps are:
+
+```bash
+cd python && uv venv && uv pip install -e '.[test,dev]' -r ../tests/example-course/requirements.txt
+uv run pytest -q ../tests/python
+cd ../js && npm ci && npm run build && npm test && npm run build:dev && npm test
+```
+
+## Linting
+
+`make lint` runs [ruff](https://docs.astral.sh/ruff/) (`ruff.toml`) on the
+Python and [Biome](https://biomejs.dev) (`js/biome.json`) on the JS, and CI
+runs the same. The pre-commit hook from `make setup` runs them on commit.
+Neither tool formats code: match the style of the file you are in. Ruff also
+requires a docstring on every public module, class and function.
 
 ## Test layers
 
 | Layer | Command | Covers |
 |---|---|---|
-| Python unit | `uv run pytest -q ../tests/python` (in `python/`) | CLI, conversion, checks, workflows, release consistency, twin registry |
-| JS unit | `npm test` (in `js/`, after a build) | plugin logic, bundle contents, feature boundaries |
-| Example course | `tests/scripts/build-example.sh` | a real `myst build` with the dev bundle |
-| Browser | see "Commands" in [AGENTS.md](AGENTS.md) | editable cells, branding, in Chromium (slow: each page boots Pyodide) |
+| Python unit | `make test-py` | CLI, conversion, checks, workflows, release consistency, twin registry |
+| JS unit | `make test-js` | plugin logic, bundle contents, feature boundaries |
+| Example course | `make example` | a real `myst build` with the dev bundle |
+| Browser | `make e2e` prints the steps (details in [AGENTS.md](AGENTS.md)) | editable cells, branding, in Chromium (slow: each page boots Pyodide) |
 
-CI runs all of them on pull requests. Run the first two locally before you push.
+CI runs all of them on pull requests. Run `make test` before you push.
 
 ## Python and JS twins
 
@@ -69,8 +83,12 @@ silently, so:
 3. **Test both sides against the same fixture.** Change a rule by changing
    the fixture first, then make both implementations pass.
 4. If you write a new twin, add a registry entry and a fixture in the same PR.
-   Prefer not to write one at all: data that is the same on both sides
-   belongs in one file both read.
+5. **Prefer not to write a twin at all.** Values that are the same on both
+   sides (defaults, the notebooks-branch env var, the embed limit, the
+   no-fallback marker) live in
+   [`python/src/nma_kit/constants.json`](python/src/nma_kit/constants.json).
+   Python reads it (`nma_kit/constants.py`) and the JS bundle inlines it
+   (`js/src/shared/constants.mjs`). Add shared values there, never in both.
 
 ## Adding or changing a feature
 
@@ -109,6 +127,35 @@ silently, so:
   point-in-time specs or plans; they go stale. Durable decisions belong in the
   rules and internals of `AGENTS.md`.
 
+## Workflows
+
+`ci.yml` and the release workflow call the same `make` targets you run
+locally (`lint`, `test-py`, `test-js`, `dist-py`, `dist-js`), so a green
+`make test` means a green CI for those jobs. The reusable course workflows
+(`course-*.yml`) cannot use `make`: a course has no Makefile.
+
+The three course workflows share one setup, the composite action
+[`.github/actions/setup-course`](.github/actions/setup-course/action.yml): uv,
+Node and Python, a virtualenv with the course's packages, and the kit (from
+PyPI, or from the checkout in the kit's own CI). A reusable workflow cannot pin
+an action to its own release, so each workflow checks this repository out at its
+own commit (`job.workflow_sha`) and runs the action from there. That checkout
+also brings `.tool-versions` and `.release-please-manifest.json`, so:
+
+- **Tool versions** (Node, uv, Python) come from [`.tool-versions`](.tool-versions),
+  the one place to bump them. The kit's own CI and the release workflow read it
+  too, and `mise`/`asdf` read it locally.
+- **The kit version** a workflow installs is the manifest's, which release-please
+  bumps. The workflows carry no version of their own.
+- A frozen course (`@v0.1.3`) keeps the setup, tools and kit version of `v0.1.3`.
+
+Edit the setup in the action; the two steps that fetch it are the only thing the
+workflows repeat, and `tests/python/test_workflow_setup.py` keeps them identical.
+`tests/python/test_tool_versions.py` fails if a workflow hard-codes a tool version.
+
+actionlint doesn't know the `job.workflow_*` properties yet, so
+`.github/actionlint.yaml` ignores that one error for the course workflows.
+
 ## Commits and pull requests
 
 - Use [conventional commits](https://www.conventionalcommits.org): `fix:` for
@@ -122,4 +169,5 @@ silently, so:
 
 ## Releasing
 
-Maintainers only: [docs/releasing.md](docs/releasing.md).
+Maintainers only: [docs/releasing.md](docs/releasing.md). `make dist` builds the release
+artifacts locally without publishing; the release workflow builds with the same targets.

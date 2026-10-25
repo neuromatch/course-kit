@@ -41,6 +41,7 @@ test('shared/ imports no feature', () => {
   for (const file of files(join(src, 'shared'))) {
     const imports = [...readFileSync(file, 'utf8').matchAll(/\bfrom\s+['"](\.[^'"]+)['"]/g)].map((m) => m[1]);
     for (const spec of imports) {
+      if (spec.endsWith('/nma_kit/constants.json')) continue; // the one file shared with the CLI
       assert.equal(relative(src, join(dirname(file), spec)).split(sep)[0], 'shared', `${relative(src, file)} imports ${spec}`);
     }
   }
