@@ -26,7 +26,8 @@ content and writes the notebooks. Both halves must agree; see
 
 ## Set up
 
-You need [uv](https://docs.astral.sh/uv/), Node 22 and `make`.
+You need [uv](https://docs.astral.sh/uv/), `make`, and the Node, uv and Python versions pinned in
+[`.tool-versions`](.tool-versions) (`mise install` or `asdf install` reads it).
 
 ```bash
 make setup    # Python + JS dependencies and the pre-commit hook
@@ -135,14 +136,22 @@ locally (`lint`, `test-py`, `test-js`, `dist-py`, `dist-js`), so a green
 
 The three course workflows share one setup, the composite action
 [`.github/actions/setup-course`](.github/actions/setup-course/action.yml): uv,
-Node, a virtualenv with the course's packages, and the kit (from PyPI, or from
-the checkout in the kit's own CI). A reusable workflow cannot pin an action to
-its own release, so each workflow checks this repository out at its own commit
-(`job.workflow_sha`) and runs the action from there. The setup therefore always
-matches the workflow that uses it: no tag to bump, and a frozen course
-(`@v0.1.3`) keeps the setup of `v0.1.3`. Edit the setup in the action; the two
-steps that fetch it are the only thing the workflows repeat, and
-`tests/python/test_workflow_setup.py` keeps them identical.
+Node and Python, a virtualenv with the course's packages, and the kit (from
+PyPI, or from the checkout in the kit's own CI). A reusable workflow cannot pin
+an action to its own release, so each workflow checks this repository out at its
+own commit (`job.workflow_sha`) and runs the action from there. That checkout
+also brings `.tool-versions` and `.release-please-manifest.json`, so:
+
+- **Tool versions** (Node, uv, Python) come from [`.tool-versions`](.tool-versions),
+  the one place to bump them. The kit's own CI and the release workflow read it
+  too, and `mise`/`asdf` read it locally.
+- **The kit version** a workflow installs is the manifest's, which release-please
+  bumps. The workflows carry no version of their own.
+- A frozen course (`@v0.1.3`) keeps the setup, tools and kit version of `v0.1.3`.
+
+Edit the setup in the action; the two steps that fetch it are the only thing the
+workflows repeat, and `tests/python/test_workflow_setup.py` keeps them identical.
+`tests/python/test_tool_versions.py` fails if a workflow hard-codes a tool version.
 
 actionlint doesn't know the `job.workflow_*` properties yet, so
 `.github/actionlint.yaml` ignores that one error for the course workflows.

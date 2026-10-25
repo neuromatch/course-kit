@@ -111,7 +111,11 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   MyST runs plugins from the course root and tests switch courses.
 - **One version everywhere.** `tests/python/test_release.py` checks that
   `js/package.json`, `python/pyproject.toml`, `nma_kit.__version__`,
-  `.release-please-manifest.json` and `KIT_VERSION` in the reusable workflows agree.
+  `.release-please-manifest.json` agree. The reusable workflows carry no version: the setup action
+  reads the manifest from the workflow's own commit.
+- **One toolchain.** `.tool-versions` (read by `setup-node`, `setup-uv`, `mise`, `asdf`) pins Node,
+  uv and Python; `tests/python/test_tool_versions.py` fails if a workflow hard-codes one. The one
+  literal that remains is the uv version in `course-wheels.yml`, which the test keeps equal.
 - The toolbar rule `.myst-jp-nb-toolbar { display: none !important; }`
   (editable cells replace JupyterLite's power button) is in the kit's
   `site.css`; courses no longer carry it.
@@ -240,7 +244,7 @@ and `js/biome.json` configure the linters (CI runs the same). The underlying com
 cd python && uv venv && uv pip install -e '.[test]' -r ../tests/example-course/requirements.txt
 uv run pytest -q ../tests/python
 
-# JS (Node 22)
+# JS (Node: see .tool-versions)
 cd js && npm ci
 npm run build && npm test        # release build: CDN asset URLs, dist/nma.yml
 npm run build:dev && npm test    # dev build: local asset paths
@@ -284,8 +288,8 @@ downloads); CI retries failed tests once.
   to this repo, so each open PR has a `notebooks-pr-<n>` branch here until it closes. It is
   skipped for the release-please PR (version strings only), like the e2e job in `ci.yml`; both match
   the branch prefix `release-please--`, not the full name (which encodes the target branch and component).
-- Registered for releases like the other reusable workflows (`KIT_VERSION` marker,
-  `release-please-config.json`, `REUSABLE` in `test_release.py`).
+- Registered with the other reusable workflows (`REUSABLE` in `test_release.py`). The kit version
+  comes from the manifest, so there is no version marker in the workflow.
 
 ## CI
 
@@ -298,13 +302,13 @@ downloads); CI retries failed tests once.
   PyPI (trusted publishing) -> move `vX.Y` and `vX`. The jobs build with
   `make test-js`, `make dist-js` and `make dist-py` (the publish steps stay in Actions). release-please uses the
   `RELEASE_PLEASE_TOKEN` secret (a PAT or app token with Contents, Pull
-  requests and Workflows access), because it edits `KIT_VERSION` in
-  `.github/workflows/` and the default token may not; the token also makes CI
-  run on the release PR. Setup: docs/releasing.md.
+  requests and Workflows access) so that CI runs on the release PR (PRs opened with
+  the default token do not trigger it). Setup: docs/releasing.md.
 - **Shared setup.** `course-check`, `course-publish` and `course-preview` fetch this repo at
-  `job.workflow_sha` (sparse checkout of `.github/actions/setup-course` into `.course-kit/`) and run
-  it as a local composite action: uv, Node, the course's packages and the kit. That pins the setup to
-  the workflow's own commit without a tag. The kit's own CI exercises it through
+  `job.workflow_sha` (sparse checkout of `.github/actions/setup-course`, `.tool-versions` and
+  `.release-please-manifest.json` into `.course-kit/`) and run the action locally: uv, Node and Python
+  from `.tool-versions`, the kit version from the manifest, then the course's packages and the kit.
+  That pins the setup and the kit version to the workflow's own commit without a tag. The kit's own CI exercises it through
   `ci.yml` (`course-check`) and `preview.yml`. `tests/python/test_workflow_setup.py` pins the shape.
 - `course-publish.yml` job order: check -> notebooks -> publish-notebooks ->
   render-scrolly -> prepare-site -> myst build -> Pages deploy. One run per

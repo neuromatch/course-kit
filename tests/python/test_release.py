@@ -5,8 +5,6 @@ import json
 import re
 from pathlib import Path
 
-import yaml
-
 import nma_kit
 
 KIT = Path(__file__).resolve().parents[2]
@@ -24,9 +22,6 @@ def stated_versions() -> dict:
         "nma_kit.__version__": nma_kit.__version__,
         ".release-please-manifest.json": json.loads((KIT / ".release-please-manifest.json").read_text())["."],
     }
-    for name in REUSABLE:
-        env = yaml.safe_load((WORKFLOWS / name).read_text())["env"]
-        versions[name] = env["KIT_VERSION"]
     return versions
 
 
@@ -45,15 +40,25 @@ def test_release_please_bumps_every_file():
     assert config.get("bump-minor-pre-major") is True
     assert config.get("bump-patch-for-minor-pre-major") is True
     paths = {f["path"] if isinstance(f, dict) else f for f in package["extra-files"]}
-    expected = {f".github/workflows/{n}" for n in REUSABLE} | {
-        "js/package.json", "js/package-lock.json", "python/pyproject.toml", "python/src/nma_kit/__init__.py"}
+    expected = {"js/package.json", "js/package-lock.json", "python/pyproject.toml", "python/src/nma_kit/__init__.py"}
     assert expected <= paths, expected - paths
 
 
 def test_generic_files_carry_the_marker():
-    for path in [*(WORKFLOWS / n for n in REUSABLE), KIT / "python" / "src" / "nma_kit" / "__init__.py"]:
-        line = next(ln for ln in path.read_text().splitlines() if re.search(r"\d+\.\d+\.\d+", ln) and "VERSION" in ln.upper())
-        assert MARKER in line, path
+    path = KIT / "python" / "src" / "nma_kit" / "__init__.py"
+    line = next(ln for ln in path.read_text().splitlines() if re.search(r"\d+\.\d+\.\d+", ln) and "VERSION" in ln.upper())
+    assert MARKER in line, path
+
+
+def test_workflows_get_the_kit_version_from_the_manifest():
+    """The reusable workflows carry no version of their own: the setup action reads
+    .release-please-manifest.json from the workflow's own commit."""
+    for name in REUSABLE:
+        text = (WORKFLOWS / name).read_text()
+        assert "KIT_VERSION" not in text and MARKER not in text, name
+        assert ".release-please-manifest.json" in text, f"{name} must fetch the manifest for the setup action"
+    action = (KIT / ".github" / "actions" / "setup-course" / "action.yml").read_text()
+    assert ".release-please-manifest.json" in action
 
 
 def test_course_template_calls_the_v0_1_line():

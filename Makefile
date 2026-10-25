@@ -1,5 +1,5 @@
 # One-command tasks for contributors. Run `make help`.
-# Needs uv (https://docs.astral.sh/uv/) and Node 22.
+# Needs uv (https://docs.astral.sh/uv/) and Node (see .tool-versions).
 
 PY := cd python && uv run --no-sync
 .DEFAULT_GOAL := help

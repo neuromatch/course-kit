@@ -15,8 +15,9 @@ on:
   workflow_call:
     inputs:
       python-version:
+        description: Python for the build. Empty means the kit's pinned version (.tool-versions).
         type: string
-        default: "3.14"
+        default: ""
       requirements:
         description: The course's own Python packages (relative to working-directory). Skipped if missing.
         type: string
@@ -33,9 +34,6 @@ on:
         description: "`pypi` (courses) or `local` (the kit's own CI: install ./python and build ./js)."
         type: string
         default: pypi
-
-env:
-  KIT_VERSION: 0.1.6 # x-release-please-version
 
 jobs:
   build:
@@ -61,7 +59,11 @@ jobs:
           repository: ${{ job.workflow_repository }}
           ref: ${{ job.workflow_sha }}
           path: .course-kit
-          sparse-checkout: .github/actions/setup-course
+          sparse-checkout: |
+            .github/actions/setup-course
+            .tool-versions
+            .release-please-manifest.json
+          sparse-checkout-cone-mode: false
           persist-credentials: false
 
       - uses: ./.course-kit/.github/actions/setup-course
@@ -71,7 +73,6 @@ jobs:
           requirements: ${{ inputs.requirements }}
           kit-source: ${{ inputs.kit-source }}
           kit-version: ${{ inputs.kit-version }}
-          release-version: ${{ env.KIT_VERSION }}
 
       - name: Check content
         run: nma-kit check

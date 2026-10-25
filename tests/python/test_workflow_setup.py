@@ -49,7 +49,9 @@ def test_the_two_setup_steps_are_identical_in_every_course_workflow(selector):
 def test_fetch_step_checks_out_exactly_the_action(name):
     fetch, use = _one(name, _fetch), _one(name, _use)
     assert fetch["with"]["ref"] == "${{ job.workflow_sha }}"
-    assert fetch["with"]["sparse-checkout"] == ACTION_DIR
+    # Only what the action reads (not cone mode, which would also pull every top-level file).
+    assert fetch["with"]["sparse-checkout"].split() == [ACTION_DIR, ".tool-versions", ".release-please-manifest.json"]
+    assert fetch["with"]["sparse-checkout-cone-mode"] is False
     assert fetch["with"]["persist-credentials"] is False
     assert use["uses"] == f"./{fetch['with']['path']}/{ACTION_DIR}"
 
@@ -61,6 +63,7 @@ def test_workflow_passes_the_actions_inputs(name):
     required = {k for k, v in ACTION["inputs"].items() if v.get("required")}
     assert passed <= declared, f"{name} passes unknown inputs: {passed - declared}"
     assert required <= passed, f"{name} omits required inputs: {required - passed}"
+    assert "kit-version" in passed
 
 
 @pytest.mark.parametrize("name", FILES)
