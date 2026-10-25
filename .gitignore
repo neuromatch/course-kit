@@ -24,6 +24,9 @@ htmlcov/
 test-results/
 playwright-report/
 
+# Copied from templates/course.yml by `make sync-templates` (never edit or commit)
+python/src/nma_kit/templates/workflows/
+
 # MyST / example course build output
 _build/
 .myst/

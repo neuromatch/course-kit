@@ -41,11 +41,13 @@ js/
   build.mjs                   # esbuild: dist/nma.mjs + dist/assets/<feature>/ (+ dist/nma.yml on release)
   nma.yml.tmpl                # the config courses `extend:`
 python/src/nma_kit/
-  cli.py                      # nma-kit check | notebooks | render-scrolly | sync-assets | prepare-site | publish-notebooks
+  cli.py                      # nma-kit init | check | notebooks | render-scrolly | sync-assets | prepare-site | publish-notebooks
   constants.json, constants.py  # values shared with the JS plugin (single source, see Rules)
   config.py                   # Settings from myst.yml (github repo, nma.paths.tutorials, nma.notebooks.branch)
   convert.py                  # content rules, jupytext conversion, badges, prepare-site
   media.py solutions.py feedback.py scrolly.py cells.py assets.py   # Python side of each feature
+  scaffold.py                 # init: renders templates/course/ (+ licenses/, workflows/) into a new course
+  templates/                  # course/ (starter files; *.tmpl rendered, dot-x -> .x), licenses/, workflows/ (mirror, see Rules)
   pin.py                      # pin course-kit CDN URLs in myst.yml to one version
   branding.py                 # sync-assets: _nma/site.css (+ brand colours, extra CSS), logos, favicon
   assets/                     # the branding source: site.css, logos, favicon, fonts/ (Rubik, OFL)
@@ -60,7 +62,7 @@ tests/
 docs/releasing.md             # maintainers: how releases are set up (CONTRIBUTING.md is the contributor guide)
 Makefile, ruff.toml           # contributor tasks (make help); Python lint config (JS: js/biome.json)
 .pre-commit-config.yaml       # runs the linters on commit (installed by make setup)
-templates/course.yml          # the workflow courses copy (calls the reusable workflows @v0.1)
+templates/course.yml          # the workflow courses copy (calls the reusable workflows @v0.1); the source `nma-kit init` renders
 templates/wheels.yml          # optional caller for course-wheels.yml
 .github/actions/setup-course/   # shared setup (uv, Node, install the kit) used by the course-*.yml workflows
 .github/actionlint.yaml        # ignores the job.workflow_* property errors (actionlint doesn't know them yet)
@@ -107,6 +109,14 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - **Bundles are built, not committed.** `js/dist/` is gitignored. The plugin
   bundle includes a `createRequire` shim because bundled CommonJS (`yaml`)
   calls `require()` for Node built-ins.
+- **The workflow template lives in `templates/course.yml`; release builds copy it into the wheel.** `uv build`
+  makes the wheel from the sdist, which can't include files outside `python/`, so `make dist-py` first runs
+  `make sync-templates`, which copies it to the gitignored `python/src/nma_kit/templates/workflows/course.yml`
+  (and then checks the wheel has it). The sdist lists the copy under `artifacts` in `pyproject.toml` because hatch
+  drops gitignored files otherwise. In a checkout there is no copy and `scaffold.workflow_template()` reads
+  the repo file, so edits take effect immediately and tests never need a sync. Never edit or commit the copy.
+  `scaffold.render_workflow` pins the `@vX.Y` refs to the CLI's release line and comments the `preview` job out
+  unless `--preview` (it finds the job by its leading `# Needs the CLOUDFLARE_API_TOKEN` comment: keep that line).
 - **Settings are cached per working directory** (`courseSettings()`), because
   MyST runs plugins from the course root and tests switch courses.
 - **One version everywhere.** `tests/python/test_release.py` checks that

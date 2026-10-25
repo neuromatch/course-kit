@@ -1,5 +1,6 @@
 """`nma-kit`: the course kit's command line. Run it from the course root.
 
+  nma-kit init [DIR]             write a starter course (myst.yml, workflow, an example day)
   nma-kit check                  validate content and myst.yml
   nma-kit notebooks [--dry-run]  generate student/instructor notebooks and solution files
   nma-kit render-scrolly         pre-render scrolly page outputs into _build/scrolly/
@@ -17,7 +18,7 @@ import os
 import sys
 from pathlib import Path
 
-from nma_kit import __version__, branding, convert, scrolly
+from nma_kit import __version__, branding, convert, scaffold, scrolly
 from nma_kit.config import MYST_CONFIG, MissingConfig, read_settings
 from nma_kit.pin import pin_kit_url
 from nma_kit.publish import PublishError, publish_notebooks
@@ -44,6 +45,17 @@ def _settings():
     except ValueError as exc:
         raise UsageError(str(exc)) from exc
     return settings
+
+
+def cmd_init(args) -> int:
+    """`nma-kit init [DIR]`: write a starter course into DIR (default: the current folder). Never overwrites."""
+    options = scaffold.Options(title=args.title, authors=list(args.author), github=args.github,
+                               license=args.license, preview=args.preview)
+    written = scaffold.init(Path(args.dir), options)
+    for rel in written:
+        print(f"  wrote {rel.as_posix()}")
+    print(f"Created a course in {args.dir}. Next: follow the setup checklist in README.md.")
+    return 0
 
 
 def cmd_check(args) -> int:
@@ -114,6 +126,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"nma-kit {__version__}")
     sub = parser.add_subparsers(dest="command")
 
+    p = sub.add_parser("init", help="write a starter course (asks for what you don't pass)")
+    p.add_argument("dir", nargs="?", default=".", help="where to write it (default: the current folder)")
+    p.add_argument("--title", help="course title")
+    p.add_argument("--author", action="append", default=[], help="an author's name (repeat for several)")
+    p.add_argument("--github", help="repository URL, https://github.com/<org>/<repo>")
+    p.add_argument("--license", choices=sorted(scaffold.LICENSES),
+                   help=f"license for LICENSE (default: {scaffold.DEFAULT_LICENSE})")
+    p.add_argument("--preview", action="store_true",
+                   help="enable the pull request preview job (needs Cloudflare Pages)")
+    p.set_defaults(func=cmd_init)
+
     sub.add_parser("check", help="validate content and myst.yml").set_defaults(func=cmd_check)
 
     p = sub.add_parser("notebooks", help="generate notebooks and solution files")
@@ -146,7 +169,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     try:
         return args.func(args)
-    except (MissingConfig, UsageError, branding.BrandingError) as exc:
+    except (MissingConfig, UsageError, branding.BrandingError, scaffold.ScaffoldError) as exc:
         print(f"nma-kit: {exc}", file=sys.stderr)
         return 2
     except PublishError as exc:

@@ -20,6 +20,17 @@ which teaches the authoring conventions.
 
 ## Using the kit in a course
 
+The quickest start is `nma-kit init`, which writes a working course (config,
+workflow, an example day, a README with the setup checklist):
+
+```bash
+uvx --from neuromatch-course-kit nma-kit init my-course
+```
+
+Pass `--title`, `--author`, `--github`, `--license` to skip the questions, and
+`--preview` to enable pull request previews. The steps below are what it sets
+up, for adding the kit to an existing course.
+
 1. In `myst.yml`, extend the kit's config (it adds the plugin and turns on
    JupyterLite):
 

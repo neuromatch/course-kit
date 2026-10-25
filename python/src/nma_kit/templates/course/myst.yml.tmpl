@@ -1,0 +1,36 @@
+version: 1
+# The course kit: the plugin, JupyterLite and the page layout. `nma-kit
+# prepare-site` pins this URL to an exact version when CI builds the site.
+extend: https://cdn.jsdelivr.net/npm/@neuromatch/course-kit@{{kit_minor}}/dist/nma.yml
+project:
+  title: {{title_yaml}}
+  authors:
+{{authors}}
+  github: {{github}}
+  toc:
+    - file: tutorials/intro.md
+    - file: tutorials/W1D1_Example/chapter_intro.md
+      children:
+        - file: tutorials/W1D1_Example/W1D1_Tutorial1.md
+        - file: tutorials/W1D1_Example/further_reading.md
+    - file: projects/project_intro.md
+site:
+  template: book-theme
+  options:
+    folders: true
+    logo_text: {{title_yaml}}
+    # The kit's branding, written to _nma/ by `nma-kit sync-assets`
+    # (CI does it for you; run it once for local previews).
+    style: _nma/site.css
+    logo: _nma/logo.svg
+    logo_dark: _nma/logo-dark.svg
+    favicon: _nma/favicon.png
+
+# Course kit settings (read by the kit's plugin and the nma-kit CLI).
+# nma:
+#   # Needed only if a page uses {nma-feedback}. Ask the datatops owner for
+#   # your own project and key; do not reuse another course's.
+#   feedback:
+#     url: https://...
+#     project: ...
+#     user_key: ...

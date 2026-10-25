@@ -4,7 +4,7 @@
 PY := cd python && uv run --no-sync
 .DEFAULT_GOAL := help
 
-.PHONY: help setup lint test test-py test-js build build-dev dist dist-py dist-js example e2e clean
+.PHONY: help setup lint test test-py test-js build build-dev dist dist-py dist-js example e2e clean sync-templates
 
 help: ## List the tasks
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-9s %s\n", $$1, $$2}'
@@ -31,8 +31,9 @@ test-js: ## JS unit tests against both builds (tests read dist/, so it rebuilds;
 	cd js && npm run build:dev && npm test
 	cd js && npm run build && npm test
 
-dist-py: ## Build the wheel and sdist into dist/ (what the release publishes to PyPI)
+dist-py: sync-templates ## Build the wheel and sdist into dist/ (what the release publishes to PyPI)
 	uv build --out-dir dist python
+	@python3 -m zipfile -l dist/*.whl | grep -q nma_kit/templates/workflows/course.yml || { echo 'wheel is missing the workflow template'; exit 1; }
 
 dist-js: build ## Build the release bundle and pack the npm tarball into dist/ (npm publishes from js/)
 	mkdir -p dist
@@ -52,5 +53,9 @@ e2e: ## Browser tests against a built example course (see AGENTS.md)
 	@echo "Serve tests/example-course/_build/html on :8765, then:"
 	@echo "  NMA_E2E_URL=http://localhost:8765 python/.venv/bin/pytest -q --reruns 1 -n 4 tests/e2e"
 
+sync-templates: ## Copy templates/course.yml into the Python package (release builds only: the wheel can't ship files outside python/)
+	mkdir -p python/src/nma_kit/templates/workflows
+	cp templates/course.yml python/src/nma_kit/templates/workflows/course.yml
+
 clean: ## Remove build output and caches
-	rm -rf dist js/dist python/dist tests/example-course/_build tests/example-course/_nma .pytest_cache .ruff_cache
+	rm -rf dist js/dist python/dist python/src/nma_kit/templates/workflows tests/example-course/_build tests/example-course/_nma .pytest_cache .ruff_cache

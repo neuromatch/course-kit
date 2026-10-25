@@ -23,6 +23,7 @@ folder with `myst.yml`).
 
 | Command | What it does |
 |---|---|
+| `nma-kit init [DIR] [--title T] [--author A]... [--github URL] [--license L] [--preview]` | Write a starter course (`myst.yml`, the workflow, `requirements.txt`, `.nvmrc`, `.gitignore`, `LICENSE`, a README with the setup checklist, one example day and a `projects/` stub). Asks for what you don't pass; never overwrites |
 | `nma-kit check` | Validate the content rules and the `nma:` block of `myst.yml` |
 | `nma-kit notebooks [--dry-run]` | Generate student and instructor notebooks and the solution files into `notebooks/<tutorials|projects>/...` |
 | `nma-kit sync-assets` | Write the site branding (stylesheet, logos, favicon, Rubik font) to `_nma/`, which the course's `myst.yml` points at |

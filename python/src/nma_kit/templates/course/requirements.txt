@@ -1,0 +1,4 @@
+# Packages your tutorials import. CI installs them next to the course kit, and
+# `nma-kit render-scrolly` runs scrolly pages with them.
+numpy
+matplotlib
