@@ -62,6 +62,8 @@ Makefile, ruff.toml           # contributor tasks (make help); Python lint confi
 .pre-commit-config.yaml       # runs the linters on commit (installed by make setup)
 templates/course.yml          # the workflow courses copy (calls the reusable workflows @v0.1)
 templates/wheels.yml          # optional caller for course-wheels.yml
+.github/actions/setup-course/   # shared setup (uv, Node, install the kit) used by the course-*.yml workflows
+.github/actionlint.yaml        # ignores the job.workflow_* property errors (actionlint doesn't know them yet)
 .github/workflows/            # course-check.yml, course-publish.yml, course-preview.yml, course-wheels.yml (reusable), ci.yml, release.yml
 ```
 
@@ -288,16 +290,22 @@ downloads); CI retries failed tests once.
 ## CI
 
 - `ci.yml` runs on pull requests only (branch protection requires PRs to be up
-  to date with `main`): pytest; JS release + dev builds with tests; example
+  to date with `main`), through the Makefile (`make lint | test-py | test-js`): lint; pytest; JS dev + release builds with tests; example
   course build + e2e (skipped on the release-please PR, which only changes
   version strings); the reusable `course-check.yml` run against
   `tests/example-course` with `kit-source: local`.
 - `release.yml`: release-please PR -> tag `vX.Y.Z` -> npm (provenance) and
-  PyPI (trusted publishing) -> move `vX.Y` and `vX`. release-please uses the
+  PyPI (trusted publishing) -> move `vX.Y` and `vX`. The jobs build with
+  `make test-js`, `make dist-js` and `make dist-py` (the publish steps stay in Actions). release-please uses the
   `RELEASE_PLEASE_TOKEN` secret (a PAT or app token with Contents, Pull
   requests and Workflows access), because it edits `KIT_VERSION` in
   `.github/workflows/` and the default token may not; the token also makes CI
   run on the release PR. Setup: docs/releasing.md.
+- **Shared setup.** `course-check`, `course-publish` and `course-preview` fetch this repo at
+  `job.workflow_sha` (sparse checkout of `.github/actions/setup-course` into `.course-kit/`) and run
+  it as a local composite action: uv, Node, the course's packages and the kit. That pins the setup to
+  the workflow's own commit without a tag. The kit's own CI exercises it through
+  `ci.yml` (`course-check`) and `preview.yml`. `tests/python/test_workflow_setup.py` pins the shape.
 - `course-publish.yml` job order: check -> notebooks -> publish-notebooks ->
   render-scrolly -> prepare-site -> myst build -> Pages deploy. One run per
   repository at a time (notebook pushes never race). No CNAME step: with the

@@ -1,8 +1,10 @@
-"""The reusable course workflows share one setup (uv, Node, install the kit).
+"""The reusable course workflows share their setup through one local action.
 
-The same steps are written in each workflow file because a reusable workflow
-cannot share steps with another one safely (see CONTRIBUTING.md). This test is
-the guard: they must stay identical, or a fix lands in one workflow only.
+course-check, course-publish and course-preview check out this repository at
+their own commit (`job.workflow_sha`) and run `.github/actions/setup-course`.
+The two steps that do that are the only thing the workflows repeat, so they
+must stay identical and agree with the action's inputs, and the setup itself
+must not creep back into the workflow files.
 """
 
 from pathlib import Path
@@ -10,9 +12,11 @@ from pathlib import Path
 import pytest
 import yaml
 
-WORKFLOWS = Path(__file__).resolve().parents[2] / ".github" / "workflows"
+KIT = Path(__file__).resolve().parents[2]
+WORKFLOWS = KIT / ".github" / "workflows"
+ACTION_DIR = ".github/actions/setup-course"
+ACTION = yaml.safe_load((KIT / ACTION_DIR / "action.yml").read_text(encoding="utf-8"))
 FILES = ["course-check.yml", "course-publish.yml", "course-preview.yml"]
-INSTALL = "Install the course kit and the course's packages"
 
 
 def _steps(name: str) -> list[dict]:
@@ -20,21 +24,54 @@ def _steps(name: str) -> list[dict]:
     return [step for job in jobs.values() for step in job.get("steps", [])]
 
 
-def _find(name: str, predicate) -> dict:
+def _one(name: str, predicate) -> dict:
     matches = [s for s in _steps(name) if predicate(s)]
     assert len(matches) == 1, f"{name}: expected exactly one matching step, found {len(matches)}"
     return matches[0]
 
 
-SELECTORS = {
-    "install": lambda s: s.get("name") == INSTALL,
-    "setup-uv": lambda s: str(s.get("uses", "")).startswith("astral-sh/setup-uv@"),
-    "setup-node": lambda s: str(s.get("uses", "")).startswith("actions/setup-node@"),
-}
+def _fetch(step: dict) -> bool:
+    return step.get("with", {}).get("repository") == "${{ job.workflow_repository }}"
 
 
-@pytest.mark.parametrize("step", SELECTORS)
-def test_setup_step_is_identical_in_every_course_workflow(step):
-    first = _find(FILES[0], SELECTORS[step])
+def _use(step: dict) -> bool:
+    return str(step.get("uses", "")).startswith("./") and step["uses"].endswith(ACTION_DIR)
+
+
+@pytest.mark.parametrize("selector", [_fetch, _use], ids=["fetch", "use"])
+def test_the_two_setup_steps_are_identical_in_every_course_workflow(selector):
+    first = _one(FILES[0], selector)
     for name in FILES[1:]:
-        assert _find(name, SELECTORS[step]) == first, f"{name} differs from {FILES[0]} in the {step} step"
+        assert _one(name, selector) == first, f"{name} differs from {FILES[0]}"
+
+
+@pytest.mark.parametrize("name", FILES)
+def test_fetch_step_checks_out_exactly_the_action(name):
+    fetch, use = _one(name, _fetch), _one(name, _use)
+    assert fetch["with"]["ref"] == "${{ job.workflow_sha }}"
+    assert fetch["with"]["sparse-checkout"] == ACTION_DIR
+    assert fetch["with"]["persist-credentials"] is False
+    assert use["uses"] == f"./{fetch['with']['path']}/{ACTION_DIR}"
+
+
+@pytest.mark.parametrize("name", FILES)
+def test_workflow_passes_the_actions_inputs(name):
+    passed = set(_one(name, _use)["with"])
+    declared = set(ACTION["inputs"])
+    required = {k for k, v in ACTION["inputs"].items() if v.get("required")}
+    assert passed <= declared, f"{name} passes unknown inputs: {passed - declared}"
+    assert required <= passed, f"{name} omits required inputs: {required - passed}"
+
+
+@pytest.mark.parametrize("name", FILES)
+def test_setup_is_not_repeated_in_the_workflow(name):
+    for step in _steps(name):
+        assert not str(step.get("uses", "")).startswith(("astral-sh/setup-uv@", "actions/setup-node@")), (
+            f"{name}: uv and Node are set up by the action"
+        )
+        assert "neuromatch-course-kit" not in step.get("run", ""), f"{name}: the kit is installed by the action"
+
+
+def test_the_action_exists_where_the_workflows_look():
+    assert (KIT / ACTION_DIR / "action.yml").is_file()
+    assert ACTION["runs"]["using"] == "composite"

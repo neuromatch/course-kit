@@ -52,33 +52,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: astral-sh/setup-uv@v5
+      # The shared setup lives in this repository (.github/actions/setup-course).
+      # Fetch it at this workflow's own commit: a reusable workflow cannot pin
+      # an action to its own release, but it can check itself out.
+      - name: Fetch the kit's setup action
+        uses: actions/checkout@v4
         with:
-          version: "0.13.4"
-          enable-cache: true
-          cache-dependency-glob: "**/requirements*.txt"
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .course-kit
+          sparse-checkout: .github/actions/setup-course
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: ./.course-kit/.github/actions/setup-course
         with:
-          node-version: 22
-
-      - name: Install the course kit and the course's packages
-        env:
-          REQUIREMENTS: ${{ inputs.requirements }}
-          KIT_SOURCE: ${{ inputs.kit-source }}
-          REQUESTED: ${{ inputs.kit-version }}
-        run: |
-          uv venv --python "${{ inputs.python-version }}"
-          reqs=(); [ -f "$REQUIREMENTS" ] && reqs=(-r "$REQUIREMENTS")
-          if [ "$KIT_SOURCE" = local ]; then
-            uv pip install "${reqs[@]}" "$GITHUB_WORKSPACE/python"
-            (cd "$GITHUB_WORKSPACE/js" && npm ci --no-audit --no-fund && npm run build:dev)
-          else
-            version="${REQUESTED:-$KIT_VERSION}"
-            if [ "$version" = latest ]; then spec=neuromatch-course-kit; else spec="neuromatch-course-kit==$version"; fi
-            uv pip install "${reqs[@]}" "$spec"
-          fi
-          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          working-directory: ${{ inputs.working-directory }}
+          python-version: ${{ inputs.python-version }}
+          requirements: ${{ inputs.requirements }}
+          kit-source: ${{ inputs.kit-source }}
+          kit-version: ${{ inputs.kit-version }}
+          release-version: ${{ env.KIT_VERSION }}
 
       - name: Check content
         run: nma-kit check

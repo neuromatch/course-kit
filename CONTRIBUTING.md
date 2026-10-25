@@ -128,17 +128,24 @@ silently, so:
 
 ## Workflows
 
-`ci.yml` calls the same `make` targets you run locally (`lint`, `test-py`,
-`test-js`), so a green `make test` means a green CI for those jobs. The
-reusable course workflows (`course-*.yml`) cannot use `make`: a course has no
-Makefile.
+`ci.yml` and the release workflow call the same `make` targets you run
+locally (`lint`, `test-py`, `test-js`, `dist-py`, `dist-js`), so a green
+`make test` means a green CI for those jobs. The reusable course workflows
+(`course-*.yml`) cannot use `make`: a course has no Makefile.
 
-Those three workflows repeat the same setup steps (uv, Node, install the kit).
-A shared composite action would remove that, but a reusable workflow cannot
-pin it to its own release: a floating tag mixes versions, and an exact tag
-doesn't exist yet on the release PR. Until that is solved,
-`tests/python/test_workflow_setup.py` fails if the copies differ. Change all
-three together.
+The three course workflows share one setup, the composite action
+[`.github/actions/setup-course`](.github/actions/setup-course/action.yml): uv,
+Node, a virtualenv with the course's packages, and the kit (from PyPI, or from
+the checkout in the kit's own CI). A reusable workflow cannot pin an action to
+its own release, so each workflow checks this repository out at its own commit
+(`job.workflow_sha`) and runs the action from there. The setup therefore always
+matches the workflow that uses it: no tag to bump, and a frozen course
+(`@v0.1.3`) keeps the setup of `v0.1.3`. Edit the setup in the action; the two
+steps that fetch it are the only thing the workflows repeat, and
+`tests/python/test_workflow_setup.py` keeps them identical.
+
+actionlint doesn't know the `job.workflow_*` properties yet, so
+`.github/actionlint.yaml` ignores that one error for the course workflows.
 
 ## Commits and pull requests
 
