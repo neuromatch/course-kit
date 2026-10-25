@@ -60,7 +60,10 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: npm install -g npm@latest # trusted publishing needs npm >= 11.5
       - run: npm ci --no-audit --no-fund
-      - run: npm run build && npm test
+      - run: make test-js # both builds; ends on the release build
+        working-directory: .
+      - run: make dist-js # fails here, before publishing, if the package cannot be packed
+        working-directory: .
       - run: npm publish --provenance --access public
 
   pypi:
@@ -78,7 +81,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           version: "0.13.4"
-      - run: uv build --out-dir dist python
+      - run: make dist-py
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist

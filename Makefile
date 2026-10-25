@@ -4,7 +4,7 @@
 PY := cd python && uv run --no-sync
 .DEFAULT_GOAL := help
 
-.PHONY: help setup lint test test-py test-js build build-dev dist example e2e clean
+.PHONY: help setup lint test test-py test-js build build-dev dist dist-py dist-js example e2e clean
 
 help: ## List the tasks
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-9s %s\n", $$1, $$2}'
@@ -31,10 +31,15 @@ test-js: ## JS unit tests against both builds (tests read dist/, so it rebuilds;
 	cd js && npm run build:dev && npm test
 	cd js && npm run build && npm test
 
-dist: build ## Build the release artifacts into dist/ (wheel, sdist, npm tarball) without publishing
-	rm -rf dist
+dist-py: ## Build the wheel and sdist into dist/ (what the release publishes to PyPI)
 	uv build --out-dir dist python
+
+dist-js: build ## Build the release bundle and pack the npm tarball into dist/ (npm publishes from js/)
 	cd js && npm pack --pack-destination ../dist --silent
+
+dist: ## Build every release artifact into dist/ without publishing
+	rm -rf dist
+	@$(MAKE) --no-print-directory dist-py dist-js
 	@ls -1 dist
 
 test: lint test-py test-js ## Lint and all unit tests (what CI runs first)

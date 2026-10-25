@@ -7,8 +7,10 @@ npm and PyPI, and moves the `vX.Y` and `vX` tags.
 To see what a release would publish without publishing anything, run
 `make dist`. It builds the release bundle and writes the wheel, the sdist and
 the npm tarball to `dist/`, so you can inspect them (`tar tzf dist/*.tgz`,
-`python3 -m zipfile -l dist/*.whl`). The release workflow does not call it yet;
-the publish steps themselves (npm provenance, PyPI trusted publishing) stay in
+`python3 -m zipfile -l dist/*.whl`). The release workflow builds with the same
+targets (`make test-js` and `make dist-js` before the npm publish, `make
+dist-py` before the PyPI publish), so what you inspect is what ships. The
+publish steps themselves (npm provenance, PyPI trusted publishing) stay in
 GitHub Actions.
 
 The release flow is already set up. This is what it depends on, in case it
