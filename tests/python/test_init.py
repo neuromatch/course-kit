@@ -18,13 +18,18 @@ def init(tmp_path, *extra):
     return code, target
 
 
-def test_workflow_templates_mirror_the_repo_templates():
-    # templates/ is the source; the wheel can't ship files outside python/, so
-    # the package carries a copy. Refresh it with `make sync-templates`.
-    for source in sorted((REPO / "templates").glob("*.yml")):
-        mirror = scaffold.TEMPLATES / "workflows" / source.name
-        assert mirror.is_file(), f"{mirror} missing: run `make sync-templates`"
-        assert mirror.read_bytes() == source.read_bytes(), f"{mirror} is stale: run `make sync-templates`"
+def test_workflow_comes_from_the_repo_template_in_a_checkout(monkeypatch, tmp_path):
+    # The package copy exists only in release builds; without it `init` reads templates/course.yml.
+    monkeypatch.setattr(scaffold, "TEMPLATES", tmp_path)   # no templates/workflows/ here
+    assert scaffold.workflow_template() == REPO / "templates" / "course.yml"
+
+
+def test_workflow_prefers_the_packaged_copy(monkeypatch, tmp_path):
+    copy = tmp_path / "workflows" / "course.yml"
+    copy.parent.mkdir()
+    copy.write_text("x", encoding="utf-8")
+    monkeypatch.setattr(scaffold, "TEMPLATES", tmp_path)
+    assert scaffold.workflow_template() == copy
 
 
 def test_nvmrc_matches_the_kit_node_version():

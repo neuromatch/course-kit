@@ -109,9 +109,12 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - **Bundles are built, not committed.** `js/dist/` is gitignored. The plugin
   bundle includes a `createRequire` shim because bundled CommonJS (`yaml`)
   calls `require()` for Node built-ins.
-- **Workflow templates live in `templates/`; the wheel carries a copy.** `uv build` makes the wheel from
-  the sdist, which can't include files outside `python/`, so `python/src/nma_kit/templates/workflows/` mirrors
-  `templates/*.yml`. Edit the root file, run `make sync-templates`; `tests/python/test_init.py` fails when they differ.
+- **The workflow template lives in `templates/course.yml`; release builds copy it into the wheel.** `uv build`
+  makes the wheel from the sdist, which can't include files outside `python/`, so `make dist-py` first runs
+  `make sync-templates`, which copies it to the gitignored `python/src/nma_kit/templates/workflows/course.yml`
+  (and then checks the wheel has it). The sdist lists the copy under `artifacts` in `pyproject.toml` because hatch
+  drops gitignored files otherwise. In a checkout there is no copy and `scaffold.workflow_template()` reads
+  the repo file, so edits take effect immediately and tests never need a sync. Never edit or commit the copy.
   `scaffold.render_workflow` pins the `@vX.Y` refs to the CLI's release line and comments the `preview` job out
   unless `--preview` (it finds the job by its leading `# Needs the CLOUDFLARE_API_TOKEN` comment: keep that line).
 - **Settings are cached per working directory** (`courseSettings()`), because

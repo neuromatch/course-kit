@@ -8,9 +8,9 @@ keep the files editable as files and safe to package:
   - a leading `dot-` becomes `.` (`dot-gitignore` -> `.gitignore`), so packaging
     tools and git never treat the template as a real dotfile.
 
-The workflow comes from `templates/workflows/course.yml`, a copy of the repo's
-`templates/course.yml` (the wheel can't ship files from outside `python/`;
-`make sync-templates` refreshes the copy and a test checks it). The preview job
+The workflow comes from `templates/workflows/course.yml`, a gitignored copy of the repo's
+`templates/course.yml` (the wheel can't ship files from outside `python/`).
+Only `make dist-py` writes it (`make sync-templates`); in a checkout `init` reads the repo file. The preview job
 is switched on or off in `render_workflow`.
 """
 
@@ -24,6 +24,9 @@ from pathlib import Path
 from nma_kit import __version__
 
 TEMPLATES = Path(__file__).parent / "templates"
+
+# In a kit checkout (editable install) the workflow is read from the repo; releases copy it into the package.
+REPO_TEMPLATE = Path(__file__).resolve().parents[3] / "templates" / "course.yml"
 
 DEFAULT_LICENSE = "BSD-3-Clause"
 LICENSES = {name: f"{name}.txt" for name in ("BSD-3-Clause", "MIT", "Apache-2.0", "CC-BY-4.0")}
@@ -177,6 +180,14 @@ def _target_name(rel: Path) -> Path:
     return Path(*parts)
 
 
+def workflow_template() -> Path:
+    """The workflow to render: the copy inside the installed package, or `templates/course.yml` in a kit checkout."""
+    for path in (TEMPLATES / "workflows" / "course.yml", REPO_TEMPLATE):
+        if path.is_file():
+            return path
+    raise ScaffoldError("the course workflow template is missing from this install")
+
+
 def build_files(options: Options, year: int | None = None) -> dict[Path, str]:
     """Every file of the starter as {path relative to the course root: text}."""
     year = year or datetime.date.today().year
@@ -199,7 +210,7 @@ def build_files(options: Options, year: int | None = None) -> dict[Path, str]:
         files[_target_name(source.relative_to(root))] = text
     licence = (TEMPLATES / "licenses" / LICENSES[options.license]).read_text(encoding="utf-8")
     files[Path("LICENSE")] = render(licence, values)
-    workflow = (TEMPLATES / "workflows" / "course.yml").read_text(encoding="utf-8")
+    workflow = workflow_template().read_text(encoding="utf-8")
     files[WORKFLOW_PATH] = render_workflow(workflow, options.preview)
     return files
 

@@ -28,6 +28,11 @@ dev = ["ruff", "pre-commit"]
 [project.scripts]
 nma-kit = "nma_kit.cli:main"
 
+# The workflow copy is gitignored (make sync-templates), and hatch leaves gitignored files out of the
+# sdist unless they are listed here. `uv build` makes the wheel from the sdist, so it would be lost.
+[tool.hatch.build.targets.sdist]
+artifacts = ["src/nma_kit/templates/workflows/course.yml"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/nma_kit"]
 
