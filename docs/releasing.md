@@ -4,6 +4,13 @@ Commits on `main` use conventional messages (`fix:`, `feat:`, `feat!:`).
 release-please keeps a release PR open; merging it tags `vX.Y.Z`, publishes
 npm and PyPI, and moves the `vX.Y` and `vX` tags.
 
+To see what a release would publish without publishing anything, run
+`make dist`. It builds the release bundle and writes the wheel, the sdist and
+the npm tarball to `dist/`, so you can inspect them (`tar tzf dist/*.tgz`,
+`python3 -m zipfile -l dist/*.whl`). The release workflow does not call it yet;
+the publish steps themselves (npm provenance, PyPI trusted publishing) stay in
+GitHub Actions.
+
 The release flow is already set up. This is what it depends on, in case it
 has to be rebuilt:
 

@@ -153,4 +153,5 @@ three together.
 
 ## Releasing
 
-Maintainers only: [docs/releasing.md](docs/releasing.md).
+Maintainers only: [docs/releasing.md](docs/releasing.md). `make dist` builds the release
+artifacts locally without publishing.
