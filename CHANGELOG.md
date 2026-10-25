@@ -2,6 +2,14 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.1.8](https://github.com/neuromatch/course-kit/compare/v0.1.7...v0.1.8) (2026-10-25)
+
+
+### Bug Fixes
+
+* make dist-js work on a fresh runner ([b626ac0](https://github.com/neuromatch/course-kit/commit/b626ac0dffecc55bc476983f18179bcd1581bd35))
+* make dist-js work on a fresh runner ([fe297bb](https://github.com/neuromatch/course-kit/commit/fe297bbd8f1d69313e0de7ef08827c71f4faac17))
+
 ## [0.1.7](https://github.com/neuromatch/course-kit/compare/v0.1.6...v0.1.7) (2026-10-25)
 
 
