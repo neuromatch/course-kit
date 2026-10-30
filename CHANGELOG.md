@@ -2,6 +2,26 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.2.0](https://github.com/neuromatch/course-kit/compare/v0.1.9...v0.2.0) (2026-10-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* **media:** {nma-slides} <osf id> and :title: are gone; use {nma-slides} Title with :osf: <id>.
+
+### Features
+
+* choose the {nma-slides} backend: OSF or a PDF in the cou… ([fa06be5](https://github.com/neuromatch/course-kit/commit/fa06be5b44fdd653696c9df594ba28c66174fa88))
+* **media:** add zoom, fit and page navigation to the Colab slides viewer ([9c8998b](https://github.com/neuromatch/course-kit/commit/9c8998b85f4129aa1cf632f90840d46b393aec0a))
+* **media:** choose the {nma-slides} backend: OSF or a PDF in the course repo ([4f4c392](https://github.com/neuromatch/course-kit/commit/4f4c392cb125c8db789fba16de59bb6dcc4aa0a1))
+
+
+### Bug Fixes
+
+* **media:** draw slide PDFs in Colab with PDF.js ([106026f](https://github.com/neuromatch/course-kit/commit/106026f82e42dc04e254e9965a71b209268ed993))
+* **media:** link to slide PDFs in Colab, which can't draw a PDF in its sandboxed output frame ([e441ee8](https://github.com/neuromatch/course-kit/commit/e441ee8b564284c4d3ac1714b7cf7ff967bd1475))
+* **media:** show slide PDFs inline in Colab through the OSF renderer ([eb5095a](https://github.com/neuromatch/course-kit/commit/eb5095a6b8b2a37f7e93e9932c8b13cd8179c612))
+
 ## [0.1.9](https://github.com/neuromatch/course-kit/compare/v0.1.8...v0.1.9) (2026-10-25)
 
 
