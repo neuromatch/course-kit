@@ -12,6 +12,7 @@
 //     assets:
 //       data: data                  # folder (in each day folder) for data files
 //       image: image                # folder (in each day folder) for images
+//       slides: slides              # folder (in each day folder) for slide PDFs
 
 import { parse } from 'yaml';
 
@@ -20,6 +21,7 @@ import {
   DEFAULT_IMAGE_DIR,
   DEFAULT_NOTEBOOKS_BRANCH,
   DEFAULT_PROJECTS_DIR,
+  DEFAULT_SLIDES_DIR,
   DEFAULT_TUTORIALS_DIR,
   NOTEBOOKS_BRANCH_ENV,
 } from './constants.mjs';
@@ -48,7 +50,7 @@ function setting(nma, section, key, fallback) {
   return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
-/** {githubRepo, tutorialsDir, projectsDir, notebooksBranch, assetsDataDir, assetsImageDir, nma} from myst.yml text. */
+/** {githubRepo, tutorialsDir, projectsDir, notebooksBranch, assetsDataDir, assetsImageDir, assetsSlidesDir, nma} from myst.yml text. */
 export function loadSettings(text, env = process.env) {
   const data = parseYaml(text);
   const nma = readNmaConfig(text);
@@ -61,6 +63,7 @@ export function loadSettings(text, env = process.env) {
     notebooksBranch: (env[NOTEBOOKS_BRANCH_ENV] || '').trim() || setting(nma, 'notebooks', 'branch', DEFAULT_NOTEBOOKS_BRANCH),
     assetsDataDir: setting(nma, 'assets', 'data', DEFAULT_DATA_DIR).replace(/^\/+|\/+$/g, ''),
     assetsImageDir: setting(nma, 'assets', 'image', DEFAULT_IMAGE_DIR).replace(/^\/+|\/+$/g, ''),
+    assetsSlidesDir: setting(nma, 'assets', 'slides', DEFAULT_SLIDES_DIR).replace(/^\/+|\/+$/g, ''),
     nma,
   };
 }

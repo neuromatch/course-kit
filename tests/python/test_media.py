@@ -1,4 +1,8 @@
+import json
 import re
+from pathlib import Path
+
+import pytest
 
 from nma_kit.media import find_directives
 
@@ -23,10 +27,10 @@ def test_find_video_directive():
 
 
 def test_find_backtick_slides_directive():
-    [d] = find_directives("```{nma-slides} snv4m\n:title: Day slides\n```\n")
+    [d] = find_directives("```{nma-slides} Day slides\n:osf: snv4m\n:path: slides/day.pdf\n```\n")
     assert d.kind == "nma-slides"
-    assert d.arg == "snv4m"
-    assert d.options == {"title": "Day slides"}
+    assert d.arg == "Day slides"
+    assert d.options == {"osf": "snv4m", "path": "slides/day.pdf"}
 
 
 def test_ignores_directive_inside_example_fence():
@@ -62,10 +66,6 @@ def test_valid_video_has_no_errors():
     assert _errors(VIDEO_MD) == []
 
 
-def test_valid_slides_has_no_errors():
-    assert _errors(":::{nma-slides} snv4m\n:::\n") == []
-
-
 def test_video_without_source_is_error():
     [err] = _errors(":::{nma-video} T\n:::\n")
     assert "at least one of :youtube:, :bilibili:, :osf:" in err
@@ -82,13 +82,8 @@ def test_unknown_option_is_error():
     assert "unknown option :vimeo:" in err
 
 
-def test_slides_without_id_is_error():
-    [err] = _errors(":::{nma-slides}\n:::\n")
-    assert "needs an OSF id" in err
-
-
 def test_unclosed_is_error():
-    [err] = _errors(":::{nma-slides} x\n")
+    [err] = _errors(":::{nma-slides} x\n:osf: snv4m\n")
     assert "never closed" in err
 
 
@@ -97,7 +92,15 @@ def test_body_is_error():
     assert "takes no body" in err
 
 
-from nma_kit.media import slides_cell_source, video_cell_source
+from nma_kit.media import (
+    copy_slide_files,
+    expand_notebook,
+    missing_slide_errors,
+    osf_slides_embed_url,
+    slide_cdn_url,
+    slides_cell_source,
+    video_cell_source,
+)
 
 
 def test_video_cell_source():
@@ -114,20 +117,107 @@ def test_video_sources_use_fixed_order():
     assert "video_ids = [('Youtube', 'y1'), ('Osf', 'o1')]" in video_cell_source(d)
 
 
-def test_slides_cell_source_default_title():
-    [d] = find_directives(":::{nma-slides} snv4m\n:::\n")
+def test_valid_slides_have_no_errors():
+    assert _errors(":::{nma-slides}\n:osf: snv4m\n:::\n") == []
+    assert _errors(":::{nma-slides} Day 3\n:path: slides/day3.pdf\n:::\n") == []
+    assert _errors(":::{nma-slides}\n:osf: a\n:path: slides/b.pdf\n:::\n") == []
+
+
+def test_slides_without_source_is_error():
+    [err] = _errors(":::{nma-slides} Day 3\n:::\n")
+    assert "at least one of :osf:, :path:" in err
+
+
+def test_slides_old_id_argument_and_title_option_are_errors():
+    errors = _errors(":::{nma-slides} snv4m\n:title: T\n:::\n")
+    assert any("unknown option :title:" in e for e in errors)
+
+
+@pytest.mark.parametrize("path", ["/slides/a.pdf", "slides/../a.pdf", "other/a.pdf", "slides/a.pptx", "a.pdf"])
+def test_slides_bad_path_is_error(path):
+    errors = _errors(f":::{{nma-slides}}\n:path: {path}\n:::\n")
+    assert len(errors) == 1
+    assert ":path:" in errors[0]
+
+
+def test_slides_path_uses_configured_folder():
+    [d] = find_directives(":::{nma-slides}\n:path: decks/a.pdf\n:::\n")
+    assert validate_directive(d, slides_dir="decks") == []
+    assert validate_directive(d) != []
+
+
+def test_slides_cell_source_osf_only():
+    [d] = find_directives(":::{nma-slides}\n:osf: snv4m\n:::\n")
     src = slides_cell_source(d)
     assert src.startswith("# @title Tutorial slides\n")
-    assert 'link_id = "snv4m"' in src
+    assert "https://osf.io/download/snv4m/" in src
+    assert "mfr.ca-1.osf.io/render?url=https://osf.io/snv4m/" in src
     compile(src, "<cell>", "exec")
 
 
-def test_slides_cell_source_custom_title():
-    [d] = find_directives(":::{nma-slides} snv4m\n:title: Day 3 slides\n:::\n")
-    assert slides_cell_source(d).startswith("# @title Day 3 slides\n")
+def test_slides_cell_source_path_uses_published_url():
+    [d] = find_directives(":::{nma-slides} Day 3 slides\n:path: slides/day3.pdf\n:::\n")
+    url = "https://cdn.jsdelivr.net/gh/o/r@nb/notebooks/tutorials/D1/slides/day3.pdf"
+    src = slides_cell_source(d, path_url=lambda p: url)
+    assert src.startswith("# @title Day 3 slides\n")
+    assert url in src
+    assert "osf.io" not in src
+    compile(src, "<cell>", "exec")
 
 
-from nma_kit.media import expand_notebook
+def test_slides_cell_source_both_backends_make_tabs():
+    [d] = find_directives(":::{nma-slides}\n:osf: snv4m\n:path: slides/a.pdf\n:::\n")
+    src = slides_cell_source(d, path_url=lambda p: "https://example.org/" + p)
+    assert "widgets.Tab()" in src
+    assert "'OSF'" in src and "'PDF'" in src
+    compile(src, "<cell>", "exec")
+
+
+def test_slides_cell_without_published_url_skips_path():
+    [d] = find_directives(":::{nma-slides}\n:path: slides/a.pdf\n:::\n")
+    src = slides_cell_source(d)
+    assert "slides/a.pdf" not in src or "course website" in src
+    compile(src, "<cell>", "exec")
+
+
+SLIDE_URLS = json.loads((Path(__file__).parents[1] / "fixtures" / "media" / "slide_urls.json").read_text())
+
+
+@pytest.mark.parametrize("case", SLIDE_URLS["cdn"], ids=lambda c: f"{c['branch']}-{c['path']}")
+def test_slide_cdn_url(case):
+    assert slide_cdn_url(case["repo"], case["branch"], case["day"], case["path"]) == case["url"]
+
+
+@pytest.mark.parametrize("case", SLIDE_URLS["osf"], ids=lambda c: c["id"])
+def test_osf_slides_embed_url(case):
+    assert osf_slides_embed_url(case["id"]) == case["url"]
+
+
+def test_expand_notebook_passes_path_url():
+    nb = {"cells": [{"cell_type": "markdown", "id": "c", "metadata": {},
+                     "source": ":::{nma-slides}\n:path: slides/a.pdf\n:::\n"}]}
+    assert expand_notebook(nb, path_url=lambda p: "https://x/" + p) == 1
+    assert "https://x/slides/a.pdf" in "".join(nb["cells"][0]["source"])
+
+
+def test_missing_slide_file_is_error(tmp_path):
+    text = ":::{nma-slides}\n:path: slides/a.pdf\n:::\n"
+    [err] = missing_slide_errors(text, tmp_path)
+    assert "slides/a.pdf" in err and "does not exist" in err
+    (tmp_path / "slides").mkdir()
+    (tmp_path / "slides" / "a.pdf").write_bytes(b"%PDF")
+    assert missing_slide_errors(text, tmp_path) == []
+
+
+def test_copy_slide_files(tmp_path):
+    src, dest = tmp_path / "src", tmp_path / "dest"
+    (src / "slides").mkdir(parents=True)
+    (src / "slides" / "a.pdf").write_bytes(b"%PDF")
+    text = ":::{nma-slides}\n:path: slides/a.pdf\n:::\n:::{nma-slides}\n:path: slides/gone.pdf\n:::\n"
+    assert copy_slide_files(text, src, dest) == 1
+    assert (dest / "slides" / "a.pdf").read_bytes() == b"%PDF"
+
+
 
 CELL_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 

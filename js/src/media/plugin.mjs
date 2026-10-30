@@ -2,6 +2,9 @@
 // nma_kit.media (Python) builds the matching notebook code cells.
 // Keep the URL templates in both in sync.
 
+import { courseSettings, notebookDir, pageLocation } from '../shared/paths.mjs';
+import { osfSlidesEmbedUrl, slideUrl } from './model.mjs';
+
 const VIDEO_SOURCES = [
   {
     option: 'youtube',
@@ -74,29 +77,72 @@ const nmaVideo = {
   },
 };
 
+// (option name, tab label), in display order. Python twin: SLIDE_SOURCES in media.py.
+const SLIDE_SOURCES = [
+  {
+    option: 'osf',
+    label: 'OSF',
+    embed: (id) => osfSlidesEmbedUrl(id),
+    download: (id) => `https://osf.io/download/${id}/`,
+  },
+  {
+    option: 'path',
+    label: 'PDF',
+    embed: (path, url) => url(path),
+    download: (path, url) => url(path),
+  },
+];
+
+/** path -> published URL of a slide PDF for the page at `filePath`, or null when it can't be worked out. */
+function slidePathUrl(filePath) {
+  const { githubRepo, notebooksBranch } = courseSettings();
+  const location = pageLocation(filePath ?? '');
+  if (!githubRepo || !location) return null;
+  return (path) => slideUrl(githubRepo, notebooksBranch, notebookDir(location), path);
+}
+
 const nmaSlides = {
   name: 'nma-slides',
-  doc: 'Embedded OSF slide deck with a download link.',
-  arg: { type: String, required: true, doc: 'OSF file id, e.g. snv4m.' },
-  options: { title: { type: String, doc: 'Heading shown above the slides.' } },
-  run(data) {
-    const id = data.arg;
-    const title = data.options?.title ?? 'Tutorial slides';
-    const src = `https://mfr.ca-1.osf.io/render?url=https://osf.io/${id}/?direct%26mode=render%26action=download%26mode=render`;
-    return [
-      {
-        type: 'div',
-        class: 'nma-slides',
-        children: [
-          heading(title),
-          iframe(src, title),
-          {
-            type: 'paragraph',
-            children: [link(`https://osf.io/download/${id}/`, 'Download the slides')],
-          },
-        ],
-      },
-    ];
+  doc: 'Slide deck with one tab per backend (OSF file, PDF in the course repo) and a download link.',
+  arg: { type: String, doc: 'Heading shown above the slides (default: "Tutorial slides").' },
+  options: {
+    osf: { type: String, doc: 'OSF file id, e.g. snv4m.' },
+    path: { type: String, doc: 'PDF in the day folder, e.g. slides/intro.pdf.' },
+  },
+  run(data, vfile) {
+    const title = data.arg || 'Tutorial slides';
+    const wanted = SLIDE_SOURCES.filter((s) => data.options?.[s.option]);
+    if (wanted.length === 0) {
+      return fail(vfile, data.node, 'nma-slides needs at least one of :osf:, :path:');
+    }
+    const url = slidePathUrl(vfile.path);
+    if (data.options?.path && !url) {
+      return fail(
+        vfile,
+        data.node,
+        'nma-slides :path: needs project.github in myst.yml and a page inside the tutorials or projects folder',
+      );
+    }
+    const sources = wanted.map((s) => {
+      const value = data.options[s.option];
+      return { ...s, embedUrl: s.embed(value, url), downloadUrl: s.download(value, url) };
+    });
+    const player =
+      sources.length === 1
+        ? iframe(sources[0].embedUrl, title)
+        : {
+            type: 'tabSet',
+            children: sources.map((s) => ({
+              type: 'tabItem',
+              title: s.label,
+              children: [iframe(s.embedUrl, `${title} (${s.label})`)],
+            })),
+          };
+    const links = sources.map((s) => ({
+      type: 'paragraph',
+      children: [link(s.downloadUrl, sources.length === 1 ? 'Download the slides' : `Download the slides (${s.label})`)],
+    }));
+    return [{ type: 'div', class: 'nma-slides', children: [heading(title), player, ...links] }];
   },
 };
 

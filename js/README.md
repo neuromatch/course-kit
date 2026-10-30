@@ -27,7 +27,8 @@ for the full course setup.
 
 | Directive / feature | What it does on the site |
 |---|---|
-| `{nma-video}`, `{nma-slides}` | Embedded YouTube, Bilibili or OSF videos and slide decks |
+| `{nma-video}` | Embedded YouTube, Bilibili or OSF videos, one tab per host |
+| `{nma-slides}` | A slide deck from OSF (`:osf:`) or a PDF in the course repo (`:path:`), one tab per backend, with download links |
 | `{nma-solution}`, `{nma-explanation}` | A "Click for solution" link; the solution text itself is never on the page |
 | `{nma-data}` | A "Data used by this notebook" note; the declared files are embedded for the page's editable cells |
 | `{nma-feedback}` | A feedback widget that posts to datatops from the browser |

@@ -297,6 +297,39 @@ def test_build_notebooks_adds_download_cell_rewrites_images_and_copies_files(tmp
     assert not (Path("notebooks/tutorials/D/instructor/data")).exists()
 
 
+def test_build_notebooks_shows_repo_slides_and_copies_the_pdf(tmp_path, monkeypatch):
+    import json
+
+    from nma_kit.config import read_settings
+    from nma_kit.convert import build_notebooks, convert_md_to_notebook
+
+    page_text = ASSET_PAGE.split("```{code-cell}")[0] + (
+        ":::{nma-slides} Day slides\n:path: slides/day.pdf\n:::\n"
+    )
+    _asset_course(tmp_path, monkeypatch, page_text, files=("slides/day.pdf",))
+    page = Path("tutorials/D/T.md")
+    out = Path("notebooks/tutorials/D/T.ipynb")
+    convert_md_to_notebook(page, out, dry_run=False)
+    build_notebooks(page, out, "org/repo", False, None, read_settings())
+
+    url = "https://cdn.jsdelivr.net/gh/org/repo@notebooks-branch/notebooks/tutorials/D/slides/day.pdf"
+    for path in (out, out.parent / "instructor" / out.name):
+        sources = ["".join(c["source"]) for c in json.loads(path.read_text())["cells"]]
+        assert any(s.startswith("# @title Day slides") and url in s for s in sources)
+        assert not any("nma-slides" in s for s in sources)
+    assert Path("notebooks/tutorials/D/slides/day.pdf").read_bytes() == b"bytes:slides/day.pdf"
+    assert not Path("notebooks/tutorials/D/instructor/slides").exists()
+
+
+def test_check_reports_missing_slide_pdf(tmp_path, monkeypatch):
+    from nma_kit.convert import validate_content
+
+    page_text = "---\ntitle: T\n---\n\n:::{nma-slides}\n:path: slides/gone.pdf\n:::\n"
+    _asset_course(tmp_path, monkeypatch, page_text, files=())
+    errors = validate_content()
+    assert any("slides/gone.pdf" in e and "does not exist" in e for e in errors)
+
+
 def test_page_without_assets_is_unaffected(tmp_path, monkeypatch):
     import json
 

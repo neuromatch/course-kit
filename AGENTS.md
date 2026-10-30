@@ -30,7 +30,7 @@ js/
     index.mjs                 # merges every feature plugin (transform order: solutions, feedback, scrolly, cells)
     shared/                   # config.mjs (myst.yml settings, YAML), paths.mjs (page location, notebook/solution URLs),
                               # assets.mjs (assetUrl), frontmatter.mjs (isScrolly), tree.mjs (mdast helpers)
-    media/plugin.mjs          # {nma-video}, {nma-slides} -> static iframes / tab sets
+    media/plugin.mjs          # {nma-video}, {nma-slides} -> static iframes / tab sets (model.mjs: slide URLs)
     solutions/plugin.mjs      # {nma-solution}, {nma-explanation} -> "Click for ..." links
     assets/plugin.mjs         # {nma-data} -> "Data used by this notebook" note; embeds declared files (base64) for cells
     feedback/plugin.mjs       # {nma-feedback} -> anywidget; assets/widget.mjs posts to datatops
@@ -82,6 +82,8 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   one is renamed, removed or untested; add an entry when you write a twin
   (see CONTRIBUTING.md). Current pairs:
   - URL templates (`VIDEO_SOURCES` in `media/plugin.mjs` and `media.py`).
+  - Slide URLs (`media/model.mjs` / `media.py`: `slideUrl`/`slide_cdn_url`, `osfSlidesEmbedUrl`/`osf_slides_embed_url`),
+    `tests/fixtures/media/slide_urls.json`.
   - `{nma-data}` parsing/validation and the asset URL (`assets/model.mjs` / `assets.py`: `parseDataDirective`/`parse_data_directive`,
     `validateDataDirectives`/`validate_data_directives`, `assetUrlFor`/`asset_url`), `tests/fixtures/assets/directives.json`.
     The strict code-reference scan and the notebook download cell are Python-only.
@@ -199,6 +201,22 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - The embedded bytes grow the page: keep tutorial files small; large datasets use the author's own download cell.
 - Limits: the download cell needs Internet (on Kaggle it must be turned on; the cell says so on failure), and raw
   URLs don't work for a private repo.
+
+## Slides (internals)
+
+- `{nma-slides} [title]` takes `:osf:` (an OSF file id) and/or `:path:` (a PDF in the day folder's slides
+  folder, `nma.assets.slides`, default `slides`). Both give one tab per backend (OSF, PDF); no `:title:`
+  option, the argument is the title.
+- **`:path:` files are published like `{nma-data}` files**: `build_notebooks` copies them to
+  `notebooks/<root>/<day>/slides/`, so they are on the notebooks branch (and `notebooks-pr-<n>` in previews).
+- **Both the site and the notebooks iframe the jsDelivr GitHub mirror**
+  (`cdn.jsdelivr.net/gh/<repo>@<branch>/notebooks/<day>/<path>`), not `raw.githubusercontent.com`, which sends
+  `X-Frame-Options: deny`. No OSF/MFR is involved for `:path:`. Phone browsers often don't render a PDF in an
+  iframe, so a download link is always shown.
+- jsDelivr caches branch URLs (about 12 hours), so a changed PDF can show up late. Works for public repos only.
+- `nma-kit check`: bad option, no `:osf:`/`:path:`, a `:path:` that is absolute, has `..`, is outside the
+  slides folder or isn't `.pdf`, and a missing file. There is no size limit yet.
+- If the iframe doesn't work in Colab/Kaggle, make the notebook cell link-only (`slides_cell_source`).
 
 ## Editable cells (internals)
 
