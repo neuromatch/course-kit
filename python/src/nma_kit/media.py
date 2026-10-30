@@ -29,6 +29,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from string import Template
+from urllib.parse import quote
 
 from nma_kit.constants import DEFAULT_SLIDES_DIR
 
@@ -111,6 +112,15 @@ SLIDE_SOURCES = [("osf", "OSF"), ("path", "PDF")]
 def osf_slides_embed_url(osf_id: str) -> str:
     """The OSF renderer URL that shows an OSF slide deck in an iframe."""
     return f"https://mfr.ca-1.osf.io/render?url=https://osf.io/{osf_id}/?direct%26mode=render%26action=download%26mode=render"
+
+
+def mfr_render_url(url: str) -> str:
+    """The OSF renderer (MFR) URL that shows any public file URL ending in .pdf as an HTML page.
+
+    Only the Colab notebook cell uses it (Colab can't draw a bare PDF); the site and
+    the other notebook runtimes embed the PDF directly.
+    """
+    return f"https://mfr.ca-1.osf.io/render?url={quote(url, safe=':/')}"
 
 
 def slide_cdn_url(repo: str, branch: str, day: str, path: str) -> str:
@@ -247,25 +257,22 @@ display(tabs)''')
 SLIDES_TEMPLATE = Template('''\
 # @title $title
 import sys
-from IPython.display import HTML, IFrame, display
+from IPython.display import IFrame, display
 from ipywidgets import widgets
 
-# Colab shows cell output in a sandboxed frame, where Chromium refuses to
-# draw a PDF. A link works there; elsewhere the slides are embedded.
+# Colab shows cell output in a sandboxed frame, where Chromium refuses to draw
+# a bare PDF. There the PDF goes through an HTML renderer instead.
 IN_COLAB = "google.colab" in sys.modules
 
-# (label, embed url, download url, embed url is a bare PDF)
+# (label, embed url, embed url in Colab, download url)
 slides = $slides
 
 tab_contents = []
-for label, src, download, is_pdf in slides:
+for label, src, colab_src, download in slides:
   out = widgets.Output()
   with out:
     print(f"If you want to download the slides: {download}")
-    if is_pdf and IN_COLAB:
-      display(HTML(f'<a href="{download}" target="_blank">Open the slides (PDF) in a new tab</a>'))
-    else:
-      display(IFrame(src=src, width=854, height=480))
+    display(IFrame(src=colab_src if IN_COLAB else src, width=854, height=480))
   tab_contents.append(out)
 if len(tab_contents) == 1:
   display(tab_contents[0])
@@ -297,10 +304,11 @@ def slides_cell_source(d: MediaDirective, path_url: Callable[[str], str] | None 
     slides = []
     if d.options.get("osf"):
         osf_id = d.options["osf"]
-        slides.append(("OSF", osf_slides_embed_url(osf_id), f"https://osf.io/download/{osf_id}/", False))
+        embed = osf_slides_embed_url(osf_id)
+        slides.append(("OSF", embed, embed, f"https://osf.io/download/{osf_id}/"))
     if d.options.get("path") and path_url:
         url = path_url(d.options["path"])
-        slides.append(("PDF", url, url, True))
+        slides.append(("PDF", url, mfr_render_url(url), url))
     if not slides:
         return NO_SLIDES_TEMPLATE.substitute(title=title)
     return SLIDES_TEMPLATE.substitute(title=title, slides=repr(slides))

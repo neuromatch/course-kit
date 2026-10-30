@@ -217,8 +217,10 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - `nma-kit check`: bad option, no `:osf:`/`:path:`, a `:path:` that is absolute, has `..`, is outside the
   slides folder or isn't `.pdf`, and a missing file. There is no size limit yet.
 - **Colab can't show a bare PDF**: its output frame is sandboxed and Chromium refuses to draw a PDF there
-  ("This page has been blocked by Chromium"). The notebook cell checks `google.colab` at run time and shows an
-  "Open the slides" link for `:path:` PDFs; Kaggle and Jupyter embed them. OSF tabs stay iframes (MFR returns HTML).
+  ("This page has been blocked by Chromium"). The notebook cell checks `google.colab` at run time and, only
+  there, shows the PDF through the OSF renderer (`mfr_render_url`, MFR returns an HTML page). The site, Kaggle
+  and Jupyter embed the PDF directly, so `:path:` slides depend on OSF's renderer only inside Colab. If MFR
+  stops working, replace `mfr_render_url` (e.g. a link-only cell).
 
 ## Editable cells (internals)
 

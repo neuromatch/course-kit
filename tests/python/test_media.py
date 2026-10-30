@@ -95,6 +95,7 @@ def test_body_is_error():
 from nma_kit.media import (
     copy_slide_files,
     expand_notebook,
+    mfr_render_url,
     missing_slide_errors,
     osf_slides_embed_url,
     slide_cdn_url,
@@ -161,7 +162,7 @@ def test_slides_cell_source_path_uses_published_url():
     src = slides_cell_source(d, path_url=lambda p: url)
     assert src.startswith("# @title Day 3 slides\n")
     assert url in src
-    assert "osf.io" not in src
+    assert "https://osf.io/" not in src  # no OSF file; the Colab-only renderer URL is osf.io/render
     compile(src, "<cell>", "exec")
 
 
@@ -181,7 +182,6 @@ def _run_slides_cell(src, in_colab):
     shown = []
     display_mod = types.ModuleType("IPython.display")
     display_mod.IFrame = lambda src, width, height: ("iframe", src)
-    display_mod.HTML = lambda html: ("html", html)
     display_mod.display = shown.append
     widgets_mod = types.ModuleType("ipywidgets")
 
@@ -215,19 +215,26 @@ def _embeds(shown):
     return [x for x in shown if isinstance(x, tuple)]
 
 
-def test_slides_pdf_is_a_link_in_colab_and_an_iframe_elsewhere():
+def test_slides_pdf_goes_through_the_renderer_in_colab_only():
     [d] = find_directives(":::{nma-slides}\n:path: slides/a.pdf\n:::\n")
-    src = slides_cell_source(d, path_url=lambda p: "https://x/" + p)
-    assert _embeds(_run_slides_cell(src, in_colab=False)) == [("iframe", "https://x/slides/a.pdf")]
-    [(kind, html)] = _embeds(_run_slides_cell(src, in_colab=True))
-    assert kind == "html" and 'href="https://x/slides/a.pdf"' in html
+    url = "https://cdn.jsdelivr.net/gh/o/r@nb/notebooks/tutorials/D/slides/a.pdf"
+    src = slides_cell_source(d, path_url=lambda p: url)
+    assert _embeds(_run_slides_cell(src, in_colab=False)) == [("iframe", url)]
+    assert _embeds(_run_slides_cell(src, in_colab=True)) == [("iframe", mfr_render_url(url))]
 
 
-def test_slides_osf_stays_an_iframe_in_colab():
-    # The OSF renderer returns an HTML page, which the sandboxed Colab frame can show.
+def test_mfr_render_url():
+    assert mfr_render_url("https://cdn.jsdelivr.net/gh/o/r@nb/notebooks/a b.pdf") == (
+        "https://mfr.ca-1.osf.io/render?url=https://cdn.jsdelivr.net/gh/o/r%40nb/notebooks/a%20b.pdf"
+    )
+
+
+def test_slides_osf_is_the_same_iframe_everywhere():
     [d] = find_directives(":::{nma-slides}\n:osf: snv4m\n:::\n")
-    [(kind, src)] = _embeds(_run_slides_cell(slides_cell_source(d), in_colab=True))
-    assert kind == "iframe" and src == osf_slides_embed_url("snv4m")
+    src = slides_cell_source(d)
+    expected = [("iframe", osf_slides_embed_url("snv4m"))]
+    assert _embeds(_run_slides_cell(src, in_colab=True)) == expected
+    assert _embeds(_run_slides_cell(src, in_colab=False)) == expected
 
 
 def test_slides_cell_without_published_url_skips_path():
