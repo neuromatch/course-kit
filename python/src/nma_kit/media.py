@@ -246,25 +246,33 @@ display(tabs)''')
 
 SLIDES_TEMPLATE = Template('''\
 # @title $title
-from IPython.display import IFrame, display
+import sys
+from IPython.display import HTML, IFrame, display
 from ipywidgets import widgets
 
-# (label, embed url, download url)
+# Colab shows cell output in a sandboxed frame, where Chromium refuses to
+# draw a PDF. A link works there; elsewhere the slides are embedded.
+IN_COLAB = "google.colab" in sys.modules
+
+# (label, embed url, download url, embed url is a bare PDF)
 slides = $slides
 
 tab_contents = []
-for label, src, download in slides:
+for label, src, download, is_pdf in slides:
   out = widgets.Output()
   with out:
     print(f"If you want to download the slides: {download}")
-    display(IFrame(src=src, width=854, height=480))
+    if is_pdf and IN_COLAB:
+      display(HTML(f'<a href="{download}" target="_blank">Open the slides (PDF) in a new tab</a>'))
+    else:
+      display(IFrame(src=src, width=854, height=480))
   tab_contents.append(out)
 if len(tab_contents) == 1:
   display(tab_contents[0])
 else:
   tabs = widgets.Tab()
   tabs.children = tab_contents
-  for i, (label, _, _) in enumerate(slides):
+  for i, (label, _, _, _) in enumerate(slides):
     tabs.set_title(i, label)
   display(tabs)''')
 
@@ -289,10 +297,10 @@ def slides_cell_source(d: MediaDirective, path_url: Callable[[str], str] | None 
     slides = []
     if d.options.get("osf"):
         osf_id = d.options["osf"]
-        slides.append(("OSF", osf_slides_embed_url(osf_id), f"https://osf.io/download/{osf_id}/"))
+        slides.append(("OSF", osf_slides_embed_url(osf_id), f"https://osf.io/download/{osf_id}/", False))
     if d.options.get("path") and path_url:
         url = path_url(d.options["path"])
-        slides.append(("PDF", url, url))
+        slides.append(("PDF", url, url, True))
     if not slides:
         return NO_SLIDES_TEMPLATE.substitute(title=title)
     return SLIDES_TEMPLATE.substitute(title=title, slides=repr(slides))

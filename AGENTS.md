@@ -216,7 +216,9 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - jsDelivr caches branch URLs (about 12 hours), so a changed PDF can show up late. Works for public repos only.
 - `nma-kit check`: bad option, no `:osf:`/`:path:`, a `:path:` that is absolute, has `..`, is outside the
   slides folder or isn't `.pdf`, and a missing file. There is no size limit yet.
-- If the iframe doesn't work in Colab/Kaggle, make the notebook cell link-only (`slides_cell_source`).
+- **Colab can't show a bare PDF**: its output frame is sandboxed and Chromium refuses to draw a PDF there
+  ("This page has been blocked by Chromium"). The notebook cell checks `google.colab` at run time and shows an
+  "Open the slides" link for `:path:` PDFs; Kaggle and Jupyter embed them. OSF tabs stay iframes (MFR returns HTML).
 
 ## Editable cells (internals)
 

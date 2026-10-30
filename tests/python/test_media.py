@@ -173,6 +173,63 @@ def test_slides_cell_source_both_backends_make_tabs():
     compile(src, "<cell>", "exec")
 
 
+def _run_slides_cell(src, in_colab):
+    """Run a slides cell with IPython.display faked; return what it displayed."""
+    import sys
+    import types
+
+    shown = []
+    display_mod = types.ModuleType("IPython.display")
+    display_mod.IFrame = lambda src, width, height: ("iframe", src)
+    display_mod.HTML = lambda html: ("html", html)
+    display_mod.display = shown.append
+    widgets_mod = types.ModuleType("ipywidgets")
+
+    class Output:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    widgets_mod.widgets = types.SimpleNamespace(Output=Output, Tab=lambda: types.SimpleNamespace(set_title=lambda i, t: None))
+    fakes = {"IPython": types.ModuleType("IPython"), "IPython.display": display_mod, "ipywidgets": widgets_mod}
+    saved = {k: sys.modules.get(k) for k in [*fakes, "google.colab"]}
+    sys.modules.update(fakes)
+    if in_colab:
+        sys.modules["google.colab"] = types.ModuleType("google.colab")
+    else:
+        sys.modules.pop("google.colab", None)
+    try:
+        exec(compile(src, "<cell>", "exec"), {})
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                sys.modules.pop(k, None)
+            else:
+                sys.modules[k] = v
+    return shown
+
+
+def _embeds(shown):
+    return [x for x in shown if isinstance(x, tuple)]
+
+
+def test_slides_pdf_is_a_link_in_colab_and_an_iframe_elsewhere():
+    [d] = find_directives(":::{nma-slides}\n:path: slides/a.pdf\n:::\n")
+    src = slides_cell_source(d, path_url=lambda p: "https://x/" + p)
+    assert _embeds(_run_slides_cell(src, in_colab=False)) == [("iframe", "https://x/slides/a.pdf")]
+    [(kind, html)] = _embeds(_run_slides_cell(src, in_colab=True))
+    assert kind == "html" and 'href="https://x/slides/a.pdf"' in html
+
+
+def test_slides_osf_stays_an_iframe_in_colab():
+    # The OSF renderer returns an HTML page, which the sandboxed Colab frame can show.
+    [d] = find_directives(":::{nma-slides}\n:osf: snv4m\n:::\n")
+    [(kind, src)] = _embeds(_run_slides_cell(slides_cell_source(d), in_colab=True))
+    assert kind == "iframe" and src == osf_slides_embed_url("snv4m")
+
+
 def test_slides_cell_without_published_url_skips_path():
     [d] = find_directives(":::{nma-slides}\n:path: slides/a.pdf\n:::\n")
     src = slides_cell_source(d)
