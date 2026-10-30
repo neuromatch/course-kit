@@ -238,7 +238,7 @@ def test_pdf_viewer_gets_a_new_element_id_per_run():
 
 
 def test_pdfjs_is_loaded_from_a_pinned_jsdelivr_version():
-    assert PDFJS_URL == f"https://cdn.jsdelivr.net/npm/pdfjs-dist@{PDFJS_VERSION}/build/"
+    assert PDFJS_URL == f"https://cdn.jsdelivr.net/npm/pdfjs-dist@{PDFJS_VERSION}/"
     assert "@latest" not in PDFJS_URL
 
 

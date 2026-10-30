@@ -109,42 +109,86 @@ SLIDE_SOURCES = [("osf", "OSF"), ("path", "PDF")]
 
 # Colab shows cell output in a sandboxed frame, where Chromium refuses to draw a
 # bare PDF ("This page has been blocked by Chromium"), so an iframe on the PDF
-# stays blank. The Colab cell draws the pages itself with PDF.js, loaded from
-# jsDelivr (a host Colab can reach; jsDelivr allows cross-origin reads, which
-# PDF.js needs to fetch the PDF and its worker).
+# stays blank. The Colab cell shows the PDF with PDF.js instead: its viewer
+# component (scrolling, zoom, page navigation) plus a small toolbar, loaded from
+# jsDelivr (a host Colab can reach; jsDelivr allows the cross-origin reads
+# PDF.js needs for the PDF, its worker and its fonts).
 PDFJS_VERSION = "4.10.38"
-PDFJS_URL = f"https://cdn.jsdelivr.net/npm/pdfjs-dist@{PDFJS_VERSION}/build/"
+PDFJS_URL = f"https://cdn.jsdelivr.net/npm/pdfjs-dist@{PDFJS_VERSION}/"
 
 # __ID__ and __URL__ are filled in by the cell at run time, __LIB__ when the cell is written.
 # The page's own <script> is classic (so it runs in Colab's HTML output); PDF.js is an ES module,
-# loaded with import(). The worker is fetched and started from a blob: URL, because a browser
-# won't start a worker from another origin.
+# loaded with import(). The viewer module reads `window.pdfjsLib`, so that is set first. The
+# worker is fetched and started from a blob: URL, because a browser won't start a worker from
+# another origin. Keep this free of backslashes and triple quotes: it sits in a Python string twice.
 PDF_VIEWER_HTML = """\
-<div id="__ID__" style="width:854px;max-width:100%;height:480px;overflow:auto;border:1px solid #ccc;box-sizing:border-box;background:#eee">Loading the slides...</div>
+<link rel="stylesheet" href="__LIB__web/pdf_viewer.css">
+<div id="__ID__" style="width:854px;max-width:100%;height:480px;display:flex;flex-direction:column;border:1px solid #ccc;box-sizing:border-box;background:#eee;font:14px sans-serif">
+  <div data-bar style="display:flex;gap:6px;align-items:center;padding:4px 6px;background:#f8f8f8;border-bottom:1px solid #ccc">
+    <button data-act="out" title="Zoom out">-</button>
+    <button data-act="in" title="Zoom in">+</button>
+    <button data-act="fit" title="Fit the whole slide">Fit</button>
+    <button data-act="width" title="Fit the width">Width</button>
+    <span style="flex:1"></span>
+    <button data-act="prev" title="Previous slide">&lt;</button>
+    <span data-page style="min-width:4em;text-align:center">Loading...</span>
+    <button data-act="next" title="Next slide">&gt;</button>
+  </div>
+  <div style="position:relative;flex:1;min-height:0">
+    <div data-container style="position:absolute;inset:0;overflow:auto"><div class="pdfViewer"></div></div>
+  </div>
+</div>
 <script>
 (async () => {
   const root = document.getElementById("__ID__");
   const url = __URL__;
   const lib = "__LIB__";
   try {
-    const pdfjs = await import(lib + "pdf.min.mjs");
-    const worker = await (await fetch(lib + "pdf.worker.min.mjs")).text();
+    const pdfjs = await import(lib + "build/pdf.min.mjs");
+    window.pdfjsLib = pdfjs;
+    const viewerLib = await import(lib + "web/pdf_viewer.mjs");
+    const worker = await (await fetch(lib + "build/pdf.worker.min.mjs")).text();
     pdfjs.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([worker], {type: "text/javascript"}));
-    const pdf = await pdfjs.getDocument(url).promise;
-    root.textContent = "";
-    const width = Math.max(root.clientWidth - 20, 200);
-    const ratio = window.devicePixelRatio || 1;
-    for (let n = 1; n <= pdf.numPages; n++) {
-      const page = await pdf.getPage(n);
-      const scale = width / page.getViewport({scale: 1}).width;
-      const viewport = page.getViewport({scale: scale * ratio});
-      const canvas = document.createElement("canvas");
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      canvas.style.cssText = "display:block;width:" + width + "px;margin:6px auto";
-      root.appendChild(canvas);
-      await page.render({canvasContext: canvas.getContext("2d"), viewport}).promise;
-    }
+
+    const container = root.querySelector("[data-container]");
+    const label = root.querySelector("[data-page]");
+    const eventBus = new viewerLib.EventBus();
+    const linkService = new viewerLib.PDFLinkService({eventBus});
+    const viewer = new viewerLib.PDFViewer({container, viewer: container.firstElementChild, eventBus, linkService});
+    linkService.setViewer(viewer);
+
+    let mode = "page-fit";
+    const show = (value) => { mode = value; viewer.currentScaleValue = value; };
+    const zoom = (factor) => { mode = null; viewer.currentScale = viewer.currentScale * factor; };
+    eventBus.on("pagesinit", () => {
+      show("page-fit");
+      label.textContent = "1 / " + viewer.pagesCount;
+    });
+    eventBus.on("pagechanging", (event) => {
+      label.textContent = event.pageNumber + " / " + viewer.pagesCount;
+    });
+    root.querySelector("[data-bar]").addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      const actions = {
+        out: () => zoom(1 / 1.25),
+        in: () => zoom(1.25),
+        fit: () => show("page-fit"),
+        width: () => show("page-width"),
+        prev: () => viewer.previousPage(),
+        next: () => viewer.nextPage(),
+      };
+      if (button && actions[button.dataset.act]) actions[button.dataset.act]();
+    });
+    new ResizeObserver(() => { if (mode) viewer.currentScaleValue = mode; }).observe(root);
+
+    const pdf = await pdfjs.getDocument({
+      url,
+      cMapUrl: lib + "cmaps/",
+      cMapPacked: true,
+      standardFontDataUrl: lib + "standard_fonts/",
+    }).promise;
+    viewer.setDocument(pdf);
+    linkService.setDocument(pdf, null);
   } catch (error) {
     console.error(error);
     root.textContent = "Could not show the slides here. ";
