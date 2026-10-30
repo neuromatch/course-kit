@@ -217,10 +217,12 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 - `nma-kit check`: bad option, no `:osf:`/`:path:`, a `:path:` that is absolute, has `..`, is outside the
   slides folder or isn't `.pdf`, and a missing file. There is no size limit yet.
 - **Colab can't show a bare PDF**: its output frame is sandboxed and Chromium refuses to draw a PDF there
-  ("This page has been blocked by Chromium"). The notebook cell checks `google.colab` at run time and, only
-  there, shows the PDF through the OSF renderer (`mfr_render_url`, MFR returns an HTML page). The site, Kaggle
-  and Jupyter embed the PDF directly, so `:path:` slides depend on OSF's renderer only inside Colab. If MFR
-  stops working, replace `mfr_render_url` (e.g. a link-only cell).
+  ("This page has been blocked by Chromium"), and MFR (OSF's renderer) only accepts OSF domains, not GitHub or
+  jsDelivr. The notebook cell checks `google.colab` at run time and, only there, draws the PDF itself with
+  PDF.js (`PDF_VIEWER_HTML`, `PDFJS_URL`: pinned `pdfjs-dist` on jsDelivr, the worker started from a blob: URL).
+  The site, Kaggle and Jupyter embed the PDF directly. If the script fails, the box shows an "Open the PDF"
+  link. `tests/e2e/test_slides_viewer_browser.py` runs the viewer in Chromium (set `NMA_E2E_PDFJS_DIR` to a local
+  `pdfjs-dist/build` where jsDelivr is blocked). Bump `PDFJS_VERSION` deliberately and rerun it.
 
 ## Editable cells (internals)
 

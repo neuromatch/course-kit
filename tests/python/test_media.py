@@ -93,9 +93,10 @@ def test_body_is_error():
 
 
 from nma_kit.media import (
+    PDFJS_URL,
+    PDFJS_VERSION,
     copy_slide_files,
     expand_notebook,
-    mfr_render_url,
     missing_slide_errors,
     osf_slides_embed_url,
     slide_cdn_url,
@@ -182,6 +183,7 @@ def _run_slides_cell(src, in_colab):
     shown = []
     display_mod = types.ModuleType("IPython.display")
     display_mod.IFrame = lambda src, width, height: ("iframe", src)
+    display_mod.HTML = lambda html: ("html", html)
     display_mod.display = shown.append
     widgets_mod = types.ModuleType("ipywidgets")
 
@@ -215,18 +217,29 @@ def _embeds(shown):
     return [x for x in shown if isinstance(x, tuple)]
 
 
-def test_slides_pdf_goes_through_the_renderer_in_colab_only():
+def test_slides_pdf_is_drawn_with_pdfjs_in_colab_only():
     [d] = find_directives(":::{nma-slides}\n:path: slides/a.pdf\n:::\n")
     url = "https://cdn.jsdelivr.net/gh/o/r@nb/notebooks/tutorials/D/slides/a.pdf"
     src = slides_cell_source(d, path_url=lambda p: url)
     assert _embeds(_run_slides_cell(src, in_colab=False)) == [("iframe", url)]
-    assert _embeds(_run_slides_cell(src, in_colab=True)) == [("iframe", mfr_render_url(url))]
+    [(kind, html)] = _embeds(_run_slides_cell(src, in_colab=True))
+    assert kind == "html"
+    assert f'const url = "{url}";' in html
+    assert f'const lib = "{PDFJS_URL}";' in html
+    assert "__ID__" not in html and "__URL__" not in html and "__LIB__" not in html
 
 
-def test_mfr_render_url():
-    assert mfr_render_url("https://cdn.jsdelivr.net/gh/o/r@nb/notebooks/a b.pdf") == (
-        "https://mfr.ca-1.osf.io/render?url=https://cdn.jsdelivr.net/gh/o/r%40nb/notebooks/a%20b.pdf"
-    )
+def test_pdf_viewer_gets_a_new_element_id_per_run():
+    [d] = find_directives(":::{nma-slides}\n:path: slides/a.pdf\n:::\n")
+    src = slides_cell_source(d, path_url=lambda p: "https://x/a.pdf")
+    first = _embeds(_run_slides_cell(src, in_colab=True))[0][1]
+    second = _embeds(_run_slides_cell(src, in_colab=True))[0][1]
+    assert first != second
+
+
+def test_pdfjs_is_loaded_from_a_pinned_jsdelivr_version():
+    assert PDFJS_URL == f"https://cdn.jsdelivr.net/npm/pdfjs-dist@{PDFJS_VERSION}/build/"
+    assert "@latest" not in PDFJS_URL
 
 
 def test_slides_osf_is_the_same_iframe_everywhere():

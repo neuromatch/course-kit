@@ -29,7 +29,6 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from string import Template
-from urllib.parse import quote
 
 from nma_kit.constants import DEFAULT_SLIDES_DIR
 
@@ -108,19 +107,60 @@ DEFAULT_SLIDES_TITLE = "Tutorial slides"
 # (option name, tab label), in display order. JS twin: SLIDE_SOURCES in media/plugin.mjs.
 SLIDE_SOURCES = [("osf", "OSF"), ("path", "PDF")]
 
+# Colab shows cell output in a sandboxed frame, where Chromium refuses to draw a
+# bare PDF ("This page has been blocked by Chromium"), so an iframe on the PDF
+# stays blank. The Colab cell draws the pages itself with PDF.js, loaded from
+# jsDelivr (a host Colab can reach; jsDelivr allows cross-origin reads, which
+# PDF.js needs to fetch the PDF and its worker).
+PDFJS_VERSION = "4.10.38"
+PDFJS_URL = f"https://cdn.jsdelivr.net/npm/pdfjs-dist@{PDFJS_VERSION}/build/"
+
+# __ID__ and __URL__ are filled in by the cell at run time, __LIB__ when the cell is written.
+# The page's own <script> is classic (so it runs in Colab's HTML output); PDF.js is an ES module,
+# loaded with import(). The worker is fetched and started from a blob: URL, because a browser
+# won't start a worker from another origin.
+PDF_VIEWER_HTML = """\
+<div id="__ID__" style="width:854px;max-width:100%;height:480px;overflow:auto;border:1px solid #ccc;box-sizing:border-box;background:#eee">Loading the slides...</div>
+<script>
+(async () => {
+  const root = document.getElementById("__ID__");
+  const url = __URL__;
+  const lib = "__LIB__";
+  try {
+    const pdfjs = await import(lib + "pdf.min.mjs");
+    const worker = await (await fetch(lib + "pdf.worker.min.mjs")).text();
+    pdfjs.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([worker], {type: "text/javascript"}));
+    const pdf = await pdfjs.getDocument(url).promise;
+    root.textContent = "";
+    const width = Math.max(root.clientWidth - 20, 200);
+    const ratio = window.devicePixelRatio || 1;
+    for (let n = 1; n <= pdf.numPages; n++) {
+      const page = await pdf.getPage(n);
+      const scale = width / page.getViewport({scale: 1}).width;
+      const viewport = page.getViewport({scale: scale * ratio});
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      canvas.style.cssText = "display:block;width:" + width + "px;margin:6px auto";
+      root.appendChild(canvas);
+      await page.render({canvasContext: canvas.getContext("2d"), viewport}).promise;
+    }
+  } catch (error) {
+    console.error(error);
+    root.textContent = "Could not show the slides here. ";
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.textContent = "Open the PDF in a new tab";
+    root.appendChild(link);
+  }
+})();
+</script>"""
+
 
 def osf_slides_embed_url(osf_id: str) -> str:
     """The OSF renderer URL that shows an OSF slide deck in an iframe."""
     return f"https://mfr.ca-1.osf.io/render?url=https://osf.io/{osf_id}/?direct%26mode=render%26action=download%26mode=render"
-
-
-def mfr_render_url(url: str) -> str:
-    """The OSF renderer (MFR) URL that shows any public file URL ending in .pdf as an HTML page.
-
-    Only the Colab notebook cell uses it (Colab can't draw a bare PDF); the site and
-    the other notebook runtimes embed the PDF directly.
-    """
-    return f"https://mfr.ca-1.osf.io/render?url={quote(url, safe=':/')}"
 
 
 def slide_cdn_url(repo: str, branch: str, day: str, path: str) -> str:
@@ -256,23 +296,34 @@ display(tabs)''')
 
 SLIDES_TEMPLATE = Template('''\
 # @title $title
-import sys
-from IPython.display import IFrame, display
+import json, sys, uuid
+from IPython.display import HTML, IFrame, display
 from ipywidgets import widgets
 
-# Colab shows cell output in a sandboxed frame, where Chromium refuses to draw
-# a bare PDF. There the PDF goes through an HTML renderer instead.
+# Colab shows cell output in a sandboxed frame, where a browser can't draw a bare
+# PDF. There the PDF is drawn with PDF.js; elsewhere it is embedded as is.
 IN_COLAB = "google.colab" in sys.modules
 
-# (label, embed url, embed url in Colab, download url)
+PDF_VIEWER = r"""$viewer"""
+
+
+def show_pdf(url):
+  box = "nma-slides-" + uuid.uuid4().hex[:12]
+  display(HTML(PDF_VIEWER.replace("__ID__", box).replace("__URL__", json.dumps(url))))
+
+
+# (label, embed url, download url, the embed url is a bare PDF)
 slides = $slides
 
 tab_contents = []
-for label, src, colab_src, download in slides:
+for label, src, download, is_pdf in slides:
   out = widgets.Output()
   with out:
     print(f"If you want to download the slides: {download}")
-    display(IFrame(src=colab_src if IN_COLAB else src, width=854, height=480))
+    if is_pdf and IN_COLAB:
+      show_pdf(src)
+    else:
+      display(IFrame(src=src, width=854, height=480))
   tab_contents.append(out)
 if len(tab_contents) == 1:
   display(tab_contents[0])
@@ -304,14 +355,14 @@ def slides_cell_source(d: MediaDirective, path_url: Callable[[str], str] | None 
     slides = []
     if d.options.get("osf"):
         osf_id = d.options["osf"]
-        embed = osf_slides_embed_url(osf_id)
-        slides.append(("OSF", embed, embed, f"https://osf.io/download/{osf_id}/"))
+        slides.append(("OSF", osf_slides_embed_url(osf_id), f"https://osf.io/download/{osf_id}/", False))
     if d.options.get("path") and path_url:
         url = path_url(d.options["path"])
-        slides.append(("PDF", url, mfr_render_url(url), url))
+        slides.append(("PDF", url, url, True))
     if not slides:
         return NO_SLIDES_TEMPLATE.substitute(title=title)
-    return SLIDES_TEMPLATE.substitute(title=title, slides=repr(slides))
+    viewer = PDF_VIEWER_HTML.replace("__LIB__", PDFJS_URL)
+    return SLIDES_TEMPLATE.substitute(title=title, slides=repr(slides), viewer=viewer)
 
 
 def _lines(text: str) -> list[str]:

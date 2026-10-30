@@ -316,7 +316,7 @@ def test_build_notebooks_shows_repo_slides_and_copies_the_pdf(tmp_path, monkeypa
     for path in (out, out.parent / "instructor" / out.name):
         sources = ["".join(c["source"]) for c in json.loads(path.read_text())["cells"]]
         assert any(s.startswith("# @title Day slides") and url in s for s in sources)
-        assert not any("nma-slides" in s for s in sources)
+        assert not any("{nma-slides}" in s for s in sources)
     assert Path("notebooks/tutorials/D/slides/day.pdf").read_bytes() == b"bytes:slides/day.pdf"
     assert not Path("notebooks/tutorials/D/instructor/slides").exists()
 
