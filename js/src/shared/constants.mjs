@@ -10,5 +10,6 @@ export const DEFAULT_NOTEBOOKS_BRANCH = data.default_notebooks_branch;
 export const NOTEBOOKS_BRANCH_ENV = data.notebooks_branch_env;
 export const DEFAULT_DATA_DIR = data.default_data_dir;
 export const DEFAULT_IMAGE_DIR = data.default_image_dir;
+export const DEFAULT_SLIDES_DIR = data.default_slides_dir;
 export const MAX_EMBED_BYTES = data.max_embed_bytes;
 export const NO_FALLBACK_MARKER = data.no_fallback_marker;

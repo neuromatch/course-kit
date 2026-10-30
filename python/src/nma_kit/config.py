@@ -19,6 +19,7 @@ and the plugin (`nma.scrolly.pyodide_url`):
       assets:
         data: data                  # folder (in each day folder) for data files
         image: image                # folder (in each day folder) for images
+        slides: slides              # folder (in each day folder) for slide PDFs
 """
 
 import os
@@ -35,6 +36,7 @@ from nma_kit.constants import (
     DEFAULT_IMAGE_DIR,
     DEFAULT_NOTEBOOKS_BRANCH,
     DEFAULT_PROJECTS_DIR,
+    DEFAULT_SLIDES_DIR,
     DEFAULT_TUTORIALS_DIR,
     NOTEBOOKS_BRANCH_ENV,
 )
@@ -64,6 +66,7 @@ class Settings:
     nma: dict = field(default_factory=dict)
     assets_data_dir: str = DEFAULT_DATA_DIR
     assets_image_dir: str = DEFAULT_IMAGE_DIR
+    assets_slides_dir: str = DEFAULT_SLIDES_DIR
     projects_dir: str = DEFAULT_PROJECTS_DIR
 
     @property
@@ -116,6 +119,7 @@ def load_settings(myst_text: str, env: Mapping[str, str] | None = None) -> Setti
         notebooks_branch=_notebooks_branch(nma, env),
         assets_data_dir=_setting(nma, "assets", "data", DEFAULT_DATA_DIR).strip("/"),
         assets_image_dir=_setting(nma, "assets", "image", DEFAULT_IMAGE_DIR).strip("/"),
+        assets_slides_dir=_setting(nma, "assets", "slides", DEFAULT_SLIDES_DIR).strip("/"),
         nma=nma,
         projects_dir=_setting(nma, "paths", "projects", DEFAULT_PROJECTS_DIR).strip("/"),
     )

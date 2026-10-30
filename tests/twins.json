@@ -10,6 +10,8 @@
     {"what": "Solution file URL", "js": "js/src/shared/paths.mjs::solutionUrl", "py": "python/src/nma_kit/solutions.py::solution_url"},
     {"what": "Solution/explanation file naming", "js": "js/src/solutions/plugin.mjs::SOLUTION_KINDS", "py": "python/src/nma_kit/solutions.py::solution_filename", "gap": ["js"]},
     {"what": "Video source URL templates", "js": "js/src/media/plugin.mjs::VIDEO_SOURCES", "py": "python/src/nma_kit/media.py::VIDEO_SOURCES", "gap": ["js", "py"]},
+    {"what": "Published URL of a slide PDF", "js": "js/src/media/model.mjs::slideUrl", "py": "python/src/nma_kit/media.py::slide_cdn_url", "fixture": "media/slide_urls.json"},
+    {"what": "OSF slides renderer URL", "js": "js/src/media/model.mjs::osfSlidesEmbedUrl", "py": "python/src/nma_kit/media.py::osf_slides_embed_url", "fixture": "media/slide_urls.json"},
     {"what": "{nma-data} parsing", "js": "js/src/assets/model.mjs::parseDataDirective", "py": "python/src/nma_kit/assets.py::parse_data_directive", "fixture": "assets/directives.json"},
     {"what": "{nma-data} validation", "js": "js/src/assets/model.mjs::validateDataDirectives", "py": "python/src/nma_kit/assets.py::validate_data_directives", "fixture": "assets/directives.json"},
     {"what": "Published URL of a data file", "js": "js/src/assets/model.mjs::assetUrlFor", "py": "python/src/nma_kit/assets.py::asset_url", "fixture": "assets/directives.json"},

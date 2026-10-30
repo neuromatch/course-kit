@@ -1,0 +1,32 @@
+{
+  "_doc": "Shared by tests/python/test_media.py and tests/js/media.test.mjs: the iframe URL of a slide deck. `cdn`: a PDF published on the notebooks branch (repo, branch, day = folder under notebooks/, path). `osf`: an OSF file id.",
+  "cdn": [
+    {
+      "repo": "o/r",
+      "branch": "notebooks-branch",
+      "day": "tutorials/W2D1_Examples",
+      "path": "slides/intro.pdf",
+      "url": "https://cdn.jsdelivr.net/gh/o/r@notebooks-branch/notebooks/tutorials/W2D1_Examples/slides/intro.pdf"
+    },
+    {
+      "repo": "org/my-course",
+      "branch": "notebooks-pr-7",
+      "day": "tutorials",
+      "path": "slides/a.pdf",
+      "url": "https://cdn.jsdelivr.net/gh/org/my-course@notebooks-pr-7/notebooks/tutorials/slides/a.pdf"
+    },
+    {
+      "repo": "o/r",
+      "branch": "nb",
+      "day": "",
+      "path": "slides/a.pdf",
+      "url": "https://cdn.jsdelivr.net/gh/o/r@nb/notebooks/slides/a.pdf"
+    }
+  ],
+  "osf": [
+    {
+      "id": "snv4m",
+      "url": "https://mfr.ca-1.osf.io/render?url=https://osf.io/snv4m/?direct%26mode=render%26action=download%26mode=render"
+    }
+  ]
+}

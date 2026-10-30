@@ -34,6 +34,11 @@ def test_asset_dirs_default_and_custom():
     assert (c.assets_data_dir, c.assets_image_dir) == ("files", "pics")
 
 
+def test_slides_dir_default_and_custom():
+    assert load_settings("").assets_slides_dir == "slides"
+    assert load_settings("nma:\n  assets:\n    slides: decks/\n").assets_slides_dir == "decks"
+
+
 def test_custom_projects_dir():
     s = load_settings("nma:\n  paths:\n    projects: capstone/\n")
     assert s.content_roots == (("tutorials", "tutorials"), ("projects", "capstone"))

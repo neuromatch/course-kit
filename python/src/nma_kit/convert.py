@@ -36,8 +36,8 @@ inserting after the frontmatter:
 Both modes first validate the content rules and exit non-zero on any violation:
   - No .ipynb files in the content dirs (all content is authored as MyST .md)
   - Any .md with a {code-cell} directive must declare a kernelspec
-  - {nma-video}/{nma-slides} directives must be valid (ids present, known
-    options only, closed, no body)
+  - {nma-video}/{nma-slides} directives must be valid (ids or slide sources
+    present, known options only, closed, no body, slide PDFs exist)
   - {nma-solution}/{nma-explanation} directives must be valid, every exercise
     (code cell raising NotImplementedError) must be directly followed by an
     {nma-solution}, and no `# to_remove` markers may be left in code cells
@@ -77,7 +77,14 @@ from nma_kit.config import (
     read_nma_block,
     read_settings,
 )
-from nma_kit.media import expand_notebook, find_directives, validate_directive
+from nma_kit.media import (
+    copy_slide_files,
+    expand_notebook,
+    find_directives,
+    missing_slide_errors,
+    slide_cdn_url,
+    validate_directive,
+)
 
 NOTEBOOKS_DIR = Path("notebooks")
 
@@ -202,8 +209,10 @@ def validate_content(check_injected: bool = True) -> list[str]:
             for problem in injected_content_errors(text):
                 errors.append(f"{path}: {problem}")
         for directive in find_directives(text):
-            for problem in validate_directive(directive):
+            for problem in validate_directive(directive, settings.assets_slides_dir):
                 errors.append(f"{path}: {problem}")
+        for problem in missing_slide_errors(text, path.parent):
+            errors.append(f"{path}: {problem}")
         for problem in nma_solutions.validate(text):
             errors.append(f"{path}: {problem}")
         for problem in nma_feedback.validate(text) + nma_feedback.legacy_cell_errors(text):
@@ -406,7 +415,10 @@ def build_notebooks(source_file: Path, out_path: Path, github_repo: str, dry_run
     with out_path.open(encoding="utf-8") as fh:
         nb = json.load(fh)
 
-    count = expand_notebook(nb)
+    path_url = None
+    if github_repo:
+        path_url = lambda p: slide_cdn_url(github_repo, branch, location.notebook_dir, p)  # noqa: E731
+    count = expand_notebook(nb, path_url)
     if count:
         print(f"  Expanded {count} video/slides directive(s)")
 
@@ -431,6 +443,9 @@ def build_notebooks(source_file: Path, out_path: Path, github_repo: str, dry_run
     copied = nma_assets.copy_declared_files(declared, source_file.parent, out_path.parent)
     if copied:
         print(f"  Copied {copied} data/image file(s) next to the notebook")
+    copied = copy_slide_files(source_text, source_file.parent, out_path.parent)
+    if copied:
+        print(f"  Copied {copied} slide file(s) next to the notebook")
 
     student, instructor, files = nma_solutions.split_notebook(
         nb, source_file.stem, location.notebook_dir, github_repo, branch)

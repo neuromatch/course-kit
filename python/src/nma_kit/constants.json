@@ -6,6 +6,7 @@
   "notebooks_branch_env": "NMA_NOTEBOOKS_BRANCH",
   "default_data_dir": "data",
   "default_image_dir": "image",
+  "default_slides_dir": "slides",
   "max_embed_bytes": 2097152,
   "no_fallback_marker": "nma-no-fallback"
 }

@@ -47,7 +47,9 @@ Today, the focus will be on **linear dynamics**, where $f(x)$ is a linear functi
 * Explore and understand the behavior of such systems where $x$ is a single variable
 * Consider cases where $\mathbf{x}$ is a state vector representing two variables.
 
-:::{nma-slides} snv4m
+:::{nma-slides} Tutorial slides
+:osf: snv4m
+:path: slides/example_slides.pdf
 :::
 
 ---

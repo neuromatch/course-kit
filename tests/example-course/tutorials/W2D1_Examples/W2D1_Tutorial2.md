@@ -189,7 +189,8 @@ Today, the focus is on **linear dynamics**, where $f(x)$ is a linear function of
 
 Here are the slides for the whole tutorial. You can also download them.
 
-:::{nma-slides} snv4m
+:::{nma-slides} Tutorial slides
+:path: slides/example_slides.pdf
 :::
 
 :::{step}

@@ -57,6 +57,7 @@ test('defaults without an nma block', () => {
     notebooksBranch: 'notebooks-branch',
     assetsDataDir: 'data',
     assetsImageDir: 'image',
+    assetsSlidesDir: 'slides',
     nma: {},
   });
 });
@@ -78,6 +79,11 @@ test('readNmaConfig uses a YAML parser', () => {
   assert.deepEqual(readNmaConfig('nma:\n  feedback: {url: u, project: p}\n'), { feedback: { url: 'u', project: 'p' } });
   assert.deepEqual(readNmaConfig('nma: [1]\n'), {});
   assert.deepEqual(readNmaConfig('not: [valid'), {});
+});
+
+test('slides folder defaults to slides and can be overridden', () => {
+  assert.equal(loadSettings('').assetsSlidesDir, 'slides');
+  assert.equal(loadSettings('nma:\n  assets:\n    slides: decks/\n').assetsSlidesDir, 'decks');
 });
 
 test('asset folder names default to data/image and can be overridden', () => {
