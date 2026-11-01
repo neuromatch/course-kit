@@ -5,6 +5,9 @@
 # NMA_NOTEBOOKS_BRANCH, which every generated link follows), deploy the site as
 # Pages branch `pr-<n>` (https://pr-<n>.<project>.pages.dev) and keep one
 # comment with the link. On close: delete the branch and the deployments.
+# The same push also builds the instructor site (NMA_AUDIENCE=instructor) and
+# deploys it as Pages branch `pr-<n>-instructor` of the same project
+# (https://pr-<n>-instructor.<project>.pages.dev); closing deletes both.
 # Same-repository pull requests only (fork PRs get no secrets).
 #
 #   on:
@@ -223,19 +226,45 @@ jobs:
           url=$(jq -rs 'map(select(.type == "pages-deploy-detail") | .url) | last // empty' "$WRANGLER_OUTPUT_FILE_PATH" 2>/dev/null || true)
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
+      # The instructor site is a second build of the same pull request. MyST
+      # would reuse what it processed for the student audience, so clear it.
+      - name: Build the instructor site
+        if: steps.cf.outputs.enabled == 'true'
+        env:
+          NMA_AUDIENCE: instructor
+        run: |
+          rm -rf _build/site
+          nma-kit prepare-site
+          myst build --html
+          nma-kit finalize-site
+
+      - name: Deploy instructor preview
+        if: steps.cf.outputs.enabled == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes "wrangler@$WRANGLER_VERSION" pages deploy _build/html \
+            --project-name "$PROJECT" --branch "pr-$PR_NUMBER-instructor" \
+            --commit-hash "$GITHUB_SHA" --commit-message "PR #$PR_NUMBER instructor (${GITHUB_SHA::7})" \
+            --commit-dirty=true
+
       - name: Comment the preview link
         if: steps.cf.outputs.enabled == 'true'
         env:
           COMMIT_URL: ${{ steps.deploy.outputs.url }}
         run: |
           url="https://pr-$PR_NUMBER.$PROJECT.pages.dev"
+          instructor_url="https://pr-$PR_NUMBER-instructor.$PROJECT.pages.dev"
           line="Built from \`${GITHUB_SHA::7}\`"
           if [ -n "$COMMIT_URL" ]; then line="$line ([this exact build]($COMMIT_URL))"; fi
           "$RUNNER_TEMP/comment.sh" "**Preview:** $url
+          **Instructor preview:** $instructor_url
           $line. Notebook buttons open \`$NMA_NOTEBOOKS_BRANCH\`. Removed when this pull request closes."
           {
             echo "### Preview"
             echo "- Latest: $url"
+            echo "- Instructor: $instructor_url"
             if [ -n "$COMMIT_URL" ]; then echo "- This build (\`${GITHUB_SHA::7}\`): $COMMIT_URL"; fi
             echo "- Notebooks: branch \`$NMA_NOTEBOOKS_BRANCH\`"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -276,11 +305,12 @@ jobs:
           api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT/deployments"
           auth="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
           # Collect every id first: deleting while paging would skip entries.
+          # Exact branch names: PR 1 must not match pr-12 or pr-12-instructor.
           ids=""; page=1
           while :; do
             result=$(curl -fsS -H "$auth" "$api?per_page=25&page=$page")
-            ids="$ids $(echo "$result" | jq -r --arg b "pr-$PR_NUMBER" \
-              '.result[] | select(.deployment_trigger.metadata.branch == $b) | .id')"
+            ids="$ids $(echo "$result" | jq -r --arg a "pr-$PR_NUMBER" --arg b "pr-$PR_NUMBER-instructor" \
+              '.result[] | select(.deployment_trigger.metadata.branch as $x | $x == $a or $x == $b) | .id')"
             [ "$(echo "$result" | jq '.result | length')" -lt 25 ] && break
             page=$((page + 1))
           done

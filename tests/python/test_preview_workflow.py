@@ -57,7 +57,9 @@ def test_cloudflare_secrets_only_on_steps_that_need_them():
     job = workflow()["jobs"]["preview"]
     assert "CLOUDFLARE_API_TOKEN" not in job["env"]
     with_secret = {s["name"] for s in job["steps"] if "CLOUDFLARE_API_TOKEN" in s.get("env", {})}
-    assert with_secret == {"Check Cloudflare setup", "Ensure the Pages project exists", "Deploy to Cloudflare Pages"}
+    assert with_secret == {
+        "Check Cloudflare setup", "Ensure the Pages project exists", "Deploy to Cloudflare Pages", "Deploy instructor preview",
+    }
 
 
 def test_wrangler_is_pinned_exactly():
@@ -121,3 +123,45 @@ def test_steps_before_checkout_do_not_use_the_course_directory():
             break
         if "run" in step:
             assert step.get("working-directory") == "${{ github.workspace }}", step["name"]
+
+
+def _preview_step(name: str) -> dict:
+    return next(s for s in workflow()["jobs"]["preview"]["steps"] if s.get("name") == name)
+
+
+def test_instructor_preview_comes_after_the_student_deploy_and_needs_cloudflare():
+    names = [s.get("name") for s in workflow()["jobs"]["preview"]["steps"]]
+    order = ["Deploy to Cloudflare Pages", "Build the instructor site", "Deploy instructor preview", "Comment the preview link"]
+    positions = [names.index(n) for n in order]
+    assert positions == sorted(positions)
+    for name in order[1:3]:
+        assert _preview_step(name)["if"] == "steps.cf.outputs.enabled == 'true'"
+
+
+def test_the_instructor_build_sets_the_audience_on_its_own_step_only():
+    assert "NMA_AUDIENCE" not in workflow()["jobs"]["preview"]["env"]
+    build = _preview_step("Build the instructor site")
+    assert build["env"]["NMA_AUDIENCE"] == "instructor"
+    for command in ("rm -rf _build/site", "nma-kit prepare-site", "myst build --html", "nma-kit finalize-site"):
+        assert command in build["run"], command
+
+
+def test_the_instructor_preview_is_another_branch_of_the_same_project():
+    deploy = _preview_step("Deploy instructor preview")["run"]
+    assert '--branch "pr-$PR_NUMBER-instructor"' in deploy and '--project-name "$PROJECT"' in deploy
+    assert "inputs." not in deploy
+
+
+def test_the_comment_links_both_previews():
+    comment = _preview_step("Comment the preview link")["run"]
+    assert "https://pr-$PR_NUMBER.$PROJECT.pages.dev" in comment
+    assert "https://pr-$PR_NUMBER-instructor.$PROJECT.pages.dev" in comment
+    assert "Instructor preview" in comment
+
+
+def test_cleanup_deletes_both_branches_by_exact_match():
+    cleanup = workflow()["jobs"]["cleanup"]["steps"]
+    run = next(s for s in cleanup if s.get("name") == "Delete the Cloudflare deployments")["run"]
+    assert '--arg a "pr-$PR_NUMBER"' in run and '--arg b "pr-$PR_NUMBER-instructor"' in run
+    assert "$x == $a or $x == $b" in run
+    assert "startswith" not in run and "test(" not in run and "contains" not in run  # PR 1 must not match pr-12-instructor
