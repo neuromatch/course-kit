@@ -25,8 +25,12 @@ def _steps(name: str) -> list[dict]:
 
 
 def _one(name: str, predicate) -> dict:
-    matches = [s for s in _steps(name) if predicate(s)]
-    assert len(matches) == 1, f"{name}: expected exactly one matching step, found {len(matches)}"
+    """The matching step of a workflow. A workflow may repeat it across jobs (course-publish's
+    build and instructor jobs both set up), but every copy must be identical, apart from an
+    `if:` that gates it."""
+    matches = [{k: v for k, v in s.items() if k != "if"} for s in _steps(name) if predicate(s)]
+    assert matches, f"{name}: no matching step"
+    assert all(m == matches[0] for m in matches), f"{name}: its copies of this step differ"
     return matches[0]
 
 
