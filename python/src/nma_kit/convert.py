@@ -66,6 +66,7 @@ from nma_kit import assets as nma_assets
 from nma_kit import branding as nma_branding
 from nma_kit import cells as nma_cells
 from nma_kit import feedback as nma_feedback
+from nma_kit import instructor as nma_instructor
 from nma_kit import scrolly as nma_scrolly
 from nma_kit import solutions as nma_solutions
 from nma_kit.config import (
@@ -218,6 +219,8 @@ def validate_content(check_injected: bool = True) -> list[str]:
         for problem in missing_slide_errors(text, path.parent):
             errors.append(f"{path}: {problem}")
         for problem in nma_solutions.validate(text):
+            errors.append(f"{path}: {problem}")
+        for problem in nma_instructor.validate(text):
             errors.append(f"{path}: {problem}")
         for problem in nma_feedback.validate(text) + nma_feedback.legacy_cell_errors(text):
             errors.append(f"{path}: {problem}")
@@ -441,6 +444,9 @@ def build_notebooks(source_file: Path, out_path: Path, github_repo: str, dry_run
     declared = nma_assets.parse_data_directive(source_text)
     if nma_assets.strip_data_directives(nb):
         print(f"  Removed {{nma-data}} directive(s); declared {len(declared)} file(s)")
+    count = nma_instructor.strip_notes(nb)
+    if count:
+        print(f"  Removed {count} {{nma-instructor}} note(s) (they are site-only)")
     count = nma_assets.rewrite_markdown_images(nb, github_repo, branch, location.notebook_dir, settings.assets_image_dir)
     if count:
         print(f"  Rewrote {count} markdown image reference(s) to published URLs")
