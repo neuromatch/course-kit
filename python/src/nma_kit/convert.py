@@ -77,6 +77,7 @@ from nma_kit.config import (
     read_nma_block,
     read_settings,
 )
+from nma_kit.constants import AUDIENCE_ENV, AUDIENCES
 from nma_kit.media import (
     copy_slide_files,
     expand_notebook,
@@ -188,6 +189,8 @@ def validate_content(check_injected: bool = True) -> list[str]:
     content_dirs = [Path(directory) for _, directory in settings.content_roots]
     config_problems = nma_feedback.config_errors(config_text)
     errors += config_problems
+    if settings.audience not in AUDIENCES:
+        errors.append(f"{AUDIENCE_ENV} must be one of {', '.join(AUDIENCES)} (got {settings.audience!r})")
     errors += nma_branding.brand_errors(read_nma_block(config_text))
     has_config = not config_problems and nma_feedback.load_config(config_text) is not None
     for content_dir in content_dirs:

@@ -18,15 +18,18 @@ function inCourse(myst, fn, env = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'nma-course-'));
   writeFileSync(join(dir, 'myst.yml'), myst);
   process.chdir(dir);
-  const saved = process.env.NMA_NOTEBOOKS_BRANCH;
-  delete process.env.NMA_NOTEBOOKS_BRANCH;
+  const keys = ['NMA_NOTEBOOKS_BRANCH', 'NMA_AUDIENCE'];
+  const saved = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+  for (const k of keys) delete process.env[k];
   Object.assign(process.env, env);
   try {
     return fn(dir);
   } finally {
     process.chdir(start);
-    if (saved === undefined) delete process.env.NMA_NOTEBOOKS_BRANCH;
-    else process.env.NMA_NOTEBOOKS_BRANCH = saved;
+    for (const k of keys) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
   }
 }
 
@@ -43,6 +46,7 @@ for (const c of cases) {
       assert.deepEqual(location, { root: c.expect.root, relDir: c.expect.relDir, stem: c.expect.stem });
       assert.equal(notebookDir(location), c.expect.notebookDir);
       assert.deepEqual(notebookUrls(page), { colabUrl: c.expect.colab, kaggleUrl: c.expect.kaggle });
+      assert.equal(courseSettings().audience, c.expect.audience ?? 'student');
       const s = courseSettings();
       assert.equal(solutionUrl(s.githubRepo, notebookDir(location), `${location.stem}_Solution_1.py`, s.notebooksBranch), c.expect.solution1);
     }, c.env);
@@ -58,8 +62,16 @@ test('defaults without an nma block', () => {
     assetsDataDir: 'data',
     assetsImageDir: 'image',
     assetsSlidesDir: 'slides',
+    audience: 'student',
     nma: {},
   });
+});
+
+test('audience defaults to student and follows NMA_AUDIENCE', () => {
+  assert.equal(loadSettings('', {}).audience, 'student');
+  assert.equal(loadSettings('', { NMA_AUDIENCE: 'instructor' }).audience, 'instructor');
+  assert.equal(loadSettings('', { NMA_AUDIENCE: ' instructor ' }).audience, 'instructor');
+  assert.equal(loadSettings('', { NMA_AUDIENCE: '' }).audience, 'student');
 });
 
 test('NMA_NOTEBOOKS_BRANCH: explicit env wins, blank is ignored', () => {
