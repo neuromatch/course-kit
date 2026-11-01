@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from nma_kit.config import MissingConfig, Settings, load_settings, page_location, read_settings
+from nma_kit.config import MissingConfig, Settings, load_settings, notebook_rel_path, page_location, read_settings
 from nma_kit.convert import make_badge_html
 from nma_kit.feedback import FORMAT_ERROR, config_errors
 from nma_kit.solutions import solution_url
@@ -60,6 +60,7 @@ def test_shared_fixture_cases(case):
         return
     assert (location.root, location.rel_dir, location.stem) == (expect["root"], expect["relDir"], expect["stem"])
     assert location.notebook_dir == expect["notebookDir"]
+    assert notebook_rel_path(s, location) == expect["notebook"]
     html = make_badge_html(expect["notebook"], s.github_repo, s.notebooks_branch)
     assert f'href="{expect["colab"]}"' in html
     assert f'href="{expect["kaggle"]}"' in html

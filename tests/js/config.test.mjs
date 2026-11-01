@@ -8,7 +8,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadSettings, readNmaConfig } from '../../js/src/shared/config.mjs';
-import { pageLocation, notebookDir, notebookUrls, solutionUrl, courseSettings } from '../../js/src/shared/paths.mjs';
+import { pageLocation, notebookDir, notebookPath, notebookUrls, solutionUrl, courseSettings } from '../../js/src/shared/paths.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const { cases } = JSON.parse(readFileSync(join(here, '..', 'fixtures', 'config', 'settings.json'), 'utf8'));
@@ -45,6 +45,7 @@ for (const c of cases) {
       }
       assert.deepEqual(location, { root: c.expect.root, relDir: c.expect.relDir, stem: c.expect.stem });
       assert.equal(notebookDir(location), c.expect.notebookDir);
+      assert.equal(notebookPath(location, c.expect.audience ?? 'student'), c.expect.notebook);
       assert.deepEqual(notebookUrls(page), { colabUrl: c.expect.colab, kaggleUrl: c.expect.kaggle });
       assert.equal(courseSettings().audience, c.expect.audience ?? 'student');
       const s = courseSettings();

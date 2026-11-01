@@ -157,6 +157,18 @@ class PageLocation(NamedTuple):
         return f"{self.root}/{self.rel_dir}" if self.rel_dir else self.root
 
 
+def notebook_rel_path(settings: Settings, location: PageLocation) -> str:
+    """Path (from the course root) of the notebook a page's badges open.
+
+    The instructor audience gets the generated instructor notebook (solutions filled in):
+    'notebooks/tutorials/W1/instructor/T1.ipynb'; students get 'notebooks/tutorials/W1/T1.ipynb'.
+    JS twin: `notebookPath` in js/src/shared/paths.mjs."""
+    folder = f"{NOTEBOOKS_DIR}/{location.notebook_dir}"
+    if settings.audience == "instructor":
+        folder += "/instructor"
+    return f"{folder}/{location.stem}.ipynb"
+
+
 def page_location(settings: Settings, page: str | Path) -> PageLocation | None:
     """Where a page (path relative to the course root) lives, or None if it is
     outside every content root. 'tutorials/W1/T1.md' -> PageLocation('tutorials', 'W1', 'T1').

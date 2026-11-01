@@ -73,6 +73,7 @@ from nma_kit.config import (
     MYST_CONFIG,
     Settings,
     load_settings,
+    notebook_rel_path,
     page_location,
     read_nma_block,
     read_settings,
@@ -486,7 +487,7 @@ def process_content(settings: Settings, dry_run: bool, prepare_site: bool) -> in
         out_path = NOTEBOOKS_DIR / location.notebook_dir / f"{location.stem}.ipynb"
 
         if prepare_site:
-            prepare_site_md(source_file, out_path.as_posix(), github_repo, dry_run,
+            prepare_site_md(source_file, notebook_rel_path(settings, location), github_repo, dry_run,
                             settings.notebooks_branch)
         else:
             convert_md_to_notebook(source_file, out_path, dry_run)
