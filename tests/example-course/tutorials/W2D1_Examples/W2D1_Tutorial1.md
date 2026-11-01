@@ -457,6 +457,20 @@ as an accurate estimate of the true underlying system. We may tolerate some
 choppiness in the solution, but eventually qualitatively wrong things creep in!
 :::
 
+:::::{nma-instructor}
+**Timing:** about 5 minutes. Ask for predictions before running the cell: for $a<0$, what happens to $x(t)$?
+
+Common mistake: students forget the step size in `x[k+1] = x[k] + a * x[k] * dt`. A one-line check:
+
+```python
+assert np.isclose(x[-1], x0 * np.exp(a * t[-1]), rtol=0.1)
+```
+
+::::{note}
+Only on the instructor site: these notes never reach the notebooks.
+::::
+:::::
+
 :::{nma-feedback} What_models_Video
 :::
 

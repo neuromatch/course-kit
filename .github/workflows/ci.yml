@@ -113,6 +113,11 @@ jobs:
           (cd js && npm ci --no-audit --no-fund)
       - name: Build the example course
         run: tests/scripts/build-example.sh
+        env:
+          NMA_BUILD_INSTRUCTOR: "1"
+      # Reads the built student and instructor sites (no browser).
+      - name: Audience builds
+        run: python/.venv/bin/pytest -q tests/python/test_audience_builds.py
       - uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
