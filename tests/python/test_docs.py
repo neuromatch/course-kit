@@ -30,3 +30,10 @@ def test_relative_links_resolve(doc):
         if "://" in target:
             continue
         assert (path.parent / target).exists(), f"{doc}: broken link {target}"
+
+
+def test_the_local_instructor_build_exports_the_audience_for_every_command():
+    """`VAR=x a && b` sets VAR for `a` only: `myst build` would silently make a student site."""
+    readme = (KIT / "README.md").read_text(encoding="utf-8")
+    assert "NMA_AUDIENCE=instructor nma-kit" not in readme
+    assert "export NMA_AUDIENCE=instructor" in readme

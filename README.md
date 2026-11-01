@@ -190,8 +190,13 @@ passes the settings):
    `Disallow: /`.
 
 Without the variable or the secrets the job is skipped and nothing else changes.
-To build it locally: `NMA_AUDIENCE=instructor nma-kit prepare-site && myst build --html`
-(then `git checkout -- tutorials projects myst.yml` to undo `prepare-site`).
+To build it locally, export the audience so every command sees it:
+
+```bash
+export NMA_AUDIENCE=instructor
+nma-kit prepare-site && myst build --html && nma-kit finalize-site
+git checkout -- tutorials projects myst.yml   # undo prepare-site
+```
 
 ## Site branding
 
