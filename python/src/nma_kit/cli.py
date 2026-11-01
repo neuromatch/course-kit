@@ -9,6 +9,7 @@
                                  kit URL in myst.yml, and run sync-assets (CI only,
                                  never commit the result)
   nma-kit publish-notebooks      push notebooks/ to the notebooks branch
+  nma-kit finalize-site          fix robots.txt and the sitemap of the built site (CI)
 
 Exit codes: 0 ok, 1 content problems, 2 usage or configuration errors.
 """
@@ -20,8 +21,10 @@ from pathlib import Path
 
 from nma_kit import __version__, branding, convert, scaffold, scrolly
 from nma_kit.config import MYST_CONFIG, MissingConfig, read_settings
+from nma_kit.constants import AUDIENCE_ENV, AUDIENCES
 from nma_kit.pin import pin_kit_url
 from nma_kit.publish import PublishError, publish_notebooks
+from nma_kit.site import finalize_site
 
 
 class UsageError(Exception):
@@ -120,6 +123,19 @@ def cmd_publish_notebooks(args) -> int:
     return 0
 
 
+def cmd_finalize_site(args) -> int:
+    """`nma-kit finalize-site` (CI): replace the built site's robots.txt, delete its sitemap, add noindex for the instructor audience."""
+    settings = read_settings()
+    if settings.audience not in AUDIENCES:
+        raise UsageError(f"{AUDIENCE_ENV} must be one of {', '.join(AUDIENCES)} (got {settings.audience!r})")
+    html_dir = Path(args.dir)
+    if not html_dir.is_dir():
+        raise UsageError(f"{html_dir.as_posix()} not found: run `myst build --html` first")
+    for name in finalize_site(html_dir, settings.audience):
+        print(f"  finalized {name}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """The argparse parser with every subcommand. Each subcommand sets `func` to its `cmd_*` handler."""
     parser = argparse.ArgumentParser(prog="nma-kit", description="Neuromatch course kit")
@@ -157,6 +173,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--remote", default="origin")
     p.add_argument("--message", default=None)
     p.set_defaults(func=cmd_publish_notebooks)
+
+    p = sub.add_parser("finalize-site", help="fix robots.txt and the sitemap of the built site (CI only)")
+    p.add_argument("--dir", default="_build/html", help="the built site (default: _build/html)")
+    p.set_defaults(func=cmd_finalize_site)
     return parser
 
 
