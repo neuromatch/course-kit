@@ -2,6 +2,20 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.3.0](https://github.com/neuromatch/course-kit/compare/v0.2.1...v0.3.0) (2026-11-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* publish referenced images without a {nma-data} declaration
+* rename the default image folder from image to images
+
+### Features
+
+* publish referenced images without a {nma-data} declaration ([8a5b551](https://github.com/neuromatch/course-kit/commit/8a5b55105385597d09c44516f0479b1e2bbf2e70))
+* Rename image dir to images ([3c9f403](https://github.com/neuromatch/course-kit/commit/3c9f4039b9f89743cd33082d2ebdfae2e6d994f1))
+* rename the default image folder from image to images ([4e98cda](https://github.com/neuromatch/course-kit/commit/4e98cda1efb11ed25120780389028468406e77c5))
+
 ## [0.2.1](https://github.com/neuromatch/course-kit/compare/v0.2.0...v0.2.1) (2026-11-02)
 
 
