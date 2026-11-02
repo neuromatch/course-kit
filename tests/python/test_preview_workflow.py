@@ -189,3 +189,10 @@ def test_cleanup_deletes_pr_n_in_both_projects_by_exact_match():
 def test_template_passes_the_instructor_project_to_the_preview():
     job = yaml.safe_load(TEMPLATE.read_text())["jobs"]["preview"]
     assert job["with"]["instructor-cloudflare-project"] == "${{ vars.CLOUDFLARE_INSTRUCTOR_PROJECT }}"
+
+
+def test_the_kits_own_preview_passes_the_instructor_project():
+    """.github/workflows/preview.yml previews kit PRs with the example course: without this input
+    the instructor preview never runs there, whatever the repository variable says."""
+    job = yaml.safe_load((KIT / ".github" / "workflows" / "preview.yml").read_text())["jobs"]["preview"]
+    assert job["with"]["instructor-cloudflare-project"] == "${{ vars.CLOUDFLARE_INSTRUCTOR_PROJECT }}"
