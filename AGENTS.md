@@ -189,11 +189,11 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 
 ## Data and images (internals)
 
-- Files live in the day folder (`tutorials/<day>/data/`, `image/`; names from `nma.assets.data|image`).
-  A tutorial declares what it uses with `{nma-data}` (one path per line, `data/` or `image/` prefix, no `..`).
+- Files live in the day folder (`tutorials/<day>/data/`, `images/`; names from `nma.assets.data|image`).
+  A tutorial declares what it uses with `{nma-data}` (one path per line, `data/` or `images/` prefix, no `..`).
 - **Notebooks** (`build_notebooks`): the directive is stripped, a hidden `hide-cell` download cell
   (`# @title Download course data`, right after the badge cell) fetches the declared files from
-  `raw.githubusercontent.com/<repo>/<branch>/notebooks/<root>/<day>/`, markdown images (`image/..`) are
+  `raw.githubusercontent.com/<repo>/<branch>/notebooks/<root>/<day>/`, markdown images (`images/..`) are
   rewritten to the same URLs, and declared files are copied to `notebooks/<root>/<day>/` so `publish-notebooks` ships them.
 - **Browser cells**: the plugin reads declared files at build time and embeds them (base64) in the runtime
   widget model; `PageRuntime.writeAssets` writes them into the kernel through a Python prelude before the first cell
@@ -203,9 +203,9 @@ templates/wheels.yml          # optional caller for course-wheels.yml
   `py.FS` right after `loadPyodide`.
 - **`{figure}` / `{image}`** in notebooks become `<img>` (+ italic caption) with the published URL
   (`convert_image_directives`, run by `rewrite_markdown_images`); markdown `![]()` and `<img>` are rewritten in place.
-- `nma-kit check` errors: bad/missing declared files; code that uses a strict literal `data/x.ext` / `image/x.ext`
+- `nma-kit check` errors: bad/missing declared files; code that uses a strict literal `data/x.ext` / `images/x.ext`
   that no `{nma-data}` declares; f-string paths (`f"data/{x}.npz"`) under a folder where the page declares no file;
-  page images (markdown, `<img>`, `{figure}`) under `image/` that aren't declared (they'd work on the site but never
+  page images (markdown, `<img>`, `{figure}`) under `images/` that aren't declared (they'd work on the site but never
   reach Colab); declared files over `MAX_EMBED_BYTES` (2 MB total, `max_embed_bytes` in `constants.json`; `assets/plugin.mjs` skips
   embedding with a warning). Other dynamic paths can't be detected: declare every file the code can reach.
 - The embedded bytes grow the page: keep tutorial files small; large datasets use the author's own download cell.

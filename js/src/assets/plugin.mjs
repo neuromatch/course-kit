@@ -85,7 +85,7 @@ function urlFor(filePath) {
 const nmaData = {
   name: 'nma-data',
   doc: 'Declare the data and image files this tutorial uses, one path per line.',
-  body: { type: String, doc: 'File paths (data/..., image/...), one per line.' },
+  body: { type: String, doc: 'File paths (data/..., images/...), one per line.' },
   run(data, vfile) {
     const paths = parseDataDirective(`:::{nma-data}\n${data.body ?? ''}\n:::\n`);
     if (paths.length === 0) return [];

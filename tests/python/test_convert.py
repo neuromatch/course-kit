@@ -243,11 +243,11 @@ kernelspec:
 
 # Title
 
-![fig](image/pic.png)
+![fig](images/pic.png)
 
 :::{nma-data}
 data/a.npz
-image/pic.png
+images/pic.png
 :::
 
 ```{code-cell} python
@@ -257,7 +257,7 @@ arr = np.load("data/a.npz")
 """
 
 
-def _asset_course(tmp_path, monkeypatch, page_text=ASSET_PAGE, files=("data/a.npz", "image/pic.png")):
+def _asset_course(tmp_path, monkeypatch, page_text=ASSET_PAGE, files=("data/a.npz", "images/pic.png")):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "myst.yml").write_text("project:\n  github: https://github.com/org/repo\n")
     day = tmp_path / "tutorials" / "D"
@@ -290,10 +290,10 @@ def test_build_notebooks_adds_download_cell_rewrites_images_and_copies_files(tmp
         assert sources[1].startswith("# @title Download course data")
         assert "data/a.npz" in sources[1] and base in sources[1]
         assert cells[1]["metadata"]["tags"] == ["hide-cell"]
-        assert f"![fig]({base}image/pic.png)" in "\n".join(sources)
+        assert f"![fig]({base}images/pic.png)" in "\n".join(sources)
         assert not any("nma-data" in s for s in sources)
     assert (Path("notebooks/tutorials/D/data/a.npz")).read_bytes() == b"bytes:data/a.npz"
-    assert (Path("notebooks/tutorials/D/image/pic.png")).exists()
+    assert (Path("notebooks/tutorials/D/images/pic.png")).exists()
     assert not (Path("notebooks/tutorials/D/instructor/data")).exists()
 
 

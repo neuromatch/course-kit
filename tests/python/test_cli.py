@@ -182,6 +182,6 @@ def test_example_course_data_tutorial_builds_notebook_with_assets(tmp_path, monk
     sources = ["".join(c["source"]) for c in json.loads(out.read_text())["cells"]]
     base = "https://raw.githubusercontent.com/neuromatch/course-kit/notebooks-branch/notebooks/tutorials/W1D1_GettingStarted/"
     assert sources[1].startswith("# @title Download course data")
-    assert base in sources[1] and "'data/demo.txt'" in sources[1] and "'image/demo.png'" in sources[1]
-    assert f"![A single red pixel]({base}image/demo.png)" in "\n".join(sources)
+    assert base in sources[1] and "'data/demo.txt'" in sources[1] and "'images/demo.png'" in sources[1]
+    assert f"![A single red pixel]({base}images/demo.png)" in "\n".join(sources)
     assert (out.parent / "data" / "demo.txt").exists()

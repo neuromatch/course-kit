@@ -7,22 +7,22 @@ kernelspec:
 
 # Tutorial 4: Data and Images
 
-Keep shared files in the day folder, in `data/` and `image/`, and declare the
+Keep shared files in the day folder, in `data/` and `images/`, and declare the
 ones this tutorial uses with `{nma-data}`. Plain relative paths then work on
 the site, in the editable cells and in the generated Colab notebook.
 
 :::{nma-data}
 data/demo.txt
-image/demo.png
+images/demo.png
 :::
 
 This image is referenced with a relative path:
 
-![A single red pixel](image/demo.png)
+![A single red pixel](images/demo.png)
 
 The `{figure}` directive works too, and becomes an `<img>` in the notebook:
 
-```{figure} image/demo.png
+```{figure} images/demo.png
 :alt: The same pixel, as a figure
 :width: 80px
 
@@ -40,7 +40,7 @@ print(text.strip())
 ## Reading an image file
 
 ```{code-cell} python
-with open("image/demo.png", "rb") as f:
+with open("images/demo.png", "rb") as f:
     header = f.read(8)
 print(header == b"\x89PNG\r\n\x1a\n")
 ```

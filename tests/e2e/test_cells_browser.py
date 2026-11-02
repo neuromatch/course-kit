@@ -139,7 +139,7 @@ def test_declared_data_and_image_files_are_readable_in_cells(page, base_url):
     run(data_cell)
     expect(status(data_cell)).to_contain_text("\u2713")
     assert "hello from the day data folder" in out_text(data_cell)
-    image_cell = panel_with(page, 'open("image/demo.png", "rb")')
+    image_cell = panel_with(page, 'open("images/demo.png", "rb")')
     run(image_cell)
     expect(status(image_cell)).to_contain_text("\u2713")
     assert "True" in out_text(image_cell)
@@ -232,4 +232,4 @@ def test_scrolly_page_gets_declared_data_and_image_files(page, base_url):
         expect(box.locator(".fl-stdout")).to_contain_text(expected, timeout=180_000)
 
     edit_and_run(0, 'print(open("data/demo.txt").read().strip().upper())', "HELLO FROM THE DAY DATA FOLDER")
-    edit_and_run(1, 'print("size", len(open("image/demo.png", "rb").read()))', "size 69")
+    edit_and_run(1, 'print("size", len(open("images/demo.png", "rb").read()))', "size 69")

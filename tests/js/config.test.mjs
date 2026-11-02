@@ -61,7 +61,7 @@ test('defaults without an nma block', () => {
     projectsDir: 'projects',
     notebooksBranch: 'notebooks-branch',
     assetsDataDir: 'data',
-    assetsImageDir: 'image',
+    assetsImageDir: 'images',
     assetsSlidesDir: 'slides',
     audience: 'student',
     nma: {},
@@ -101,7 +101,7 @@ test('slides folder defaults to slides and can be overridden', () => {
 
 test('asset folder names default to data/image and can be overridden', () => {
   const d = loadSettings('project:\n  github: https://github.com/o/r\n');
-  assert.deepEqual([d.assetsDataDir, d.assetsImageDir], ['data', 'image']);
+  assert.deepEqual([d.assetsDataDir, d.assetsImageDir], ['data', 'images']);
   const c = loadSettings('nma:\n  assets:\n    data: files\n    image: pics/\n');
   assert.deepEqual([c.assetsDataDir, c.assetsImageDir], ['files', 'pics']);
 });

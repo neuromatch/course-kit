@@ -27,8 +27,8 @@ def test_parse_matches_fixture(case):
 
 
 def test_parse_collects_paths():
-    text = ":::{nma-data}\ndata/a.npz\nimage/b.png\n:::\n"
-    assert parse_data_directive(text) == ["data/a.npz", "image/b.png"]
+    text = ":::{nma-data}\ndata/a.npz\nimages/b.png\n:::\n"
+    assert parse_data_directive(text) == ["data/a.npz", "images/b.png"]
 
 
 def test_parse_dedupes_across_blocks_in_order():
@@ -50,27 +50,27 @@ def test_find_directive_positions():
 
 def test_validate_rejects_unknown_prefix_and_escape():
     text = ":::{nma-data}\nfoo/a.npz\n../x.npz\n:::\n"
-    errs = validate_data_directives(text, "data", "image")
+    errs = validate_data_directives(text, "data", "images")
     assert len(errs) == 2
 
 
 def test_validate_rejects_absolute_path():
-    errs = validate_data_directives(":::{nma-data}\n/etc/passwd\n:::\n", "data", "image")
+    errs = validate_data_directives(":::{nma-data}\n/etc/passwd\n:::\n", "data", "images")
     assert len(errs) == 1
 
 
 def test_validate_rejects_unclosed():
-    errs = validate_data_directives(":::{nma-data}\ndata/a.npz\n", "data", "image")
+    errs = validate_data_directives(":::{nma-data}\ndata/a.npz\n", "data", "images")
     assert any("closed" in e for e in errs)
 
 
 def test_validate_rejects_inline_arg():
-    errs = validate_data_directives(":::{nma-data} oops\ndata/a.npz\n:::\n", "data", "image")
+    errs = validate_data_directives(":::{nma-data} oops\ndata/a.npz\n:::\n", "data", "images")
     assert any("argument" in e or "arg" in e for e in errs)
 
 
 def test_validate_rejects_empty_body():
-    errs = validate_data_directives(":::{nma-data}\n:::\n", "data", "image")
+    errs = validate_data_directives(":::{nma-data}\n:::\n", "data", "images")
     assert any("empty" in e or "no files" in e for e in errs)
 
 
@@ -96,7 +96,7 @@ def test_scan_matches_fixture(case):
 
 def test_undeclared_reference_is_error():
     md = '---\nkernelspec: {}\n---\n```{code-cell}\nnp.load("data/a.npz")\n```\n'
-    assert undeclared_reference_errors(md, "data", "image")
+    assert undeclared_reference_errors(md, "data", "images")
 
 
 def test_declared_reference_is_ok():
@@ -105,17 +105,17 @@ def test_declared_reference_is_ok():
         ':::{nma-data}\ndata/a.npz\n:::\n\n'
         '```{code-cell}\nnp.load("data/a.npz")\n```\n'
     )
-    assert undeclared_reference_errors(md, "data", "image") == []
+    assert undeclared_reference_errors(md, "data", "images") == []
 
 
 def test_reference_in_fenced_example_not_flagged():
     md = '---\nkernelspec: {}\n---\n````markdown\n```{code-cell}\nnp.load("data/a.npz")\n```\n````\n'
-    assert undeclared_reference_errors(md, "data", "image") == []
+    assert undeclared_reference_errors(md, "data", "images") == []
 
 
 def test_download_cell_source_has_paths_and_base():
-    src = download_cell_source(["data/a.npz", "image/b.png"], "org/repo", "nb", "W1D1")
-    assert "data/a.npz" in src and "image/b.png" in src
+    src = download_cell_source(["data/a.npz", "images/b.png"], "org/repo", "nb", "W1D1")
+    assert "data/a.npz" in src and "images/b.png" in src
     assert "https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/" in src
     assert "urlretrieve" in src
 
@@ -140,19 +140,19 @@ def test_insert_download_cell_idempotent_and_skips_empty():
 def test_rewrite_markdown_images():
     nb = {"cells": [{
         "cell_type": "markdown",
-        "source": ["![a](image/x.png)\n", "<img src=\"image/y.png\">\n", "[d](data/z.npz)\n"],
+        "source": ["![a](images/x.png)\n", "<img src=\"images/y.png\">\n", "[d](data/z.npz)\n"],
     }]}
-    count = rewrite_markdown_images(nb, "org/repo", "nb", "W1D1", "image")
+    count = rewrite_markdown_images(nb, "org/repo", "nb", "W1D1", "images")
     joined = "".join(nb["cells"][0]["source"])
     assert count == 2
-    assert "https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/image/x.png" in joined
-    assert "https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/image/y.png" in joined
+    assert "https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/images/x.png" in joined
+    assert "https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/images/y.png" in joined
     assert "data/z.npz" in joined  # non-image link untouched
 
 
 @pytest.mark.parametrize("case", FIXTURE["validate"], ids=[c["name"] for c in FIXTURE["validate"]])
 def test_validate_matches_fixture(case):
-    assert len(validate_data_directives(case["text"], "data", "image")) == case["errors"]
+    assert len(validate_data_directives(case["text"], "data", "images")) == case["errors"]
 
 
 from nma_kit.assets import missing_file_errors, strip_data_directives
@@ -183,10 +183,10 @@ def test_strip_data_directives_removes_directive_and_empty_cells():
 
 
 def test_rewrite_markdown_image_with_title():
-    nb = {"cells": [{"cell_type": "markdown", "source": ['![a](image/x.png "A title")\n']}]}
-    assert rewrite_markdown_images(nb, "org/repo", "nb", "W1D1", "image") == 1
+    nb = {"cells": [{"cell_type": "markdown", "source": ['![a](images/x.png "A title")\n']}]}
+    assert rewrite_markdown_images(nb, "org/repo", "nb", "W1D1", "images") == 1
     joined = "".join(nb["cells"][0]["source"])
-    assert 'notebooks/W1D1/image/x.png "A title")' in joined
+    assert 'notebooks/W1D1/images/x.png "A title")' in joined
 
 
 # --- {figure} / {image}, undeclared images, dynamic paths, size guard, download errors ---
@@ -203,7 +203,7 @@ from nma_kit.assets import (  # noqa: E402
 
 FIGURE = """Intro
 
-```{figure} image/atlas.png
+```{figure} images/atlas.png
 :alt: Brain atlas
 :width: 60%
 
@@ -216,62 +216,62 @@ after
 
 def test_find_image_directives_reads_options_and_caption():
     (d,) = find_image_directives(FIGURE)
-    assert (d.kind, d.path) == ("figure", "image/atlas.png")
+    assert (d.kind, d.path) == ("figure", "images/atlas.png")
     assert d.options == {"alt": "Brain atlas", "width": "60%"}
     assert d.caption == "The atlas, *annotated*."
 
 
 def test_find_image_directives_yaml_options_and_colon_fence():
-    text = ":::{image} image/a.png\n---\nalt: A\nwidth: 10px\n---\n:::\n"
+    text = ":::{image} images/a.png\n---\nalt: A\nwidth: 10px\n---\n:::\n"
     (d,) = find_image_directives(text)
     assert (d.kind, d.options, d.caption) == ("image", {"alt": "A", "width": "10px"}, "")
 
 
 def test_find_image_directives_ignores_nested_examples():
-    text = "````md\n```{figure} image/a.png\n```\n````\n"
+    text = "````md\n```{figure} images/a.png\n```\n````\n"
     assert find_image_directives(text) == []
 
 
 def test_convert_image_directives_makes_img_with_published_url_and_caption():
-    out, n = convert_image_directives(FIGURE, "org/repo", "nb", "W1D1", "image")
+    out, n = convert_image_directives(FIGURE, "org/repo", "nb", "W1D1", "images")
     assert n == 1
-    assert '<img src="https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/image/atlas.png"' in out
+    assert '<img src="https://raw.githubusercontent.com/org/repo/nb/notebooks/W1D1/images/atlas.png"' in out
     assert 'alt="Brain atlas"' in out and 'width="60%"' in out
     assert "*The atlas, *annotated*.*" in out
     assert "{figure}" not in out and out.startswith("Intro\n") and out.rstrip().endswith("after")
 
 
 def test_convert_image_directives_keeps_external_urls():
-    out, _ = convert_image_directives("```{image} https://x.org/a.png\n```\n", "o/r", "nb", "d", "image")
+    out, _ = convert_image_directives("```{image} https://x.org/a.png\n```\n", "o/r", "nb", "d", "images")
     assert 'src="https://x.org/a.png"' in out
 
 
 def test_rewrite_markdown_images_counts_directives():
     nb = {"cells": [{"cell_type": "markdown", "source": FIGURE.splitlines(keepends=True)}]}
-    assert rewrite_markdown_images(nb, "org/repo", "nb", "W1D1", "image") == 1
+    assert rewrite_markdown_images(nb, "org/repo", "nb", "W1D1", "images") == 1
     assert "raw.githubusercontent.com" in "".join(nb["cells"][0]["source"])
 
 
 def test_image_references_cover_markdown_html_and_directives():
     text = (
-        "![a](image/a.png)\n<img src='image/b.png' width=3>\n```{figure} image/c.png\n```\n"
-        "```python\n![x](image/skip.png)\n```\n![ext](https://x.org/image/z.png)\n"
+        "![a](images/a.png)\n<img src='images/b.png' width=3>\n```{figure} images/c.png\n```\n"
+        "```python\n![x](images/skip.png)\n```\n![ext](https://x.org/images/z.png)\n"
     )
-    assert image_references(text, "image") == ["image/a.png", "image/b.png", "image/c.png"]
+    assert image_references(text, "images") == ["images/a.png", "images/b.png", "images/c.png"]
 
 
 def test_undeclared_image_errors():
-    text = ":::{nma-data}\nimage/a.png\n:::\n![a](image/a.png)\n![b](image/b.png)\n"
-    errors = undeclared_image_errors(text, "image")
-    assert len(errors) == 1 and "image/b.png" in errors[0]
+    text = ":::{nma-data}\nimages/a.png\n:::\n![a](images/a.png)\n![b](images/b.png)\n"
+    errors = undeclared_image_errors(text, "images")
+    assert len(errors) == 1 and "images/b.png" in errors[0]
 
 
 def test_dynamic_reference_errors_need_a_declared_file_in_that_folder():
     code = '```{code-cell} python\nnp.load(f"data/{name}.npz")\n```\n'
-    assert len(dynamic_reference_errors(code, "data", "image")) == 1
+    assert len(dynamic_reference_errors(code, "data", "images")) == 1
     declared = ":::{nma-data}\ndata/a.npz\n:::\n" + code
-    assert dynamic_reference_errors(declared, "data", "image") == []
-    assert dynamic_reference_errors('```{code-cell} python\nx = f"hello/{y}"\n```\n', "data", "image") == []
+    assert dynamic_reference_errors(declared, "data", "images") == []
+    assert dynamic_reference_errors('```{code-cell} python\nx = f"hello/{y}"\n```\n', "data", "images") == []
 
 
 def test_embed_size_errors(tmp_path):

@@ -23,7 +23,7 @@ for (const c of FIXTURE.asset_url) {
 
 for (const c of FIXTURE.validate) {
   test(`validateDataDirectives: ${c.name}`, () => {
-    assert.equal(validateDataDirectives(c.text, 'data', 'image').length, c.errors);
+    assert.equal(validateDataDirectives(c.text, 'data', 'images').length, c.errors);
   });
 }
 

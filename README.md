@@ -92,7 +92,7 @@ nma:
     pyodide_url: https://cdn.jsdelivr.net/pyodide/v314.0.7/full/
   assets:                         # folders (inside a day folder) for {nma-data} files and {nma-slides} PDFs
     data: data
-    image: image
+    image: images
     slides: slides
   brand:                          # colours, see "Site branding"
     primary: "#008CBF"

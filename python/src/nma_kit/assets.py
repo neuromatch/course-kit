@@ -1,13 +1,13 @@
 """
 Parse {nma-data} directives and resolve asset (data / image) references.
 
-A course keeps shared files in a day folder's `data/` and `image/` folders and
+A course keeps shared files in a day folder's `data/` and `images/` folders and
 declares, per tutorial, which files it needs:
 
     :::{nma-data}
     data/spikes.npz
     data/lfp.npz
-    image/atlas.png
+    images/atlas.png
     :::
 
 That declaration is the single manifest for the tutorial. It drives:
