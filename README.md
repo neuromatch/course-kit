@@ -4,14 +4,15 @@ The tooling behind Neuromatch courses built with [MyST](https://mystmd.org),
 in one versioned package:
 
 - **MyST plugin**: `{nma-video}`, `{nma-slides}`, `{nma-solution}`,
-  `{nma-explanation}`, `{nma-feedback}`, `{nma-data}` (data and image files), scrollytelling pages (`{step}`,
+  `{nma-explanation}`, `{nma-instructor}` (notes for the instructor site), `{nma-feedback}`, `{nma-data}` (data and image files), scrollytelling pages (`{step}`,
   `{stage}`) and editable, runnable code cells.
 - **`nma-kit` CLI**: content checks, notebook generation (student, instructor,
   solutions), scrolly pre-rendering, site preparation, notebook publishing.
 - **Site branding**: the Neuromatch stylesheet, Rubik font, logos and favicon,
   written into a course by `nma-kit sync-assets`.
 - **Reusable GitHub workflows**: check pull requests, preview them on
-  Cloudflare Pages, publish notebooks and the site to GitHub Pages.
+  Cloudflare Pages, publish notebooks and the site to GitHub Pages, and
+  optionally publish an instructor site.
 
 Courses *use* a version of the kit instead of carrying a copy, so a fix
 ships once. Start a course from
@@ -133,6 +134,72 @@ Setup, once per course repository:
 Without the secrets the job still builds the site and skips the deploy with a
 notice, so a course can adopt the template before it has Cloudflare. Delete
 the job to turn previews off.
+
+When the [instructor site](#instructor-site) is on (the variable
+`CLOUDFLARE_INSTRUCTOR_PROJECT` is set), each push is built a second time as the
+instructor site, and the comment carries a second link,
+`https://pr-<number>.<instructor project>.pages.dev`. It goes to the instructor
+project as the branch `pr-<number>`, never to the project's production branch
+(the live instructor site), with the same secrets. Closing the pull request
+removes both previews. Without the variable there is no second build.
+
+## Instructor site
+
+A second build of the same course for instructors, published at its own address
+such as `instructor.<course domain>`. It differs from the student site in four
+ways:
+
+- `{nma-solution}` and `{nma-explanation}` show their content inline, in
+  collapsed boxes, instead of "Click for solution" links.
+- The Colab and Kaggle buttons open the generated **instructor notebooks**
+  (solutions filled in).
+- `{nma-instructor}` notes (teaching notes: timing, common mistakes) appear as
+  "Instructor notes" boxes. They are removed from the student site and from every
+  generated notebook.
+- Search engines are told to stay away (`robots.txt` and a `noindex` header),
+  and there is no sitemap.
+
+It is **not access controlled**: the solutions stay on the public notebooks
+branch, and students may read them. It is a convenience view, built by setting
+`NMA_AUDIENCE=instructor`.
+
+`{nma-instructor}` takes Markdown and sits at the top level of a page:
+
+```markdown
+:::{nma-instructor}
+Allow 10 minutes here. Students often forget the sign.
+:::
+```
+
+Setup, once per course repository (the course template's `publish` job already
+passes the settings):
+
+1. Optional: in Cloudflare, create a Pages project (Workers & Pages → Create →
+   Pages → Direct Upload), for example `my-course-instructor`. The first deploy
+   creates it otherwise.
+2. In the repo (Settings → Secrets and variables → Actions), set the variable
+   `CLOUDFLARE_INSTRUCTOR_PROJECT` to the project name. The secrets
+   `CLOUDFLARE_API_TOKEN` (Cloudflare Pages: Edit) and `CLOUDFLARE_ACCOUNT_ID`
+   are the ones the pull request previews use.
+3. Make sure the `publish` job in `.github/workflows/course.yml` has the
+   `instructor-cloudflare-project` input and `secrets: inherit` (see
+   [`templates/course.yml`](templates/course.yml)).
+4. Push to `main`, so the project gets its first deployment.
+5. In the Cloudflare project: Custom domains → Set up a custom domain →
+   `instructor.<course domain>`. If the domain's DNS is on Cloudflare, accept the
+   CNAME it offers. Otherwise add a CNAME from `instructor` to
+   `<project>.pages.dev` at your DNS provider. The kit does not manage DNS.
+6. Check: open the address, a solution shows inline, and `/robots.txt` says
+   `Disallow: /`.
+
+Without the variable or the secrets the job is skipped and nothing else changes.
+To build it locally, export the audience so every command sees it:
+
+```bash
+export NMA_AUDIENCE=instructor
+nma-kit prepare-site && myst build --html && nma-kit finalize-site
+git checkout -- tutorials projects myst.yml   # undo prepare-site
+```
 
 ## Site branding
 

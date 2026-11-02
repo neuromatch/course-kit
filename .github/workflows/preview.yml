@@ -2,7 +2,8 @@
 # (kit-source: local) and deployed to Cloudflare Pages by the reusable
 # course-preview workflow, the way a course would call it. Needs the
 # CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets and the
-# CLOUDFLARE_PROJECT variable on this repository; without them the deploy is
+# CLOUDFLARE_PROJECT variable on this repository (plus CLOUDFLARE_INSTRUCTOR_PROJECT
+# for the instructor preview of the example course); without them the deploy is
 # skipped. The PR's notebooks go to the branch notebooks-pr-<n> of this repo
 # (the example course publishes here); closing the PR deletes it.
 name: Preview
@@ -26,6 +27,7 @@ jobs:
       pr-number: ${{ github.event.pull_request.number }}
       action: ${{ github.event.action == 'closed' && 'cleanup' || 'deploy' }}
       cloudflare-project: ${{ vars.CLOUDFLARE_PROJECT }}
+      instructor-cloudflare-project: ${{ vars.CLOUDFLARE_INSTRUCTOR_PROJECT }}
       working-directory: tests/example-course
       kit-source: local
     secrets: inherit

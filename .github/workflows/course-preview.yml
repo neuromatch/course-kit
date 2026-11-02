@@ -5,6 +5,10 @@
 # NMA_NOTEBOOKS_BRANCH, which every generated link follows), deploy the site as
 # Pages branch `pr-<n>` (https://pr-<n>.<project>.pages.dev) and keep one
 # comment with the link. On close: delete the branch and the deployments.
+# With `instructor-cloudflare-project` set, the same push also builds the
+# instructor site (NMA_AUDIENCE=instructor) and deploys it as Pages branch
+# `pr-<n>` of that project (https://pr-<n>.<instructor project>.pages.dev, never
+# its production branch); closing deletes both previews.
 # Same-repository pull requests only (fork PRs get no secrets).
 #
 #   on:
@@ -40,6 +44,10 @@ on:
         default: deploy
       cloudflare-project:
         description: The Cloudflare Pages project name (created on first deploy).
+        type: string
+        default: ""
+      instructor-cloudflare-project:
+        description: The instructor site's Cloudflare Pages project (the one course-publish deploys to). Empty means no instructor preview.
         type: string
         default: ""
       python-version:
@@ -88,6 +96,7 @@ jobs:
       NMA_NOTEBOOKS_BRANCH: notebooks-pr-${{ inputs.pr-number }}
       PR_NUMBER: ${{ inputs.pr-number }}
       PROJECT: ${{ inputs.cloudflare-project }}
+      INSTRUCTOR_PROJECT: ${{ inputs.instructor-cloudflare-project }}
       # The Cloudflare secrets are set only on the steps that need them, never
       # on steps that run PR code (pip install, nma-kit, myst build).
       GH_TOKEN: ${{ github.token }}
@@ -102,11 +111,18 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         working-directory: ${{ github.workspace }} # before checkout the course folder doesn't exist
         run: |
+          enabled=false
           if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && [ -n "$PROJECT" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            enabled=true
           else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Preview not deployed: set the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets and the CLOUDFLARE_PROJECT variable."
+          fi
+          echo "enabled=$enabled" >> "$GITHUB_OUTPUT"
+          # The instructor preview needs the same Cloudflare setup plus its own project.
+          if [ "$enabled" = true ] && [ -n "$INSTRUCTOR_PROJECT" ]; then
+            echo "instructor=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "instructor=false" >> "$GITHUB_OUTPUT"
           fi
 
       # One sticky comment, updated through the run: building -> link or failure.
@@ -223,19 +239,67 @@ jobs:
           url=$(jq -rs 'map(select(.type == "pages-deploy-detail") | .url) | last // empty' "$WRANGLER_OUTPUT_FILE_PATH" 2>/dev/null || true)
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
+      # The instructor site is a second build of the same pull request. MyST
+      # would reuse what it processed for the student audience, so clear it.
+      - name: Build the instructor site
+        if: steps.cf.outputs.instructor == 'true'
+        env:
+          NMA_AUDIENCE: instructor
+        run: |
+          rm -rf _build/site
+          nma-kit prepare-site
+          myst build --html
+          nma-kit finalize-site
+
+      - name: Ensure the instructor project exists
+        if: steps.cf.outputs.instructor == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$INSTRUCTOR_PROJECT"
+          status() { curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$api"; }
+          code=$(status)
+          if [ "$code" = 404 ]; then
+            # A parallel run may create it first: re-check before failing.
+            npx --yes "wrangler@$WRANGLER_VERSION" pages project create "$INSTRUCTOR_PROJECT" --production-branch main \
+              || [ "$(status)" = 200 ]
+          elif [ "$code" != 200 ]; then
+            echo "::error::Cloudflare returned HTTP $code for project $INSTRUCTOR_PROJECT: check the token (Pages: Edit), account id and project name."
+            exit 1
+          fi
+
+      # Always the pr-<n> branch, never main: the live instructor site is this project's production branch.
+      - name: Deploy instructor preview
+        if: steps.cf.outputs.instructor == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes "wrangler@$WRANGLER_VERSION" pages deploy _build/html \
+            --project-name "$INSTRUCTOR_PROJECT" --branch "pr-$PR_NUMBER" \
+            --commit-hash "$GITHUB_SHA" --commit-message "PR #$PR_NUMBER instructor (${GITHUB_SHA::7})" \
+            --commit-dirty=true
+
       - name: Comment the preview link
         if: steps.cf.outputs.enabled == 'true'
         env:
           COMMIT_URL: ${{ steps.deploy.outputs.url }}
+          INSTRUCTOR_ENABLED: ${{ steps.cf.outputs.instructor }}
         run: |
           url="https://pr-$PR_NUMBER.$PROJECT.pages.dev"
+          instructor_url="https://pr-$PR_NUMBER.$INSTRUCTOR_PROJECT.pages.dev"
+          links="**Preview:** $url"
+          if [ "$INSTRUCTOR_ENABLED" = true ]; then links="$links
+          **Instructor preview:** $instructor_url"; fi
           line="Built from \`${GITHUB_SHA::7}\`"
           if [ -n "$COMMIT_URL" ]; then line="$line ([this exact build]($COMMIT_URL))"; fi
-          "$RUNNER_TEMP/comment.sh" "**Preview:** $url
+          "$RUNNER_TEMP/comment.sh" "$links
           $line. Notebook buttons open \`$NMA_NOTEBOOKS_BRANCH\`. Removed when this pull request closes."
           {
             echo "### Preview"
             echo "- Latest: $url"
+            if [ "$INSTRUCTOR_ENABLED" = true ]; then echo "- Instructor: $instructor_url"; fi
             if [ -n "$COMMIT_URL" ]; then echo "- This build (\`${GITHUB_SHA::7}\`): $COMMIT_URL"; fi
             echo "- Notebooks: branch \`$NMA_NOTEBOOKS_BRANCH\`"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -257,6 +321,7 @@ jobs:
     env:
       PR_NUMBER: ${{ inputs.pr-number }}
       PROJECT: ${{ inputs.cloudflare-project }}
+      INSTRUCTOR_PROJECT: ${{ inputs.instructor-cloudflare-project }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       GH_TOKEN: ${{ github.token }}
@@ -273,25 +338,30 @@ jobs:
             echo "::notice::Cloudflare is not configured: no deployments to delete."
             exit 0
           fi
-          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT/deployments"
           auth="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
-          # Collect every id first: deleting while paging would skip entries.
-          ids=""; page=1
-          while :; do
-            result=$(curl -fsS -H "$auth" "$api?per_page=25&page=$page")
-            ids="$ids $(echo "$result" | jq -r --arg b "pr-$PR_NUMBER" \
-              '.result[] | select(.deployment_trigger.metadata.branch == $b) | .id')"
-            [ "$(echo "$result" | jq '.result | length')" -lt 25 ] && break
-            page=$((page + 1))
-          done
-          # Keep going when one delete fails; report at the end.
           failed=0
-          for id in $ids; do
-            if curl -fsS -X DELETE -H "$auth" "$api/$id?force=true" >/dev/null; then
-              echo "Deleted deployment $id"
-            else
-              echo "::warning::Could not delete deployment $id"; failed=1
-            fi
+          # The student preview project, and the instructor project when there is one.
+          for project in "$PROJECT" "$INSTRUCTOR_PROJECT"; do
+            [ -n "$project" ] || continue
+            api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$project/deployments"
+            # Collect every id first: deleting while paging would skip entries.
+            # Exact branch name: PR 1 must not match pr-12.
+            ids=""; page=1
+            while :; do
+              result=$(curl -fsS -H "$auth" "$api?per_page=25&page=$page") || { echo "::warning::Could not list deployments of $project"; failed=1; break; }
+              ids="$ids $(echo "$result" | jq -r --arg b "pr-$PR_NUMBER" \
+                '.result[] | select(.deployment_trigger.metadata.branch == $b) | .id')"
+              [ "$(echo "$result" | jq '.result | length')" -lt 25 ] && break
+              page=$((page + 1))
+            done
+            # Keep going when one delete fails; report at the end.
+            for id in $ids; do
+              if curl -fsS -X DELETE -H "$auth" "$api/$id?force=true" >/dev/null; then
+                echo "Deleted deployment $id of $project"
+              else
+                echo "::warning::Could not delete deployment $id of $project"; failed=1
+              fi
+            done
           done
           exit $failed
 

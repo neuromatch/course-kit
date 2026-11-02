@@ -1,5 +1,5 @@
 // Where a course page and its generated files live.
-// Twins in Python: nma_kit.config.page_location, nma_kit.convert.make_badge_html,
+// Twins in Python: nma_kit.config.page_location / notebook_rel_path, nma_kit.convert.make_badge_html,
 // nma_kit.solutions.solution_url; shared fixtures in tests/fixtures/config/.
 
 import { readFileSync } from 'node:fs';
@@ -52,12 +52,18 @@ export function pageLocation(filePath) {
   return null;
 }
 
+/** Path of the notebook a page's badges open (twin of notebook_rel_path): the instructor one for the instructor audience. */
+export function notebookPath(location, audience) {
+  const folder = ['notebooks', notebookDir(location), audience === 'instructor' ? 'instructor' : ''].filter(Boolean).join('/');
+  return `${folder}/${location.stem}.ipynb`;
+}
+
 /** Colab and Kaggle URLs of a page's generated notebook (same as make_badge_html). */
 export function notebookUrls(filePath) {
-  const { githubRepo: repo, notebooksBranch: branch } = courseSettings();
+  const { githubRepo: repo, notebooksBranch: branch, audience } = courseSettings();
   const location = pageLocation(filePath);
   if (!repo || !location) return { colabUrl: 'https://colab.research.google.com/', kaggleUrl: 'https://www.kaggle.com/' };
-  const path = ['notebooks', notebookDir(location), `${location.stem}.ipynb`].filter(Boolean).join('/');
+  const path = notebookPath(location, audience);
   return {
     colabUrl: `https://colab.research.google.com/github/${repo}/blob/${branch}/${path}`,
     kaggleUrl: `https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/${repo}/${branch}/${path}`,

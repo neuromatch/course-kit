@@ -57,7 +57,10 @@ def test_cloudflare_secrets_only_on_steps_that_need_them():
     job = workflow()["jobs"]["preview"]
     assert "CLOUDFLARE_API_TOKEN" not in job["env"]
     with_secret = {s["name"] for s in job["steps"] if "CLOUDFLARE_API_TOKEN" in s.get("env", {})}
-    assert with_secret == {"Check Cloudflare setup", "Ensure the Pages project exists", "Deploy to Cloudflare Pages"}
+    assert with_secret == {
+        "Check Cloudflare setup", "Ensure the Pages project exists", "Deploy to Cloudflare Pages",
+        "Ensure the instructor project exists", "Deploy instructor preview",
+    }
 
 
 def test_wrangler_is_pinned_exactly():
@@ -121,3 +124,75 @@ def test_steps_before_checkout_do_not_use_the_course_directory():
             break
         if "run" in step:
             assert step.get("working-directory") == "${{ github.workspace }}", step["name"]
+
+
+def _preview_step(name: str) -> dict:
+    return next(s for s in workflow()["jobs"]["preview"]["steps"] if s.get("name") == name)
+
+
+INSTRUCTOR_ON = "steps.cf.outputs.instructor == 'true'"
+
+
+def test_the_instructor_preview_is_opt_in_through_its_own_project():
+    call = workflow()[True]["workflow_call"]
+    assert call["inputs"]["instructor-cloudflare-project"]["default"] == ""
+    assert workflow()["jobs"]["preview"]["env"]["INSTRUCTOR_PROJECT"] == "${{ inputs.instructor-cloudflare-project }}"
+    check = _preview_step("Check Cloudflare setup")["run"]
+    assert '[ -n "$INSTRUCTOR_PROJECT" ]' in check and "instructor=true" in check
+    assert "instructor=false" in check
+
+
+def test_instructor_steps_come_after_the_student_deploy_and_are_gated_on_the_instructor_project():
+    names = [s.get("name") for s in workflow()["jobs"]["preview"]["steps"]]
+    order = ["Deploy to Cloudflare Pages", "Build the instructor site", "Ensure the instructor project exists",
+             "Deploy instructor preview", "Comment the preview link"]
+    positions = [names.index(n) for n in order]
+    assert positions == sorted(positions)
+    for name in order[1:4]:
+        assert _preview_step(name)["if"] == INSTRUCTOR_ON, name
+
+
+def test_the_instructor_build_sets_the_audience_on_its_own_step_only():
+    assert "NMA_AUDIENCE" not in workflow()["jobs"]["preview"]["env"]
+    build = _preview_step("Build the instructor site")
+    assert build["env"]["NMA_AUDIENCE"] == "instructor"
+    for command in ("rm -rf _build/site", "nma-kit prepare-site", "myst build --html", "nma-kit finalize-site"):
+        assert command in build["run"], command
+
+
+def test_the_instructor_preview_deploys_pr_n_to_the_instructor_project():
+    deploy = _preview_step("Deploy instructor preview")["run"]
+    assert '--project-name "$INSTRUCTOR_PROJECT"' in deploy and '--branch "pr-$PR_NUMBER"' in deploy
+    assert "-instructor" not in deploy.replace("INSTRUCTOR", "") and "inputs." not in deploy
+    ensure = _preview_step("Ensure the instructor project exists")["run"]
+    assert "$INSTRUCTOR_PROJECT" in ensure and "--production-branch main" in ensure and "|| true" not in ensure
+
+
+def test_the_comment_links_the_instructor_preview_only_when_it_exists():
+    step = _preview_step("Comment the preview link")
+    assert step["env"]["INSTRUCTOR_ENABLED"] == "${{ steps.cf.outputs.instructor }}"
+    run = step["run"]
+    assert "https://pr-$PR_NUMBER.$PROJECT.pages.dev" in run
+    assert "https://pr-$PR_NUMBER.$INSTRUCTOR_PROJECT.pages.dev" in run
+    assert '"$INSTRUCTOR_ENABLED" = true' in run and "Instructor preview" in run
+
+
+def test_cleanup_deletes_pr_n_in_both_projects_by_exact_match():
+    job = workflow()["jobs"]["cleanup"]
+    assert job["env"]["INSTRUCTOR_PROJECT"] == "${{ inputs.instructor-cloudflare-project }}"
+    run = next(s for s in job["steps"] if s.get("name") == "Delete the Cloudflare deployments")["run"]
+    assert 'for project in "$PROJECT" "$INSTRUCTOR_PROJECT"' in run
+    assert '--arg b "pr-$PR_NUMBER"' in run and ".deployment_trigger.metadata.branch == $b" in run
+    assert "startswith" not in run and "test(" not in run and "contains" not in run  # PR 1 must not match pr-12
+
+
+def test_template_passes_the_instructor_project_to_the_preview():
+    job = yaml.safe_load(TEMPLATE.read_text())["jobs"]["preview"]
+    assert job["with"]["instructor-cloudflare-project"] == "${{ vars.CLOUDFLARE_INSTRUCTOR_PROJECT }}"
+
+
+def test_the_kits_own_preview_passes_the_instructor_project():
+    """.github/workflows/preview.yml previews kit PRs with the example course: without this input
+    the instructor preview never runs there, whatever the repository variable says."""
+    job = yaml.safe_load((KIT / ".github" / "workflows" / "preview.yml").read_text())["jobs"]["preview"]
+    assert job["with"]["instructor-cloudflare-project"] == "${{ vars.CLOUDFLARE_INSTRUCTOR_PROJECT }}"

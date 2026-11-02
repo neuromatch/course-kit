@@ -64,6 +64,15 @@ def test_prepare_site_pins_kit_url_and_adds_badges(tmp_path, monkeypatch):
     assert "colab.research.google.com/github/org/repo/blob/notebooks-branch/notebooks/tutorials/D/T.ipynb" in page
 
 
+def test_prepare_site_badges_open_the_instructor_notebook_for_the_instructor_audience(tmp_path, monkeypatch):
+    monkeypatch.chdir(course(tmp_path))
+    monkeypatch.setenv("NMA_AUDIENCE", "instructor")
+    assert main(["prepare-site"]) == 0
+    page = (tmp_path / "tutorials" / "D" / "T.md").read_text()
+    assert "blob/notebooks-branch/notebooks/tutorials/D/instructor/T.ipynb" in page
+    assert "notebooks/tutorials/D/T.ipynb" not in page
+
+
 def test_prepare_site_defaults_to_own_version(tmp_path, monkeypatch):
     from nma_kit import __version__
 

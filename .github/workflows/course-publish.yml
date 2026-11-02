@@ -9,6 +9,14 @@
 #
 # Pages: Settings -> Pages -> Source: GitHub Actions. A custom domain is set
 # there too (no CNAME file needed).
+#
+# Instructor site (optional): with the input `instructor-cloudflare-project` and
+# the secrets CLOUDFLARE_API_TOKEN ("Cloudflare Pages: Edit") and
+# CLOUDFLARE_ACCOUNT_ID, the `instructor` job builds the same course with
+# NMA_AUDIENCE=instructor and deploys it to that Cloudflare Pages project, in
+# parallel with the Pages deploy. Attach the custom domain (for example
+# instructor.<course domain>) to the project in the Cloudflare dashboard. See
+# the README, "Instructor site". Without the input or secrets the job is skipped.
 name: Course publish
 
 on:
@@ -34,6 +42,18 @@ on:
         description: "`pypi` (courses) or `local` (the kit's own CI: install ./python and build ./js)."
         type: string
         default: pypi
+      instructor-cloudflare-project:
+        description: The Cloudflare Pages project of the instructor site (created on first deploy). Empty means no instructor site.
+        type: string
+        default: ""
+    secrets:
+      CLOUDFLARE_API_TOKEN:
+        required: false
+      CLOUDFLARE_ACCOUNT_ID:
+        required: false
+
+env:
+  WRANGLER_VERSION: 4.152.0 # pinned: bump deliberately (same as course-preview.yml)
 
 jobs:
   build:
@@ -94,6 +114,10 @@ jobs:
       - name: Build the site
         run: myst build --html
 
+      # MyST's robots.txt and sitemap point at localhost:3000: replace them.
+      - name: Finish the site
+        run: nma-kit finalize-site
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ inputs.working-directory }}/_build/html
@@ -113,3 +137,119 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # The instructor site: the same course built with NMA_AUDIENCE=instructor (solutions
+  # inline, instructor notebooks, {nma-instructor} notes). Needs `build` (the notebooks
+  # are pushed there), not `deploy`, so both sites go out at the same time and neither
+  # can block the other. It does not push notebooks.
+  instructor:
+    needs: build
+    if: inputs.instructor-cloudflare-project != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    concurrency:
+      group: instructor-${{ github.repository }}
+      cancel-in-progress: false
+    env:
+      NMA_AUDIENCE: instructor
+      PROJECT: ${{ inputs.instructor-cloudflare-project }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      # Secrets are not available in a job-level `if`, so every step after this
+      # one is gated on the result.
+      - name: Check Cloudflare setup
+        id: cf
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        working-directory: ${{ github.workspace }} # before checkout the course folder doesn't exist
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && [ -n "$PROJECT" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Instructor site not deployed: set the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets (and pass instructor-cloudflare-project)."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.cf.outputs.enabled == 'true'
+
+      - name: Fetch the kit's setup action
+        if: steps.cf.outputs.enabled == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .course-kit
+          sparse-checkout: |
+            .github/actions/setup-course
+            .tool-versions
+            .release-please-manifest.json
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - if: steps.cf.outputs.enabled == 'true'
+        uses: ./.course-kit/.github/actions/setup-course
+        with:
+          working-directory: ${{ inputs.working-directory }}
+          python-version: ${{ inputs.python-version }}
+          requirements: ${{ inputs.requirements }}
+          kit-source: ${{ inputs.kit-source }}
+          kit-version: ${{ inputs.kit-version }}
+
+      - name: Pre-render scrolly pages
+        if: steps.cf.outputs.enabled == 'true'
+        run: nma-kit render-scrolly
+
+      # Badges open the instructor notebooks (already on the notebooks branch).
+      - name: Prepare pages
+        if: steps.cf.outputs.enabled == 'true'
+        run: nma-kit prepare-site
+
+      - name: Build the site
+        if: steps.cf.outputs.enabled == 'true'
+        run: myst build --html
+
+      # robots.txt Disallow, noindex header, no sitemap.
+      - name: Finish the site
+        if: steps.cf.outputs.enabled == 'true'
+        run: nma-kit finalize-site
+
+      - name: Cache wrangler
+        if: steps.cf.outputs.enabled == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: wrangler-${{ env.WRANGLER_VERSION }}
+
+      - name: Ensure the Pages project exists
+        if: steps.cf.outputs.enabled == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT"
+          status() { curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$api"; }
+          code=$(status)
+          if [ "$code" = 404 ]; then
+            # A parallel run may create it first: re-check before failing.
+            npx --yes "wrangler@$WRANGLER_VERSION" pages project create "$PROJECT" --production-branch main \
+              || [ "$(status)" = 200 ]
+          elif [ "$code" != 200 ]; then
+            echo "::error::Cloudflare returned HTTP $code for project $PROJECT: check the token (Pages: Edit), account id and project name."
+            exit 1
+          fi
+
+      - name: Deploy to Cloudflare Pages
+        if: steps.cf.outputs.enabled == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes "wrangler@$WRANGLER_VERSION" pages deploy _build/html \
+            --project-name "$PROJECT" --branch main \
+            --commit-hash "$GITHUB_SHA" --commit-message "Instructor site (${GITHUB_SHA::7})" \
+            --commit-dirty=true

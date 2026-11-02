@@ -27,11 +27,12 @@ is the compatible line. See README.md.
 js/
   biome.json                  # JS lint config
   src/
-    index.mjs                 # merges every feature plugin (transform order: solutions, feedback, scrolly, cells)
+    index.mjs                 # merges every feature plugin (transform order: solutions, feedback, assets, scrolly, cells)
     shared/                   # config.mjs (myst.yml settings, YAML), paths.mjs (page location, notebook/solution URLs),
                               # assets.mjs (assetUrl), frontmatter.mjs (isScrolly), tree.mjs (mdast helpers)
     media/plugin.mjs          # {nma-video}, {nma-slides} -> static iframes / tab sets (model.mjs: slide URLs)
-    solutions/plugin.mjs      # {nma-solution}, {nma-explanation} -> "Click for ..." links
+    solutions/plugin.mjs      # {nma-solution}, {nma-explanation} -> "Click for ..." links (inline dropdowns when NMA_AUDIENCE=instructor)
+    instructor/plugin.mjs     # {nma-instructor} -> "Instructor notes" box on the instructor site, nothing on the student site
     assets/plugin.mjs         # {nma-data} -> "Data used by this notebook" note; embeds declared files (base64) for cells
     feedback/plugin.mjs       # {nma-feedback} -> anywidget; assets/widget.mjs posts to datatops
     scrolly/plugin.mjs        # {step}/{stage}, stage/card layout; assets/{engine,runnable}.mjs, *.css
@@ -41,11 +42,12 @@ js/
   build.mjs                   # esbuild: dist/nma.mjs + dist/assets/<feature>/ (+ dist/nma.yml on release)
   nma.yml.tmpl                # the config courses `extend:`
 python/src/nma_kit/
-  cli.py                      # nma-kit init | check | notebooks | render-scrolly | sync-assets | prepare-site | publish-notebooks
+  cli.py                      # nma-kit init | check | notebooks | render-scrolly | sync-assets | prepare-site | publish-notebooks | finalize-site
   constants.json, constants.py  # values shared with the JS plugin (single source, see Rules)
   config.py                   # Settings from myst.yml (github repo, nma.paths.tutorials, nma.notebooks.branch)
   convert.py                  # content rules, jupytext conversion, badges, prepare-site
-  media.py solutions.py feedback.py scrolly.py cells.py assets.py   # Python side of each feature
+  media.py solutions.py feedback.py scrolly.py cells.py assets.py instructor.py   # Python side of each feature
+  site.py                     # finalize-site: robots.txt, no sitemap, noindex header for the instructor site
   scaffold.py                 # init: renders templates/course/ (+ licenses/, workflows/) into a new course
   templates/                  # course/ (starter files; *.tmpl rendered, dot-x -> .x), licenses/, workflows/ (mirror, see Rules)
   pin.py                      # pin course-kit CDN URLs in myst.yml to one version
@@ -89,6 +91,8 @@ templates/wheels.yml          # optional caller for course-wheels.yml
     The strict code-reference scan and the notebook download cell are Python-only.
   - Solution file naming and URLs (`solutions/plugin.mjs`, `shared/paths.mjs` / `solutions.py`).
   - Course settings and page location (`shared/config.mjs`, `shared/paths.mjs` / `config.py`), `tests/fixtures/config/settings.json`.
+  - The notebook path per audience (`notebookPath` / `notebook_rel_path`): the instructor audience gets
+    `notebooks/<root>/<dir>/instructor/<stem>.ipynb`, same fixture.
   - The notebooks branch: `NMA_NOTEBOOKS_BRANCH` overrides `nma.notebooks.branch` in
     `load_settings` / `loadSettings` (blank is ignored), `tests/fixtures/config/settings.json` (`env`).
   - The `nma:` block reader (`readNmaConfig` / `read_nma_block`, both YAML), `tests/fixtures/nma_config/`.
@@ -98,6 +102,12 @@ templates/wheels.yml          # optional caller for course-wheels.yml
     trailing spaces/tabs stripped per line, outer blank lines stripped.
   - `runtimeOf`/`runtime_of`, `tests/fixtures/cells/runtime.json`. `NO_FALLBACK_MARKER` is
     shared through `constants.json`.
+- **Audiences.** `NMA_AUDIENCE` (`student`, the default, or `instructor`; env only, no `myst.yml` key) selects
+  which site a build is: `Settings.audience` / `loadSettings().audience`, tested through the `env` cases of
+  `tests/fixtures/config/settings.json`. `nma-kit check` rejects other values. The **student build never contains
+  instructor-only text**: `{nma-solution}` / `{nma-explanation}` are links on the student site and inline dropdowns
+  on the instructor site; `{nma-instructor}` notes exist only on the instructor site and are stripped from every
+  notebook (`instructor.strip_notes`). Anything new that differs by audience reads the setting, never a second flag.
 - **Asset URLs** come from `shared/assets.mjs`:
   - release build: `https://cdn.jsdelivr.net/npm/@neuromatch/course-kit@<exact version>/dist/assets/<rel>`.
     MyST downloads these at build time and serves them from the site (`build/<md5>.mjs`),
@@ -324,6 +334,10 @@ downloads); CI retries failed tests once.
   to this repo, so each open PR has a `notebooks-pr-<n>` branch here until it closes. It is
   skipped for the release-please PR (version strings only), like the e2e job in `ci.yml`; both match
   the branch prefix `release-please--`, not the full name (which encodes the target branch and component).
+- **Instructor preview.** With `instructor-cloudflare-project` set (and the Cloudflare setup), each push is
+  built a second time with `NMA_AUDIENCE=instructor` and deployed to that project as branch `pr-<n>` (never
+  `main`: that is the live instructor site). Cleanup deletes `pr-<n>` in both projects by exact branch name.
+  The `Check Cloudflare setup` step outputs `instructor=true|false` and every instructor step is gated on it.
 - Registered with the other reusable workflows (`REUSABLE` in `test_release.py`). The kit version
   comes from the manifest, so there is no version marker in the workflow.
 
@@ -347,6 +361,13 @@ downloads); CI retries failed tests once.
   That pins the setup and the kit version to the workflow's own commit without a tag. The kit's own CI exercises it through
   `ci.yml` (`course-check`) and `preview.yml`. `tests/python/test_workflow_setup.py` pins the shape.
 - `course-publish.yml` job order: check -> notebooks -> publish-notebooks ->
-  render-scrolly -> prepare-site -> myst build -> Pages deploy. One run per
+  render-scrolly -> prepare-site -> myst build -> `nma-kit finalize-site` -> Pages deploy. One run per
   repository at a time (notebook pushes never race). No CNAME step: with the
   Pages "GitHub Actions" source the custom domain is a repo setting.
+- **Instructor site.** The `instructor` job of `course-publish.yml` `needs: build` (not `deploy`: both sites go out
+  together and neither blocks the other). It runs only when `instructor-cloudflare-project` and the Cloudflare
+  secrets are set (every step after the secrets check is gated on it), builds with `NMA_AUDIENCE=instructor`
+  (render-scrolly, prepare-site, myst build, finalize-site) and deploys to that Cloudflare Pages project's
+  production branch. It never pushes notebooks. `tests/python/test_publish_workflow.py` pins this.
+  `nma-kit finalize-site` (both audiences) replaces MyST's `robots.txt` and deletes its sitemap: MyST writes
+  them from its local theme server, so every URL in them is `http://localhost:3000`.

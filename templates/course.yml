@@ -21,6 +21,13 @@ jobs:
   publish:
     if: github.event_name != 'pull_request'
     uses: neuromatch/course-kit/.github/workflows/course-publish.yml@v0.1
+    # Optional instructor site (solutions inline, instructor notebooks), deployed to
+    # this Cloudflare Pages project: set the variable CLOUDFLARE_INSTRUCTOR_PROJECT
+    # and the CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID secrets (README, "Instructor
+    # site"). Empty or unset: no instructor site.
+    with:
+      instructor-cloudflare-project: ${{ vars.CLOUDFLARE_INSTRUCTOR_PROJECT }}
+    secrets: inherit
     permissions:
       contents: write
       pages: write
@@ -38,6 +45,9 @@ jobs:
       pr-number: ${{ github.event.pull_request.number }}
       action: ${{ github.event.action == 'closed' && 'cleanup' || 'deploy' }}
       cloudflare-project: ${{ vars.CLOUDFLARE_PROJECT }}
+      # Also preview the instructor site: the project the `publish` job deploys it to.
+      # Empty or unset: no instructor preview.
+      instructor-cloudflare-project: ${{ vars.CLOUDFLARE_INSTRUCTOR_PROJECT }}
     secrets: inherit
     permissions:
       contents: write

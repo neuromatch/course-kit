@@ -13,10 +13,15 @@
 //       data: data                  # folder (in each day folder) for data files
 //       image: image                # folder (in each day folder) for images
 //       slides: slides              # folder (in each day folder) for slide PDFs
+//
+// Environment: NMA_NOTEBOOKS_BRANCH (above) and NMA_AUDIENCE ('student', the
+// default, or 'instructor'; there is no myst.yml key).
 
 import { parse } from 'yaml';
 
 import {
+  AUDIENCE_ENV,
+  DEFAULT_AUDIENCE,
   DEFAULT_DATA_DIR,
   DEFAULT_IMAGE_DIR,
   DEFAULT_NOTEBOOKS_BRANCH,
@@ -50,7 +55,7 @@ function setting(nma, section, key, fallback) {
   return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
-/** {githubRepo, tutorialsDir, projectsDir, notebooksBranch, assetsDataDir, assetsImageDir, assetsSlidesDir, nma} from myst.yml text. */
+/** {githubRepo, tutorialsDir, projectsDir, notebooksBranch, assetsDataDir, assetsImageDir, assetsSlidesDir, audience, nma} from myst.yml text. */
 export function loadSettings(text, env = process.env) {
   const data = parseYaml(text);
   const nma = readNmaConfig(text);
@@ -64,6 +69,7 @@ export function loadSettings(text, env = process.env) {
     assetsDataDir: setting(nma, 'assets', 'data', DEFAULT_DATA_DIR).replace(/^\/+|\/+$/g, ''),
     assetsImageDir: setting(nma, 'assets', 'image', DEFAULT_IMAGE_DIR).replace(/^\/+|\/+$/g, ''),
     assetsSlidesDir: setting(nma, 'assets', 'slides', DEFAULT_SLIDES_DIR).replace(/^\/+|\/+$/g, ''),
+    audience: (env[AUDIENCE_ENV] || '').trim() || DEFAULT_AUDIENCE,
     nma,
   };
 }

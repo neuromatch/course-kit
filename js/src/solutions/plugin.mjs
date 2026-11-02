@@ -1,6 +1,7 @@
 // {nma-solution} / {nma-explanation}: render as a "Click for ..." link to the
 // solution file that nma_kit.solutions writes to the notebooks branch.
-// The solution text itself is never put on the page.
+// The student build never puts the solution text on the page. The instructor
+// build (NMA_AUDIENCE=instructor) shows each one inline, as a collapsed dropdown.
 //
 // The directives only emit a placeholder. The transform below numbers the
 // placeholders in document order and builds the links. The file naming and URL
@@ -10,21 +11,39 @@ import { contentRoots, courseSettings, notebookDir, pageLocation, solutionUrl } 
 import { findPlaceholders, replaceNode, text } from '../shared/tree.mjs';
 
 const SOLUTION_KINDS = {
-  'nma-solution': { label: 'Click for solution', file: (stem, n) => `${stem}_Solution_${n}.py` },
+  'nma-solution': { label: 'Click for solution', title: 'Solution', file: (stem, n) => `${stem}_Solution_${n}.py` },
   'nma-explanation': {
     label: 'Click for explanation',
+    title: 'Explanation',
     file: (stem, n) => `${stem}_Explanation_${n}.md`,
   },
 };
 const PLACEHOLDER = 'nmaSolutionRef';
 
+const isInstructor = () => courseSettings().audience === 'instructor';
+
 const solutionDirective = (name, doc) => ({
   name,
   doc,
-  body: { type: String, required: true, doc: 'Hidden on the site; see nma_kit.solutions.' },
-  run(data) {
-    return [{ type: PLACEHOLDER, kind: name, position: data.node.position }];
+  body: {
+    type: String,
+    required: true,
+    doc: 'Hidden on the student site (a link to the solution file); inline on the instructor site. See nma_kit.solutions.',
   },
+  run(data, _vfile, ctx) {
+    const placeholder = { type: PLACEHOLDER, kind: name, position: data.node.position };
+    // Only the instructor build needs the body: parse it then, never for students.
+    if (isInstructor()) placeholder.children = ctx.parseMyst(data.body).children;
+    return [placeholder];
+  },
+});
+
+/** Instructor build: the solution/explanation inline, in a collapsed dropdown. */
+const inlineSolution = (kind, body) => ({
+  type: 'admonition',
+  kind: 'dropdown',
+  class: 'nma-solution-inline dropdown',
+  children: [{ type: 'admonitionTitle', children: [text(SOLUTION_KINDS[kind].title)] }, ...body],
 });
 
 const solutionLinks = {
@@ -60,6 +79,10 @@ const solutionLinks = {
         continue;
       }
       counters[kind] = (counters[kind] ?? 0) + 1;
+      if (isInstructor()) {
+        replaceNode(node, inlineSolution(kind, node.children ?? []));
+        continue;
+      }
       const { label, file } = SOLUTION_KINDS[kind];
       const url = solutionUrl(repo, notebookDir(location), file(location.stem, counters[kind]), branch);
       replaceWith(

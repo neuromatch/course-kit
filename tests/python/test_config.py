@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from nma_kit.config import MissingConfig, Settings, load_settings, page_location, read_settings
+from nma_kit.config import MissingConfig, Settings, load_settings, notebook_rel_path, page_location, read_settings
 from nma_kit.convert import make_badge_html
 from nma_kit.feedback import FORMAT_ERROR, config_errors
 from nma_kit.solutions import solution_url
@@ -54,11 +54,13 @@ def test_shared_fixture_cases(case):
     s = load_settings(case["myst"], env=case.get("env", {}))
     location = page_location(s, case["page"])
     expect = case["expect"]
+    assert s.audience == (expect or {}).get("audience", "student")
     if expect is None:
         assert location is None
         return
     assert (location.root, location.rel_dir, location.stem) == (expect["root"], expect["relDir"], expect["stem"])
     assert location.notebook_dir == expect["notebookDir"]
+    assert notebook_rel_path(s, location) == expect["notebook"]
     html = make_badge_html(expect["notebook"], s.github_repo, s.notebooks_branch)
     assert f'href="{expect["colab"]}"' in html
     assert f'href="{expect["kaggle"]}"' in html
@@ -83,3 +85,32 @@ def test_read_settings_reads_file(tmp_path):
     (tmp_path / "myst.yml").write_text("nma:\n  paths:\n    tutorials: content\n")
     assert read_settings(tmp_path / "myst.yml") == Settings(None, "content", "notebooks-branch",
                                                             {"paths": {"tutorials": "content"}})
+
+
+def test_audience_defaults_to_student_and_follows_the_env():
+    assert load_settings("").audience == "student"
+    assert load_settings("", env={"NMA_AUDIENCE": "instructor"}).audience == "instructor"
+    assert load_settings("", env={"NMA_AUDIENCE": " instructor "}).audience == "instructor"
+    assert load_settings("", env={"NMA_AUDIENCE": ""}).audience == "student"
+
+
+def _course(tmp_path, monkeypatch, audience):
+    (tmp_path / "myst.yml").write_text("project:\n  github: https://github.com/o/r\n")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("NMA_AUDIENCE", audience)
+
+
+def test_unknown_audience_is_a_check_error(tmp_path, monkeypatch):
+    from nma_kit.convert import validate_content
+
+    _course(tmp_path, monkeypatch, "Instructor")
+    errors = validate_content()
+    assert any("student, instructor" in e and "'Instructor'" in e for e in errors), errors
+
+
+@pytest.mark.parametrize("audience", ["student", "instructor", " "])
+def test_valid_audiences_add_no_error(tmp_path, monkeypatch, audience):
+    from nma_kit.convert import validate_content
+
+    _course(tmp_path, monkeypatch, audience)
+    assert not [e for e in validate_content() if "NMA_AUDIENCE" in e]

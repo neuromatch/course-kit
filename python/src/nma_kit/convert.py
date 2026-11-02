@@ -66,6 +66,7 @@ from nma_kit import assets as nma_assets
 from nma_kit import branding as nma_branding
 from nma_kit import cells as nma_cells
 from nma_kit import feedback as nma_feedback
+from nma_kit import instructor as nma_instructor
 from nma_kit import scrolly as nma_scrolly
 from nma_kit import solutions as nma_solutions
 from nma_kit.config import (
@@ -73,10 +74,12 @@ from nma_kit.config import (
     MYST_CONFIG,
     Settings,
     load_settings,
+    notebook_rel_path,
     page_location,
     read_nma_block,
     read_settings,
 )
+from nma_kit.constants import AUDIENCE_ENV, AUDIENCES
 from nma_kit.media import (
     copy_slide_files,
     expand_notebook,
@@ -188,6 +191,8 @@ def validate_content(check_injected: bool = True) -> list[str]:
     content_dirs = [Path(directory) for _, directory in settings.content_roots]
     config_problems = nma_feedback.config_errors(config_text)
     errors += config_problems
+    if settings.audience not in AUDIENCES:
+        errors.append(f"{AUDIENCE_ENV} must be one of {', '.join(AUDIENCES)} (got {settings.audience!r})")
     errors += nma_branding.brand_errors(read_nma_block(config_text))
     has_config = not config_problems and nma_feedback.load_config(config_text) is not None
     for content_dir in content_dirs:
@@ -214,6 +219,8 @@ def validate_content(check_injected: bool = True) -> list[str]:
         for problem in missing_slide_errors(text, path.parent):
             errors.append(f"{path}: {problem}")
         for problem in nma_solutions.validate(text):
+            errors.append(f"{path}: {problem}")
+        for problem in nma_instructor.validate(text):
             errors.append(f"{path}: {problem}")
         for problem in nma_feedback.validate(text) + nma_feedback.legacy_cell_errors(text):
             errors.append(f"{path}: {problem}")
@@ -437,6 +444,9 @@ def build_notebooks(source_file: Path, out_path: Path, github_repo: str, dry_run
     declared = nma_assets.parse_data_directive(source_text)
     if nma_assets.strip_data_directives(nb):
         print(f"  Removed {{nma-data}} directive(s); declared {len(declared)} file(s)")
+    count = nma_instructor.strip_notes(nb)
+    if count:
+        print(f"  Removed {count} {{nma-instructor}} note(s) (they are site-only)")
     count = nma_assets.rewrite_markdown_images(nb, github_repo, branch, location.notebook_dir, settings.assets_image_dir)
     if count:
         print(f"  Rewrote {count} markdown image reference(s) to published URLs")
@@ -483,7 +493,7 @@ def process_content(settings: Settings, dry_run: bool, prepare_site: bool) -> in
         out_path = NOTEBOOKS_DIR / location.notebook_dir / f"{location.stem}.ipynb"
 
         if prepare_site:
-            prepare_site_md(source_file, out_path.as_posix(), github_repo, dry_run,
+            prepare_site_md(source_file, notebook_rel_path(settings, location), github_repo, dry_run,
                             settings.notebooks_branch)
         else:
             convert_md_to_notebook(source_file, out_path, dry_run)
