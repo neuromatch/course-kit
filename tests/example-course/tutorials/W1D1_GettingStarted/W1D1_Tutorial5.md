@@ -15,7 +15,7 @@ kernelspec:
 
 :::{nma-data}
 data/demo.txt
-image/demo.png
+images/demo.png
 :::
 
 :::{step}
@@ -38,7 +38,7 @@ print(text.strip())
 So do images.
 
 ```{code-cell} python
-with open("image/demo.png", "rb") as f:
+with open("images/demo.png", "rb") as f:
     header = f.read(8)
 print(header == b"\x89PNG\r\n\x1a\n")
 ```

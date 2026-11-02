@@ -2,10 +2,10 @@
   "parse": [
     {
       "name": "single block",
-      "text": ":::{nma-data}\ndata/a.npz\nimage/b.png\n:::\n",
+      "text": ":::{nma-data}\ndata/a.npz\nimages/b.png\n:::\n",
       "paths": [
         "data/a.npz",
-        "image/b.png"
+        "images/b.png"
       ]
     },
     {
@@ -53,8 +53,8 @@
       "repo": "org/repo",
       "branch": "nb",
       "day": "",
-      "path": "image/b.png",
-      "url": "https://raw.githubusercontent.com/org/repo/nb/notebooks/image/b.png"
+      "path": "images/b.png",
+      "url": "https://raw.githubusercontent.com/org/repo/nb/notebooks/images/b.png"
     }
   ],
   "scan": [
@@ -62,39 +62,39 @@
       "name": "literal load",
       "code": "arr = np.load(\"data/a.npz\")",
       "data_dir": "data",
-      "image_dir": "image",
+      "image_dir": "images",
       "refs": [
         "data/a.npz"
       ]
     },
     {
       "name": "single quotes and image",
-      "code": "img = plt.imread('image/b.png')",
+      "code": "img = plt.imread('images/b.png')",
       "data_dir": "data",
-      "image_dir": "image",
+      "image_dir": "images",
       "refs": [
-        "image/b.png"
+        "images/b.png"
       ]
     },
     {
       "name": "f-string skipped",
       "code": "np.load(f\"data/{n}.npz\")",
       "data_dir": "data",
-      "image_dir": "image",
+      "image_dir": "images",
       "refs": []
     },
     {
       "name": "no extension skipped",
       "code": "x = \"data/raw\"",
       "data_dir": "data",
-      "image_dir": "image",
+      "image_dir": "images",
       "refs": []
     },
     {
       "name": "mimetype not path",
       "code": "m = \"image/png\"",
       "data_dir": "data",
-      "image_dir": "image",
+      "image_dir": "images",
       "refs": []
     },
     {
@@ -110,7 +110,7 @@
   "validate": [
     {
       "name": "ok",
-      "text": ":::{nma-data}\ndata/a.npz\nimage/b.png\n:::\n",
+      "text": ":::{nma-data}\ndata/a.npz\nimages/b.png\n:::\n",
       "errors": 0
     },
     {

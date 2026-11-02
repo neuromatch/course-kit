@@ -4,7 +4,7 @@ The tooling behind Neuromatch courses built with [MyST](https://mystmd.org),
 in one versioned package:
 
 - **MyST plugin**: `{nma-video}`, `{nma-slides}`, `{nma-solution}`,
-  `{nma-explanation}`, `{nma-instructor}` (notes for the instructor site), `{nma-feedback}`, `{nma-data}` (data and image files), scrollytelling pages (`{step}`,
+  `{nma-explanation}`, `{nma-instructor}` (notes for the instructor site), `{nma-feedback}`, `{nma-data}` (data files the code reads), scrollytelling pages (`{step}`,
   `{stage}`) and editable, runnable code cells.
 - **`nma-kit` CLI**: content checks, notebook generation (student, instructor,
   solutions), scrolly pre-rendering, site preparation, notebook publishing.
@@ -92,7 +92,7 @@ nma:
     pyodide_url: https://cdn.jsdelivr.net/pyodide/v314.0.7/full/
   assets:                         # folders (inside a day folder) for {nma-data} files and {nma-slides} PDFs
     data: data
-    image: image
+    image: images
     slides: slides
   brand:                          # colours, see "Site branding"
     primary: "#008CBF"

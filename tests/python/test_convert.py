@@ -243,11 +243,11 @@ kernelspec:
 
 # Title
 
-![fig](image/pic.png)
+![fig](images/pic.png)
 
 :::{nma-data}
 data/a.npz
-image/pic.png
+images/pic.png
 :::
 
 ```{code-cell} python
@@ -257,7 +257,7 @@ arr = np.load("data/a.npz")
 """
 
 
-def _asset_course(tmp_path, monkeypatch, page_text=ASSET_PAGE, files=("data/a.npz", "image/pic.png")):
+def _asset_course(tmp_path, monkeypatch, page_text=ASSET_PAGE, files=("data/a.npz", "images/pic.png")):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "myst.yml").write_text("project:\n  github: https://github.com/org/repo\n")
     day = tmp_path / "tutorials" / "D"
@@ -290,11 +290,33 @@ def test_build_notebooks_adds_download_cell_rewrites_images_and_copies_files(tmp
         assert sources[1].startswith("# @title Download course data")
         assert "data/a.npz" in sources[1] and base in sources[1]
         assert cells[1]["metadata"]["tags"] == ["hide-cell"]
-        assert f"![fig]({base}image/pic.png)" in "\n".join(sources)
+        assert f"![fig]({base}images/pic.png)" in "\n".join(sources)
         assert not any("nma-data" in s for s in sources)
     assert (Path("notebooks/tutorials/D/data/a.npz")).read_bytes() == b"bytes:data/a.npz"
-    assert (Path("notebooks/tutorials/D/image/pic.png")).exists()
+    assert (Path("notebooks/tutorials/D/images/pic.png")).exists()
     assert not (Path("notebooks/tutorials/D/instructor/data")).exists()
+
+
+def test_build_notebooks_publishes_displayed_images_without_declaration(tmp_path, monkeypatch):
+    from nma_kit.config import read_settings
+    from nma_kit.convert import build_notebooks, convert_md_to_notebook
+
+    page_text = ASSET_PAGE.replace("images/pic.png\n:::", ":::").replace("data/a.npz\n", "data/a.npz\n", 1)
+    _asset_course(tmp_path, monkeypatch, page_text=page_text)
+    page = Path("tutorials/D/T.md")
+    out = Path("notebooks/tutorials/D/T.ipynb")
+    convert_md_to_notebook(page, out, dry_run=False)
+    build_notebooks(page, out, "org/repo", False, None, read_settings())
+    assert Path("notebooks/tutorials/D/images/pic.png").exists()
+
+
+def test_check_fails_on_missing_or_escaping_image(tmp_path, monkeypatch):
+    from nma_kit.convert import validate_content
+
+    _asset_course(tmp_path, monkeypatch, page_text=ASSET_PAGE + "\n![x](images/gone.png)\n![y](images/../up.png)\n")
+    errors = validate_content()
+    assert any("images/gone.png" in e and "does not exist" in e for e in errors)
+    assert any("images/../up.png" in e and "inside images/" in e for e in errors)
 
 
 def test_build_notebooks_shows_repo_slides_and_copies_the_pdf(tmp_path, monkeypatch):

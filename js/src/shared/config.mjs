@@ -11,7 +11,7 @@
 //                                   # (the env var NMA_NOTEBOOKS_BRANCH overrides it: PR previews)
 //     assets:
 //       data: data                  # folder (in each day folder) for data files
-//       image: image                # folder (in each day folder) for images
+//       image: images             # folder (in each day folder) for images
 //       slides: slides              # folder (in each day folder) for slide PDFs
 //
 // Environment: NMA_NOTEBOOKS_BRANCH (above) and NMA_AUDIENCE ('student', the

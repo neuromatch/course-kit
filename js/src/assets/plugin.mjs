@@ -1,4 +1,4 @@
-// {nma-data}: declares the data/image files a tutorial needs.
+// {nma-data}: declares the data/image files a tutorial's code reads.
 // nma_kit.assets (Python) turns the same declaration into the Colab/Kaggle
 // download cell. The parser and URL template in both must stay in sync.
 //
@@ -85,7 +85,7 @@ function urlFor(filePath) {
 const nmaData = {
   name: 'nma-data',
   doc: 'Declare the data and image files this tutorial uses, one path per line.',
-  body: { type: String, doc: 'File paths (data/..., image/...), one per line.' },
+  body: { type: String, doc: 'File paths (data/..., images/...), one per line.' },
   run(data, vfile) {
     const paths = parseDataDirective(`:::{nma-data}\n${data.body ?? ''}\n:::\n`);
     if (paths.length === 0) return [];
