@@ -135,10 +135,13 @@ Without the secrets the job still builds the site and skips the deploy with a
 notice, so a course can adopt the template before it has Cloudflare. Delete
 the job to turn previews off.
 
-When the [instructor site](#instructor-site) is on, the comment carries a second
-link, `https://pr-<number>-instructor.<project>.pages.dev`: the same pull
-request built as the instructor site, in the same Cloudflare project, with the
-same secrets. Closing the pull request removes both.
+When the [instructor site](#instructor-site) is on (the variable
+`CLOUDFLARE_INSTRUCTOR_PROJECT` is set), each push is built a second time as the
+instructor site, and the comment carries a second link,
+`https://pr-<number>.<instructor project>.pages.dev`. It goes to the instructor
+project as the branch `pr-<number>`, never to the project's production branch
+(the live instructor site), with the same secrets. Closing the pull request
+removes both previews. Without the variable there is no second build.
 
 ## Instructor site
 

@@ -45,6 +45,9 @@ jobs:
       pr-number: ${{ github.event.pull_request.number }}
       action: ${{ github.event.action == 'closed' && 'cleanup' || 'deploy' }}
       cloudflare-project: ${{ vars.CLOUDFLARE_PROJECT }}
+      # Also preview the instructor site: the project the `publish` job deploys it to.
+      # Empty or unset: no instructor preview.
+      instructor-cloudflare-project: ${{ vars.CLOUDFLARE_INSTRUCTOR_PROJECT }}
     secrets: inherit
     permissions:
       contents: write

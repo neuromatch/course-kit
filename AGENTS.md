@@ -334,6 +334,10 @@ downloads); CI retries failed tests once.
   to this repo, so each open PR has a `notebooks-pr-<n>` branch here until it closes. It is
   skipped for the release-please PR (version strings only), like the e2e job in `ci.yml`; both match
   the branch prefix `release-please--`, not the full name (which encodes the target branch and component).
+- **Instructor preview.** With `instructor-cloudflare-project` set (and the Cloudflare setup), each push is
+  built a second time with `NMA_AUDIENCE=instructor` and deployed to that project as branch `pr-<n>` (never
+  `main`: that is the live instructor site). Cleanup deletes `pr-<n>` in both projects by exact branch name.
+  The `Check Cloudflare setup` step outputs `instructor=true|false` and every instructor step is gated on it.
 - Registered with the other reusable workflows (`REUSABLE` in `test_release.py`). The kit version
   comes from the manifest, so there is no version marker in the workflow.
 
