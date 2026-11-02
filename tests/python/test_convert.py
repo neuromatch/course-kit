@@ -297,6 +297,28 @@ def test_build_notebooks_adds_download_cell_rewrites_images_and_copies_files(tmp
     assert not (Path("notebooks/tutorials/D/instructor/data")).exists()
 
 
+def test_build_notebooks_publishes_displayed_images_without_declaration(tmp_path, monkeypatch):
+    from nma_kit.config import read_settings
+    from nma_kit.convert import build_notebooks, convert_md_to_notebook
+
+    page_text = ASSET_PAGE.replace("images/pic.png\n:::", ":::").replace("data/a.npz\n", "data/a.npz\n", 1)
+    _asset_course(tmp_path, monkeypatch, page_text=page_text)
+    page = Path("tutorials/D/T.md")
+    out = Path("notebooks/tutorials/D/T.ipynb")
+    convert_md_to_notebook(page, out, dry_run=False)
+    build_notebooks(page, out, "org/repo", False, None, read_settings())
+    assert Path("notebooks/tutorials/D/images/pic.png").exists()
+
+
+def test_check_fails_on_missing_or_escaping_image(tmp_path, monkeypatch):
+    from nma_kit.convert import validate_content
+
+    _asset_course(tmp_path, monkeypatch, page_text=ASSET_PAGE + "\n![x](images/gone.png)\n![y](images/../up.png)\n")
+    errors = validate_content()
+    assert any("images/gone.png" in e and "does not exist" in e for e in errors)
+    assert any("images/../up.png" in e and "inside images/" in e for e in errors)
+
+
 def test_build_notebooks_shows_repo_slides_and_copies_the_pdf(tmp_path, monkeypatch):
     import json
 

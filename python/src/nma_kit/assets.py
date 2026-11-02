@@ -10,10 +10,13 @@ declares, per tutorial, which files it needs:
     images/atlas.png
     :::
 
-That declaration is the single manifest for the tutorial. It drives:
+That declaration is the manifest of files the tutorial's code reads. Images that
+are only displayed (`![](images/a.png)`, `{figure}`) need no declaration. The
+declaration drives:
   - the hidden "Download data" cell injected into generated Colab/Kaggle
     notebooks (nma_kit.convert),
-  - copying the files into the published notebooks tree,
+  - copying the files into the published notebooks tree (images the page only
+    displays are published too, without being declared),
   - and, via the JS twin (js/src/assets/), embedding the bytes into the page so
     browser editable cells can pre-fill the Pyodide filesystem.
 
@@ -387,16 +390,19 @@ def image_references(text: str, image_dir: str) -> list[str]:
     return list(seen)
 
 
-def undeclared_image_errors(text: str, image_dir: str) -> list[str]:
-    """Errors for page images under `image_dir` that no {nma-data} declares.
+def referenced_image_errors(text: str, image_dir: str, day_dir: Path) -> list[str]:
+    """Errors for page images under `image_dir` that climb out of it or do not exist.
 
-    An undeclared image works on the site but is never published for Colab/Kaggle.
+    Displayed images need no {nma-data} declaration: the build publishes every
+    image the page references. They must stay inside `image_dir` and exist.
     """
-    declared = set(parse_data_directive(text))
-    return [
-        f"{ref!r} is used as an image but no {{nma-data}} directive on the page declares it"
-        for ref in image_references(text, image_dir) if ref not in declared
-    ]
+    errors = []
+    for ref in image_references(text, image_dir):
+        if not _well_formed(ref):
+            errors.append(f"image {ref!r} must stay inside {image_dir}/ (no '..')")
+        elif not (Path(day_dir) / ref).is_file():
+            errors.append(f"image {ref!r} does not exist ({day_dir}/{ref})")
+    return errors
 
 
 def _html_attr(value: str) -> str:

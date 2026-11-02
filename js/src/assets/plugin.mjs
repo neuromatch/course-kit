@@ -1,4 +1,4 @@
-// {nma-data}: declares the data/image files a tutorial needs.
+// {nma-data}: declares the data/image files a tutorial's code reads.
 // nma_kit.assets (Python) turns the same declaration into the Colab/Kaggle
 // download cell. The parser and URL template in both must stay in sync.
 //

@@ -198,7 +198,7 @@ from nma_kit.assets import (  # noqa: E402
     embed_size_errors,
     find_image_directives,
     image_references,
-    undeclared_image_errors,
+    referenced_image_errors,
 )
 
 FIGURE = """Intro
@@ -260,10 +260,20 @@ def test_image_references_cover_markdown_html_and_directives():
     assert image_references(text, "images") == ["images/a.png", "images/b.png", "images/c.png"]
 
 
-def test_undeclared_image_errors():
-    text = ":::{nma-data}\nimages/a.png\n:::\n![a](images/a.png)\n![b](images/b.png)\n"
-    errors = undeclared_image_errors(text, "images")
-    assert len(errors) == 1 and "images/b.png" in errors[0]
+def test_referenced_image_errors(tmp_path):
+    (tmp_path / "images").mkdir()
+    (tmp_path / "images" / "a.png").write_bytes(b"x")
+    text = "![a](images/a.png)\n![b](images/b.png)\n![c](images/../secret.png)\n"
+    errors = referenced_image_errors(text, "images", tmp_path)
+    assert len(errors) == 2
+    assert "images/b.png" in errors[0] and "does not exist" in errors[0]
+    assert "images/../secret.png" in errors[1] and "inside images/" in errors[1]
+
+
+def test_referenced_image_errors_need_no_declaration(tmp_path):
+    (tmp_path / "images").mkdir()
+    (tmp_path / "images" / "a.png").write_bytes(b"x")
+    assert referenced_image_errors("![a](images/a.png)\n", "images", tmp_path) == []
 
 
 def test_dynamic_reference_errors_need_a_declared_file_in_that_folder():

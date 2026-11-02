@@ -233,7 +233,7 @@ def validate_content(check_injected: bool = True) -> list[str]:
             + nma_assets.missing_file_errors(text, path.parent)
             + nma_assets.undeclared_reference_errors(text, settings.assets_data_dir, settings.assets_image_dir)
             + nma_assets.dynamic_reference_errors(text, settings.assets_data_dir, settings.assets_image_dir)
-            + nma_assets.undeclared_image_errors(text, settings.assets_image_dir)
+            + nma_assets.referenced_image_errors(text, settings.assets_image_dir, path.parent)
             + nma_assets.embed_size_errors(text, path.parent)
         ):
             errors.append(f"{path}: {problem}")
@@ -450,7 +450,8 @@ def build_notebooks(source_file: Path, out_path: Path, github_repo: str, dry_run
     count = nma_assets.rewrite_markdown_images(nb, github_repo, branch, location.notebook_dir, settings.assets_image_dir)
     if count:
         print(f"  Rewrote {count} markdown image reference(s) to published URLs")
-    copied = nma_assets.copy_declared_files(declared, source_file.parent, out_path.parent)
+    published = declared + [r for r in nma_assets.image_references(source_text, settings.assets_image_dir) if r not in declared]
+    copied = nma_assets.copy_declared_files(published, source_file.parent, out_path.parent)
     if copied:
         print(f"  Copied {copied} data/image file(s) next to the notebook")
     copied = copy_slide_files(source_text, source_file.parent, out_path.parent)

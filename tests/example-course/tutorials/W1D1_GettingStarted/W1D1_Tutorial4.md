@@ -7,8 +7,9 @@ kernelspec:
 
 # Tutorial 4: Data and Images
 
-Keep shared files in the day folder, in `data/` and `images/`, and declare the
-ones this tutorial uses with `{nma-data}`. Plain relative paths then work on
+Keep shared files in the day folder, in `data/` and `images/`. Images the page
+only displays need no declaration: the build publishes them for Colab. Files
+the code reads are declared with `{nma-data}`. Plain relative paths then work on
 the site, in the editable cells and in the generated Colab notebook.
 
 :::{nma-data}
