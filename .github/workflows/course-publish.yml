@@ -4,7 +4,7 @@
 #
 #   jobs:
 #     publish:
-#       uses: neuromatch/course-kit/.github/workflows/course-publish.yml@v0.1
+#       uses: neuromatch/course-kit/.github/workflows/course-publish.yml@v0.3
 #       permissions: { contents: write, pages: write, id-token: write }
 #
 # Pages: Settings -> Pages -> Source: GitHub Actions. A custom domain is set

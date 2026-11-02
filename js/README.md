@@ -12,13 +12,13 @@ jsDelivr:
 
 ```yaml
 version: 1
-extend: https://cdn.jsdelivr.net/npm/@neuromatch/course-kit@0.1/dist/nma.yml
+extend: https://cdn.jsdelivr.net/npm/@neuromatch/course-kit@0.3/dist/nma.yml
 project:
   github: https://github.com/<org>/<course>
 ```
 
 `dist/nma.yml` adds the plugin and turns on `project.jupyter.lite`. In CI,
-`nma-kit prepare-site` rewrites `@0.1` to the exact version of the CLI, so the
+`nma-kit prepare-site` rewrites `@0.3` to the exact version of the CLI, so the
 plugin, its assets and the CLI always match. See the
 [kit README](https://github.com/neuromatch/course-kit#using-the-kit-in-a-course)
 for the full course setup.
@@ -88,7 +88,7 @@ the Python runtime: editable cells and scrolly pages load Pyodide from
 
 ## Versions
 
-The kit is on 0.x. A breaking change bumps the minor version, so `@0.1` only
+The kit is on 0.x. A breaking change bumps the minor version, so `@0.3` only
 receives compatible fixes. Don't use `@latest` in `myst.yml`: jsDelivr caches
 alias URLs for up to 7 days and `@latest` crosses major versions.
 

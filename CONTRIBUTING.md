@@ -147,7 +147,7 @@ also brings `.tool-versions` and `.release-please-manifest.json`, so:
   too, and `mise`/`asdf` read it locally.
 - **The kit version** a workflow installs is the manifest's, which release-please
   bumps. The workflows carry no version of their own.
-- A frozen course (`@v0.1.3`) keeps the setup, tools and kit version of `v0.1.3`.
+- A frozen course (`@v0.3.0`) keeps the setup, tools and kit version of `v0.3.0`.
 
 Edit the setup in the action; the two steps that fetch it are the only thing the
 workflows repeat, and `tests/python/test_workflow_setup.py` keeps them identical.

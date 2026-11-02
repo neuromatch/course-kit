@@ -13,9 +13,9 @@ One project, one version, three deliverables:
 
 | Deliverable | Source | Published as | Used by courses via |
 |---|---|---|---|
-| MyST plugin (one bundled file) + browser assets | `js/` | npm `@neuromatch/course-kit` (`dist/`) | `extend: https://cdn.jsdelivr.net/npm/@neuromatch/course-kit@0.1/dist/nma.yml` |
+| MyST plugin (one bundled file) + browser assets | `js/` | npm `@neuromatch/course-kit` (`dist/`) | `extend: https://cdn.jsdelivr.net/npm/@neuromatch/course-kit@0.3/dist/nma.yml` |
 | `nma-kit` CLI (notebooks, checks, site prep) | `python/` | PyPI `neuromatch-course-kit` | installed by the reusable workflows |
-| Reusable GitHub workflows | `.github/workflows/course-*.yml` | git tags `vX.Y.Z`, floating `vX.Y`/`vX` | `uses: neuromatch/course-kit/.github/workflows/course-publish.yml@v0.1` |
+| Reusable GitHub workflows | `.github/workflows/course-*.yml` | git tags `vX.Y.Z`, floating `vX.Y`/`vX` | `uses: neuromatch/course-kit/.github/workflows/course-publish.yml@v0.3` |
 
 Versioning: 0.x until stable. release-please bumps breaking changes to the
 next minor (0.1 -> 0.2) and features/fixes to the patch, so a `v0.MINOR` line
@@ -64,7 +64,7 @@ tests/
 docs/releasing.md             # maintainers: how releases are set up (CONTRIBUTING.md is the contributor guide)
 Makefile, ruff.toml           # contributor tasks (make help); Python lint config (JS: js/biome.json)
 .pre-commit-config.yaml       # runs the linters on commit (installed by make setup)
-templates/course.yml          # the workflow courses copy (calls the reusable workflows @v0.1); the source `nma-kit init` renders
+templates/course.yml          # the workflow courses copy (calls the reusable workflows @v0.3); the source `nma-kit init` renders
 templates/wheels.yml          # optional caller for course-wheels.yml
 .github/actions/setup-course/   # shared setup (uv, Node, install the kit) used by the course-*.yml workflows
 .github/actionlint.yaml        # ignores the job.workflow_* property errors (actionlint doesn't know them yet)
@@ -114,7 +114,7 @@ templates/wheels.yml          # optional caller for course-wheels.yml
     so readers' browsers never hit the CDN.
   - dev build: `dist/assets/` next to the bundle, as a course-root-relative path (`/course-kit/js/dist/assets/...`).
     Paths may climb out of the course root (`/../../js/dist/assets/...` for `example-course`).
-  - Never an alias (`@0.1`, `@latest`) at build time: jsDelivr caches aliases for 7 days.
+  - Never an alias (`@0.3`, `@latest`) at build time: jsDelivr caches aliases for 7 days.
 - **Browser code** never uses root-absolute URLs (forks deploy under `github.io/<repo>/`):
   derive them from `import.meta.url`. The cells bundle finds thebe at `../thebe-core.min.js`
   relative to itself, which holds because MyST puts all widget assets in `build/`.
