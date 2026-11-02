@@ -2,6 +2,19 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.2.1](https://github.com/neuromatch/course-kit/compare/v0.2.0...v0.2.1) (2026-11-02)
+
+
+### Features
+
+* chore/release 0.2.1 ([bef5402](https://github.com/neuromatch/course-kit/commit/bef5402acfbc38e024f1b40cddf168a47c78c9d0))
+
+
+### Miscellaneous Chores
+
+* release 0.2.1 ([6259708](https://github.com/neuromatch/course-kit/commit/62597088233541db38231b73b19578b03b919ed1))
+* release 0.2.1 ([ed2d6b0](https://github.com/neuromatch/course-kit/commit/ed2d6b00ea0e19e5913dbe6640379e431e0ab1c4))
+
 ## [0.2.0](https://github.com/neuromatch/course-kit/compare/v0.1.9...v0.2.0) (2026-10-30)
 
 
