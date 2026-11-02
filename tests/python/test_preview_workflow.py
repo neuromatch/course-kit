@@ -95,7 +95,7 @@ def test_template_has_preview_job():
     template = yaml.safe_load(text)
     assert set(template[True]["pull_request"]["types"]) >= {"opened", "synchronize", "reopened", "closed"}
     job = template["jobs"]["preview"]
-    assert job["uses"] == "neuromatch/course-kit/.github/workflows/course-preview.yml@v0.1"
+    assert job["uses"] == "neuromatch/course-kit/.github/workflows/course-preview.yml@v0.3"
     assert "head.repo.full_name == github.repository" in job["if"]
     assert job["permissions"] == {"contents": "write", "pull-requests": "write"}
     assert job["secrets"] == "inherit"

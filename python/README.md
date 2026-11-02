@@ -11,7 +11,7 @@ Courses usually don't install this by hand: the reusable GitHub workflows in
 the kit repository do. To use it locally:
 
 ```bash
-uv venv && uv pip install -r requirements.txt "neuromatch-course-kit==0.1.*"
+uv venv && uv pip install -r requirements.txt "neuromatch-course-kit==0.3.*"
 uv run nma-kit check
 uv run myst start
 ```
@@ -83,7 +83,7 @@ Values in `nma:` must be plain strings in one level of sections.
 ## Versions
 
 The kit is on 0.x. A breaking change bumps the minor version, so
-`==0.1.*` only receives compatible fixes. The CLI and the npm plugin always
+`==0.3.*` only receives compatible fixes. The CLI and the npm plugin always
 share a version number, and `prepare-site` pins the plugin URL to the CLI's
 own version.
 

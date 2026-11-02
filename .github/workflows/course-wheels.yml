@@ -9,7 +9,7 @@
 #         packages: { description: "Space-separated PyPI names", required: true }
 #   jobs:
 #     wheels:
-#       uses: neuromatch/course-kit/.github/workflows/course-wheels.yml@v0.1
+#       uses: neuromatch/course-kit/.github/workflows/course-wheels.yml@v0.3
 #       with: { packages: "${{ inputs.packages }}" }
 #       permissions: { contents: write }
 name: Course wheels

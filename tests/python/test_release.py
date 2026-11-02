@@ -64,4 +64,4 @@ def test_workflows_get_the_kit_version_from_the_manifest():
 def test_course_template_calls_the_v0_1_line():
     text = (KIT / "templates" / "course.yml").read_text()
     uses = re.findall(r"uses:\s*(\S+)", text)
-    assert uses and all(u.startswith("neuromatch/course-kit/.github/workflows/") and u.endswith("@v0.1") for u in uses), uses
+    assert uses and all(u.startswith("neuromatch/course-kit/.github/workflows/") and u.endswith("@v0.3") for u in uses), uses
