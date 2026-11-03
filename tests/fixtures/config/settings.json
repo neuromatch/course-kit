@@ -1,9 +1,9 @@
 {
-  "_doc": "Shared by tests/python/test_config.py and tests/js/config.test.mjs. Each case: a course myst.yml, a page path relative to the course root, and what both sides must compute for it (null = page is outside every content dir). `notebookDir` is the folder under notebooks/. Optional `env` is the environment passed to the loaders (default {}): NMA_NOTEBOOKS_BRANCH overrides the notebooks branch; NMA_AUDIENCE sets the audience (blank means student). Optional `expect.audience` defaults to \"student\".",
+  "_doc": "Shared by tests/python/test_config.py and tests/js/config.test.mjs. Each case: a course myst.yml, a page path relative to the course root, and what both sides must compute for it (null = page is outside every content root). `notebookDir` is the folder under notebooks/. Optional `env` is the environment passed to the loaders (default {}): NMA_NOTEBOOKS_BRANCH overrides the notebooks branch; NMA_AUDIENCE sets the audience (blank means student). Optional `expect.audience` defaults to \"student\".",
   "cases": [
     {
-      "name": "defaults without an nma block",
-      "myst": "version: 1\nproject:\n  github: https://github.com/neuromatch/course-template\n",
+      "name": "tutorials root with the usual two roots",
+      "myst": "version: 1\nproject:\n  github: https://github.com/neuromatch/course-template\nnma:\n  content: [tutorials, projects]\n",
       "page": "tutorials/W2D1_Examples/W2D1_Tutorial1.md",
       "expect": {
         "relDir": "W2D1_Examples",
@@ -17,8 +17,8 @@
       }
     },
     {
-      "name": "custom tutorials dir and notebooks branch",
-      "myst": "version: 1\nproject:\n  github: 'https://github.com/org/my-course/'\nnma:\n  paths:\n    tutorials: content\n  notebooks:\n    branch: nb\n",
+      "name": "content root whose folder differs from its name, and a notebooks branch",
+      "myst": "version: 1\nproject:\n  github: 'https://github.com/org/my-course/'\nnma:\n  content: [{name: tutorials, path: content}]\n  notebooks:\n    branch: nb\n",
       "page": "content/Day1/T1.md",
       "expect": {
         "relDir": "Day1",
@@ -33,7 +33,7 @@
     },
     {
       "name": "page at the top of the tutorials dir",
-      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  feedback:\n    url: https://example.org\n",
+      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  content: [tutorials, projects]\n  feedback:\n    url: https://example.org\n",
       "page": "tutorials/intro.md",
       "expect": {
         "relDir": "",
@@ -47,14 +47,14 @@
       }
     },
     {
-      "name": "page outside the custom tutorials dir",
-      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  paths:\n    tutorials: content\n",
+      "name": "page outside every content root",
+      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  content: [{name: tutorials, path: content}]\n",
       "page": "tutorials/W1D1/T1.md",
       "expect": null
     },
     {
       "name": "project page",
-      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\n",
+      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  content: [tutorials, projects]\n",
       "page": "projects/Neuroscience/ProjectA.md",
       "expect": {
         "root": "projects",
@@ -68,8 +68,8 @@
       }
     },
     {
-      "name": "custom projects dir keeps the projects root name",
-      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  paths:\n    projects: capstone\n",
+      "name": "content root name stays when the folder is named differently",
+      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  content: [{name: projects, path: capstone}]\n",
       "page": "capstone/P1.md",
       "expect": {
         "root": "projects",
@@ -83,23 +83,8 @@
       }
     },
     {
-      "name": "deepest content root wins",
-      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  paths:\n    tutorials: course\n    projects: course/projects\n",
-      "page": "course/projects/P1.md",
-      "expect": {
-        "root": "projects",
-        "relDir": "",
-        "notebookDir": "projects",
-        "stem": "P1",
-        "notebook": "notebooks/projects/P1.ipynb",
-        "colab": "https://colab.research.google.com/github/o/r/blob/notebooks-branch/notebooks/projects/P1.ipynb",
-        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/o/r/notebooks-branch/notebooks/projects/P1.ipynb",
-        "solution1": "https://github.com/o/r/blob/notebooks-branch/notebooks/projects/solutions/P1_Solution_1.py"
-      }
-    },
-    {
       "name": "NMA_NOTEBOOKS_BRANCH overrides the default",
-      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\n",
+      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\nnma:\n  content: [tutorials, projects]\n",
       "env": {
         "NMA_NOTEBOOKS_BRANCH": "notebooks-pr-7"
       },
@@ -117,7 +102,7 @@
     },
     {
       "name": "NMA_NOTEBOOKS_BRANCH overrides nma.notebooks.branch",
-      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\nnma:\n  notebooks:\n    branch: nb\n",
+      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\nnma:\n  content: [tutorials, projects]\n  notebooks:\n    branch: nb\n",
       "env": {
         "NMA_NOTEBOOKS_BRANCH": "notebooks-pr-7"
       },
@@ -135,7 +120,7 @@
     },
     {
       "name": "blank NMA_NOTEBOOKS_BRANCH falls back to myst.yml",
-      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\nnma:\n  notebooks:\n    branch: nb\n",
+      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\nnma:\n  content: [tutorials, projects]\n  notebooks:\n    branch: nb\n",
       "env": {
         "NMA_NOTEBOOKS_BRANCH": "  "
       },
@@ -153,7 +138,7 @@
     },
     {
       "name": "blank NMA_AUDIENCE means student",
-      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\n",
+      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\nnma:\n  content: [tutorials, projects]\n",
       "env": {
         "NMA_AUDIENCE": "  "
       },
@@ -172,7 +157,7 @@
     },
     {
       "name": "instructor audience points at the instructor notebook",
-      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\n",
+      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\nnma:\n  content: [tutorials, projects]\n",
       "env": {
         "NMA_AUDIENCE": "instructor"
       },
@@ -191,7 +176,7 @@
     },
     {
       "name": "instructor audience, project page two folders deep",
-      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\n",
+      "myst": "version: 1\nproject:\n  github: https://github.com/org/r\nnma:\n  content: [tutorials, projects]\n",
       "env": {
         "NMA_AUDIENCE": "instructor"
       },
@@ -207,6 +192,42 @@
         "notebookDir": "projects/A/B",
         "audience": "instructor"
       }
+    },
+    {
+      "name": "nested guide folder named by the root",
+      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  content:\n    - {name: guide, path: docs/guide}\n    - tutorials\n",
+      "page": "docs/guide/setup/intro.md",
+      "expect": {
+        "root": "guide",
+        "relDir": "setup",
+        "stem": "intro",
+        "notebookDir": "guide/setup",
+        "notebook": "notebooks/guide/setup/intro.ipynb",
+        "colab": "https://colab.research.google.com/github/o/r/blob/notebooks-branch/notebooks/guide/setup/intro.ipynb",
+        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/o/r/notebooks-branch/notebooks/guide/setup/intro.ipynb",
+        "solution1": "https://github.com/o/r/blob/notebooks-branch/notebooks/guide/setup/solutions/intro_Solution_1.py"
+      }
+    },
+    {
+      "name": "name defaults to the path",
+      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\nnma:\n  content: [docs/guide]\n",
+      "page": "docs/guide/intro.md",
+      "expect": {
+        "root": "docs/guide",
+        "relDir": "",
+        "stem": "intro",
+        "notebookDir": "docs/guide",
+        "notebook": "notebooks/docs/guide/intro.ipynb",
+        "colab": "https://colab.research.google.com/github/o/r/blob/notebooks-branch/notebooks/docs/guide/intro.ipynb",
+        "kaggle": "https://kaggle.com/kernels/welcome?src=https://raw.githubusercontent.com/o/r/notebooks-branch/notebooks/docs/guide/intro.ipynb",
+        "solution1": "https://github.com/o/r/blob/notebooks-branch/notebooks/docs/guide/solutions/intro_Solution_1.py"
+      }
+    },
+    {
+      "name": "no nma.content: no page has a location",
+      "myst": "version: 1\nproject:\n  github: https://github.com/o/r\n",
+      "page": "tutorials/W1/T1.md",
+      "expect": null
     }
   ]
 }

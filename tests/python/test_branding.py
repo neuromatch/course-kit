@@ -115,6 +115,8 @@ def test_bad_settings_write_nothing(tmp_path):
 # --- through the CLI --------------------------------------------------------
 
 def course(tmp_path, nma_block=""):
+    content = "nma:\n  content: [tutorials]\n"
+    nma_block = nma_block.replace("nma:\n", content, 1) if nma_block else content
     (tmp_path / "myst.yml").write_text(MYST + nma_block)
     (tmp_path / "tutorials").mkdir()
     return tmp_path

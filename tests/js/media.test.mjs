@@ -28,7 +28,7 @@ for (const c of FIXTURE.osf) {
 
 const slides = plugin.directives.find((d) => d.name === 'nma-slides');
 
-function runSlides(options, arg, { myst = 'project:\n  github: https://github.com/o/r\n', page = 'tutorials/D/T.md' } = {}) {
+function runSlides(options, arg, { myst = 'project:\n  github: https://github.com/o/r\nnma:\n  content: [tutorials]\n', page = 'tutorials/D/T.md' } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'nma-slides-'));
   writeFileSync(join(dir, 'myst.yml'), myst);
   process.chdir(dir);

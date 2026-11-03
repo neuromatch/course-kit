@@ -1,12 +1,12 @@
 """
-Convert MyST Markdown pages (tutorials and projects) to Jupyter notebooks and inject Colab/Kaggle badges.
+Convert MyST Markdown pages (the content roots in `nma.content`) to Jupyter notebooks and inject Colab/Kaggle badges.
 
 Usage:
     nma-kit notebooks [--dry-run]
     nma-kit prepare-site [--dry-run]
 
-`nma-kit notebooks` (CI: course-publish workflow). For each .md file in a content dir
-(nma.paths.tutorials, nma.paths.projects)
+`nma-kit notebooks` (CI: course-publish workflow). For each .md file in a content root
+(a folder listed in `nma.content`)
 that has a kernelspec frontmatter:
   1. Convert to .ipynb via jupytext. Scrolly pages (`layout: scrolly`) are
      flattened first: {step} markers removed, {stage} blocks unwrapped, and
@@ -21,7 +21,7 @@ that has a kernelspec frontmatter:
   5. Inject a Colab + Kaggle badge markdown cell at position 0 of each notebook
   6. Write notebooks/<root>/<day>/<page>.ipynb (student),
      notebooks/<root>/<day>/instructor/<page>.ipynb and notebooks/<root>/<day>/solutions/*,
-     where <root> is `tutorials` or `projects` (the content root the page is in)
+     where <root> is the name of the content root the page is in (nma.content)
   The .md sources are never modified in this mode.
 
 `nma-kit prepare-site` (CI, right before `myst build`): edit each kernelspec .md file in place,
@@ -73,6 +73,7 @@ from nma_kit.config import (
     DEFAULT_NOTEBOOKS_BRANCH,
     MYST_CONFIG,
     Settings,
+    content_errors,
     load_settings,
     notebook_rel_path,
     page_location,
@@ -191,6 +192,11 @@ def validate_content(check_injected: bool = True) -> list[str]:
     content_dirs = [Path(directory) for _, directory in settings.content_roots]
     config_problems = nma_feedback.config_errors(config_text)
     errors += config_problems
+    content_problems = content_errors(read_nma_block(config_text))
+    errors += content_problems
+    for name, directory in settings.content_roots:
+        if not Path(directory).is_dir():
+            errors.append(f"nma.content folder {directory}/ (root {name}) does not exist")
     if settings.audience not in AUDIENCES:
         errors.append(f"{AUDIENCE_ENV} must be one of {', '.join(AUDIENCES)} (got {settings.audience!r})")
     errors += nma_branding.brand_errors(read_nma_block(config_text))
@@ -210,6 +216,11 @@ def validate_content(check_injected: bool = True) -> list[str]:
                 f"frontmatter, so it would get no notebook, badges, or JupyterLite button."
             )
         text = path.read_text(encoding="utf-8")
+        if not has_kernelspec(path) and nma_solutions.find_blocks(text):
+            errors.append(
+                f"{path}: uses {{nma-solution}}/{{nma-explanation}} but has no `kernelspec` in its "
+                f"frontmatter, so no solution files are generated for the links to open."
+            )
         if check_injected:
             for problem in injected_content_errors(text):
                 errors.append(f"{path}: {problem}")
@@ -412,6 +423,8 @@ def build_notebooks(source_file: Path, out_path: Path, github_repo: str, dry_run
     """
     settings = settings or Settings(github_repo)
     location = page_location(settings, source_file)
+    if location is None:
+        raise ValueError(f"{source_file} is outside every nma.content folder")
     branch = settings.notebooks_branch
     instructor_path = out_path.parent / "instructor" / out_path.name
     solutions_dir = out_path.parent / "solutions"
@@ -474,8 +487,8 @@ def build_notebooks(source_file: Path, out_path: Path, github_repo: str, dry_run
 
 
 def process_content(settings: Settings, dry_run: bool, prepare_site: bool) -> int:
-    """Walk every content dir (tutorials, projects) and process all executable
-    .md pages. Returns count processed."""
+    """Walk every content root (nma.content) and process all executable
+    .md pages (those with a kernelspec). Returns count processed."""
     count = 0
     github_repo = require_github_repo(settings)
     feedback_config = nma_feedback.load_config(MYST_CONFIG.read_text(encoding="utf-8"))
@@ -487,7 +500,16 @@ def process_content(settings: Settings, dry_run: bool, prepare_site: bool) -> in
 
     for source_file in pages:
         if not has_kernelspec(source_file):
-            continue  # static page — skip
+            # A plain page gets no notebook, but `{nma-slides} :path:` PDFs are still published:
+            # the site embeds them from the notebooks branch.
+            if not prepare_site and not dry_run:
+                location = page_location(settings, source_file)
+                dest = NOTEBOOKS_DIR / location.notebook_dir
+                text = source_file.read_text(encoding="utf-8")
+                copied = copy_slide_files(text, source_file.parent, dest)
+                if copied:
+                    print(f"  Copied {copied} slide file(s) of {source_file} to {dest}/")
+            continue
 
         # Output path: notebooks/<root>/<relDir>/<stem>.ipynb
         location = page_location(settings, source_file)

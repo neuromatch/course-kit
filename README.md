@@ -73,14 +73,14 @@ up, for adding the kit to an existing course.
 5. List the packages your tutorials import in `requirements.txt` (CI installs
    them next to the kit; `nma-kit render-scrolly` executes scrolly pages).
 
-Optional settings, in the `nma:` block of `myst.yml` (defaults shown, except
-`brand` and `style`, which are unset by default):
+Settings, in the `nma:` block of `myst.yml`. `content` is required (there are no
+defaults); the rest are optional (defaults shown, except `brand` and `style`, which are unset):
 
 ```yaml
 nma:
-  paths:
-    tutorials: tutorials          # where the tutorial .md pages live
-    projects: projects            # where the project .md pages live
+  content:                        # content roots: the folders that hold your pages
+    - tutorials                   # a folder inside the course; its notebooks go to notebooks/tutorials/
+    - {name: guide, path: docs/guide}   # name is optional (default: the path); notebooks go to notebooks/guide/
   notebooks:
     branch: notebooks-branch      # where generated notebooks are published
                                   # (the NMA_NOTEBOOKS_BRANCH env var overrides it; PR previews use it)
@@ -99,6 +99,22 @@ nma:
   style:
     extra: _static/extra.css      # your own CSS, appended after the kit's
 ```
+
+### Content roots
+
+`nma.content` lists the folders whose pages the kit processes. Name them whatever
+fits your course (`tutorials`, `labs`, `docs/guide`); the kit gives them no meaning.
+
+- **Every `.md` page in a root belongs to it.** A page with a `kernelspec` in its
+  frontmatter also gets a notebook, badges and solution files. Any other page is a
+  plain site page, and its directives (`{nma-video}`, `{nma-slides}`, ...) still work.
+- **The name** is the first folder under `notebooks/` (and `_build/scrolly/`). It defaults
+  to the path. Keep a name when you move a folder and want published notebook URLs to stay.
+- **Folders** are relative and inside the course: no `.`, `..` or absolute paths, nothing
+  under `notebooks/`, `_build/`, `_nma/` or `node_modules/`. Roots cannot nest, and names
+  are unique. `nma-kit check` reports every violation.
+- **Upgrading from 0.3:** replace `nma.paths.tutorials` / `nma.paths.projects` with
+  `content: [tutorials, projects]` (add `name: tutorials` to a renamed folder to keep its URLs).
 
 ## Pull request previews
 

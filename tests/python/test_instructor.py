@@ -5,6 +5,7 @@ import json
 import pytest
 
 from nma_kit import instructor
+from nma_kit.config import Settings
 
 FRONT = "---\ntitle: T\nkernelspec:\n  name: python3\n  display_name: Python 3\n---\n\n"
 NOTE = ":::{nma-instructor}\nSay this first.\n:::\n"
@@ -87,7 +88,7 @@ def test_build_notebooks_strips_notes_from_student_and_instructor_notebooks(tmp_
     page.write_text(PAGE)
     out = tmp_path / "notebooks" / "tutorials" / "D" / "T.ipynb"
     convert_md_to_notebook(page.relative_to(tmp_path), out, dry_run=False)
-    build_notebooks(page.relative_to(tmp_path), out.relative_to(tmp_path), "org/repo", False)
+    build_notebooks(page.relative_to(tmp_path), out.relative_to(tmp_path), "org/repo", False, None, Settings("org/repo", (("tutorials", "tutorials"),)))
     for path in (out, out.parent / "instructor" / out.name):
         text = "".join("".join(c["source"]) for c in json.loads(path.read_text())["cells"])
         assert "nma-instructor" not in text and "Say this first" not in text
@@ -97,7 +98,7 @@ def test_build_notebooks_strips_notes_from_student_and_instructor_notebooks(tmp_
 def test_check_reports_a_bad_note_with_the_page_and_line(tmp_path, monkeypatch):
     from nma_kit.convert import validate_content
 
-    (tmp_path / "myst.yml").write_text("project:\n  github: https://github.com/o/r\n")
+    (tmp_path / "myst.yml").write_text("project:\n  github: https://github.com/o/r\nnma:\n  content: [tutorials]\n")
     page = tmp_path / "tutorials" / "D" / "T.md"
     page.parent.mkdir(parents=True)
     page.write_text(FRONT + ":::{nma-instructor}\n:::\n")

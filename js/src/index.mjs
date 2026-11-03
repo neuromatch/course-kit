@@ -3,6 +3,7 @@
 // plugin as a single file). Transform order matters: solution links and
 // feedback widgets first, then assets (embeds declared files for cells), then scrolly layout, then editable cells.
 
+import content from './content/plugin.mjs';
 import media from './media/plugin.mjs';
 import solutions from './solutions/plugin.mjs';
 import instructor from './instructor/plugin.mjs';
@@ -12,7 +13,7 @@ import scrolly from './scrolly/plugin.mjs';
 import cells from './cells/plugin.mjs';
 
 /** Every feature plugin, in transform order (see the comment at the top of this file). */
-export const PLUGINS = [media, solutions, instructor, feedback, assets, scrolly, cells];
+export const PLUGINS = [content, media, solutions, instructor, feedback, assets, scrolly, cells];
 
 /** The merged MyST plugin: the directives, roles and transforms of every feature. */
 export default {

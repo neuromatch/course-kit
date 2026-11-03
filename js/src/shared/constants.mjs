@@ -4,8 +4,7 @@
 
 import data from '../../../python/src/nma_kit/constants.json' with { type: 'json' };
 
-export const DEFAULT_TUTORIALS_DIR = data.default_tutorials_dir;
-export const DEFAULT_PROJECTS_DIR = data.default_projects_dir;
+export const RESERVED_CONTENT_DIRS = data.reserved_content_dirs;
 export const DEFAULT_NOTEBOOKS_BRANCH = data.default_notebooks_branch;
 export const NOTEBOOKS_BRANCH_ENV = data.notebooks_branch_env;
 export const AUDIENCE_ENV = data.audience_env;

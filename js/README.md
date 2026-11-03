@@ -50,13 +50,11 @@ Examples:
 Directives must be at the top level of a page. Their options are checked by
 `nma-kit check`.
 
-Settings live in the `nma:` block of `myst.yml` (all optional):
+Settings live in the `nma:` block of `myst.yml` (`content` is required, the rest optional):
 
 ```yaml
 nma:
-  paths:
-    tutorials: tutorials
-    projects: projects
+  content: [tutorials, projects]   # folders holding pages; or {name: guide, path: docs/guide}
   notebooks:
     branch: notebooks-branch
   feedback: { url: https://..., project: ..., user_key: ... }

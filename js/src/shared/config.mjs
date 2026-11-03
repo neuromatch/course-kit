@@ -3,9 +3,9 @@
 // fixtures in tests/fixtures/config/ and tests/fixtures/nma_config/.
 //
 //   nma:
-//     paths:
-//       tutorials: tutorials        # where the course's tutorial .md pages live
-//       projects: projects          # where the course's project .md pages live
+//     content:                      # content roots: folders (inside the course) holding pages; required
+//       - tutorials                 # shorthand: name = path
+//       - {name: guide, path: docs/guide}   # name = first folder under notebooks/
 //     notebooks:
 //       branch: notebooks-branch    # where generated notebooks are published
 //                                   # (the env var NMA_NOTEBOOKS_BRANCH overrides it: PR previews)
@@ -25,10 +25,9 @@ import {
   DEFAULT_DATA_DIR,
   DEFAULT_IMAGE_DIR,
   DEFAULT_NOTEBOOKS_BRANCH,
-  DEFAULT_PROJECTS_DIR,
   DEFAULT_SLIDES_DIR,
-  DEFAULT_TUTORIALS_DIR,
   NOTEBOOKS_BRANCH_ENV,
+  RESERVED_CONTENT_DIRS,
 } from './constants.mjs';
 
 const GITHUB_RE = /github\.com\/([^\s'"]+?)\/?$/;
@@ -55,7 +54,39 @@ function setting(nma, section, key, fallback) {
   return typeof value === 'string' && value.trim() ? value : fallback;
 }
 
-/** {githubRepo, tutorialsDir, projectsDir, notebooksBranch, assetsDataDir, assetsImageDir, assetsSlidesDir, audience, nma} from myst.yml text. */
+const NAME_RE = /^[A-Za-z0-9_-]+(\/[A-Za-z0-9_-]+)*$/;
+
+/** Why `path` cannot be a content root folder (null if it can): a folder strictly inside the course. Twin of content_path_problem. */
+export function contentPathProblem(path) {
+  if (!path) return 'is empty';
+  if (path.startsWith('/') || /^[A-Za-z]:/.test(path)) return 'must be relative to the course root';
+  const parts = path.split('/');
+  if (parts.includes('.') || parts.includes('..')) return "must be a folder inside the course (no '.' or '..')";
+  if (parts[0].startsWith('.') || RESERVED_CONTENT_DIRS.includes(parts[0])) {
+    return `cannot be under ${parts[0]}/ (the kit or the build owns it)`;
+  }
+  return null;
+}
+
+function contentEntry(item) {
+  let path;
+  let name;
+  if (typeof item === 'string') path = item;
+  else if (isMapping(item)) ({ path, name } = item);
+  else return null;
+  if (typeof path !== 'string' || (name != null && typeof name !== 'string')) return null;
+  path = path.trim().replace(/^(\.\/)+|\/+$/g, '');
+  name = (name || path).trim().replace(/^\/+|\/+$/g, '');
+  return [name, path];
+}
+
+/** The valid `nma.content` entries as [name, path] (malformed ones are skipped; `nma-kit check` reports them). Twin of content_roots_from. */
+export function contentRootsFrom(nma) {
+  if (!Array.isArray(nma.content)) return [];
+  return nma.content.map(contentEntry).filter((e) => e && !contentPathProblem(e[1]) && NAME_RE.test(e[0]));
+}
+
+/** {githubRepo, contentRoots, notebooksBranch, assetsDataDir, assetsImageDir, assetsSlidesDir, audience, nma} from myst.yml text. */
 export function loadSettings(text, env = process.env) {
   const data = parseYaml(text);
   const nma = readNmaConfig(text);
@@ -63,8 +94,7 @@ export function loadSettings(text, env = process.env) {
   const match = typeof url === 'string' ? url.trim().match(GITHUB_RE) : null;
   return {
     githubRepo: match ? match[1] : null,
-    tutorialsDir: setting(nma, 'paths', 'tutorials', DEFAULT_TUTORIALS_DIR).replace(/^\/+|\/+$/g, ''),
-    projectsDir: setting(nma, 'paths', 'projects', DEFAULT_PROJECTS_DIR).replace(/^\/+|\/+$/g, ''),
+    contentRoots: contentRootsFrom(nma),
     notebooksBranch: (env[NOTEBOOKS_BRANCH_ENV] || '').trim() || setting(nma, 'notebooks', 'branch', DEFAULT_NOTEBOOKS_BRANCH),
     assetsDataDir: setting(nma, 'assets', 'data', DEFAULT_DATA_DIR).replace(/^\/+|\/+$/g, ''),
     assetsImageDir: setting(nma, 'assets', 'image', DEFAULT_IMAGE_DIR).replace(/^\/+|\/+$/g, ''),
