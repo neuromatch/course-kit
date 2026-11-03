@@ -17,7 +17,7 @@
 #   jobs:
 #     preview:
 #       if: github.event.pull_request.head.repo.full_name == github.repository
-#       uses: neuromatch/course-kit/.github/workflows/course-preview.yml@v0.3
+#       uses: neuromatch/course-kit/.github/workflows/course-preview.yml@v0.4
 #       with:
 #         pr-number: ${{ github.event.pull_request.number }}
 #         action: ${{ github.event.action == 'closed' && 'cleanup' || 'deploy' }}

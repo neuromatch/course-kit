@@ -3,7 +3,7 @@
 #
 #   jobs:
 #     check:
-#       uses: neuromatch/course-kit/.github/workflows/course-check.yml@v0.3
+#       uses: neuromatch/course-kit/.github/workflows/course-check.yml@v0.4
 name: Course check
 
 on:

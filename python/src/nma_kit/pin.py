@@ -1,6 +1,6 @@
 """Pin the course kit's CDN URLs in a course's myst.yml to one exact version.
 
-Courses commit an alias such as `.../course-kit@0.3/dist/nma.yml` for local
+Courses commit an alias such as `.../course-kit@0.4/dist/nma.yml` for local
 previews. On CI, `nma-kit prepare-site` rewrites it to the CLI's own version,
 so the plugin, its assets and the CLI always come from the same release
 (jsDelivr caches alias URLs for days; exact versions never change).

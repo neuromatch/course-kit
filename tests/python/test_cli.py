@@ -28,7 +28,7 @@ def f(x):
 
 def course(root: Path, page: str = EXERCISE + SOLUTION) -> Path:
     (root / "myst.yml").write_text(
-        f"version: 1\nextend: {KIT}@0.3/dist/nma.yml\nproject:\n  github: https://github.com/org/repo\n"
+        f"version: 1\nextend: {KIT}@0.4/dist/nma.yml\nproject:\n  github: https://github.com/org/repo\n"
         "nma:\n  content: [tutorials]\n")
     (root / "tutorials" / "D").mkdir(parents=True)
     (root / "tutorials" / "D" / "T.md").write_text(page)

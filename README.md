@@ -37,7 +37,7 @@ up, for adding the kit to an existing course.
 
    ```yaml
    version: 1
-   extend: https://cdn.jsdelivr.net/npm/@neuromatch/course-kit@0.3/dist/nma.yml
+   extend: https://cdn.jsdelivr.net/npm/@neuromatch/course-kit@0.4/dist/nma.yml
    project:
      github: https://github.com/<org>/<course>
      # ...
@@ -270,16 +270,16 @@ build, so the plugin, its assets and the CLI always come from one release.
 
 | You want | Workflow ref | What happens |
 |---|---|---|
-| Live, safe updates (recommended) | `@v0.3` | Every build uses the newest 0.3.x |
+| Live, safe updates (recommended) | `@v0.4` | Every build uses the newest 0.4.x |
 | Live updates including breaking changes | `@v0` | Newest 0.x, whatever it is |
 | Bleeding edge | `@main` | The kit's main branch |
-| A frozen course | `@v0.3.0` or a commit SHA | Never changes (Dependabot can propose bumps) |
+| A frozen course | `@v0.4.0` or a commit SHA | Never changes (Dependabot can propose bumps) |
 
 From 1.0 on, the safe live ref is `@v1`.
 
 **About "latest":** GitHub Actions has no automatic latest ref; the floating
 tags above are "latest within a line". jsDelivr does serve `@latest`, but it
-caches alias URLs (`@0.3`, `@latest`) for up to 7 days and `@latest` crosses
+caches alias URLs (`@0.4`, `@latest`) for up to 7 days and `@latest` crosses
 major versions, so don't put `@latest` in `myst.yml`. The alias you commit
 there only matters for local previews (CI pins it). To force the newest
 release on CI, pass `kit-version: latest` to the workflow.
@@ -290,7 +290,7 @@ Local previews cache the downloaded plugin for 30 days in `_build/cache`;
 ## Local preview of a course
 
 ```bash
-uv venv && uv pip install -r requirements.txt neuromatch-course-kit==0.3.*
+uv venv && uv pip install -r requirements.txt neuromatch-course-kit==0.4.*
 uv run nma-kit check
 uv run nma-kit sync-assets      # site branding, written to _nma/
 uv run nma-kit render-scrolly   # optional: real outputs on scrolly pages
