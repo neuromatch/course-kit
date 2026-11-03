@@ -2,6 +2,17 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.4.0](https://github.com/neuromatch/course-kit/compare/v0.3.0...v0.4.0) (2026-11-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* nma.paths.tutorials and nma.paths.projects are no longer read and there are no defaults. Add `nma: {content: [tutorials, projects]}`.
+
+### Features
+
+* declare content folders explicitly in nma.content ([f5548d4](https://github.com/neuromatch/course-kit/commit/f5548d46539116dc0be7ddb3c5db428aa8e85e05))
+
 ## [0.3.0](https://github.com/neuromatch/course-kit/compare/v0.2.1...v0.3.0) (2026-11-02)
 
 
