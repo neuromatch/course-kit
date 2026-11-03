@@ -38,6 +38,9 @@ site:
 
 # Course kit settings (read by the kit's plugin and the nma-kit CLI).
 nma:
+  content:
+    - tutorials
+    - projects
   style:
     extra: _static/custom.css   # the course's own CSS, appended after the kit's
   feedback:

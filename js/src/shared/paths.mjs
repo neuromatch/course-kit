@@ -28,17 +28,14 @@ export function courseSettings() {
 
 export const githubRepo = () => courseSettings().githubRepo;
 
-/** The (name, directory) of each place pages live; twin of Settings.content_roots. */
-export function contentRoots() {
-  const { tutorialsDir, projectsDir } = courseSettings();
-  return [['tutorials', tutorialsDir], ['projects', projectsDir]];
-}
+/** The [name, directory] of each content root (nma.content); twin of Settings.content_roots. */
+export const contentRoots = () => [...courseSettings().contentRoots];
 
 /** Folder under notebooks/ holding a page's generated files. */
 export const notebookDir = ({ root, relDir }) => (relDir ? `${root}/${relDir}` : root);
 
 // tutorials/W2D1_Examples/W2D1_Tutorial1.md -> { root: 'tutorials', relDir: 'W2D1_Examples', stem: 'W2D1_Tutorial1' }
-// The deepest matching content root wins (twin of page_location).
+// Content roots may not nest (nma-kit check); if they do, the deepest wins (twin of page_location).
 export function pageLocation(filePath) {
   const rel = relative(process.cwd(), filePath).split(sep).join('/');
   const roots = contentRoots().sort((a, b) => b[1].length - a[1].length);

@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from nma_kit import scrolly as nma_scrolly
-from nma_kit.config import Settings
+from nma_kit.config import read_settings
 from nma_kit.scrolly import cell_key, find_markers, is_scrolly, parse_params, validate
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "scrolly"
@@ -265,6 +265,7 @@ print(f(k))
 
 
 def _render_tree(tmp_path, page_text):
+    (tmp_path / "myst.yml").write_text("nma:\n  content: [tutorials]\n")
     page = tmp_path / "tutorials" / "Day" / "T.md"
     page.parent.mkdir(parents=True)
     page.write_text(page_text)
@@ -274,7 +275,7 @@ def _render_tree(tmp_path, page_text):
 def test_render_page_writes_outputs(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     _render_tree(tmp_path, RENDER_PAGE)
-    assert nma_scrolly.render_all(Settings(None)) == 0
+    assert nma_scrolly.render_all(read_settings()) == 0
     data = json.loads((tmp_path / "_build" / "scrolly" / "tutorials" / "Day" / "T.json").read_text())
 
     hello = data[cell_key('print("hello from", here)')]
@@ -290,7 +291,7 @@ def test_render_page_writes_outputs(tmp_path, monkeypatch):
 def test_render_failure_names_page_and_line(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     _render_tree(tmp_path, FRONT + "\n:::{step}\n:::\n\n```{code-cell} python\nx = 1\n```\n\n```{code-cell} python\n1 / 0\n```\n")
-    assert nma_scrolly.render_all(Settings(None)) == 1
+    assert nma_scrolly.render_all(read_settings()) == 1
     err = capsys.readouterr().err
     assert "tutorials/Day/T.md:16:" in err and "ZeroDivisionError" in err
 
@@ -298,7 +299,7 @@ def test_render_failure_names_page_and_line(tmp_path, monkeypatch, capsys):
 def test_render_skips_non_scrolly_pages(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     _render_tree(tmp_path, PLAIN_FRONT + "\n```{code-cell} python\n1 / 0\n```\n")
-    assert nma_scrolly.render_all(Settings(None)) == 0
+    assert nma_scrolly.render_all(read_settings()) == 0
     assert not (tmp_path / "_build" / "scrolly").exists()
 
 

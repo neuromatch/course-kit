@@ -8,11 +8,11 @@ import { join } from 'node:path';
 import plugin from '../../js/src/solutions/plugin.mjs';
 
 const start = process.cwd();
-const MYST = 'project:\n  github: https://github.com/o/r\n';
+const MYST = 'project:\n  github: https://github.com/o/r\nnma:\n  content: [tutorials, projects]\n';
 
-function run(page, { audience, placeholder = {} } = {}) {
+function run(page, { audience, placeholder = {}, myst = MYST } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'nma-course-'));
-  writeFileSync(join(dir, 'myst.yml'), MYST);
+  writeFileSync(join(dir, 'myst.yml'), myst);
   process.chdir(dir);
   const saved = process.env.NMA_AUDIENCE;
   if (audience) process.env.NMA_AUDIENCE = audience;
@@ -47,10 +47,18 @@ test('links to the solution under the page content root', () => {
   }
 });
 
+test('links under a root whose name differs from its folder', () => {
+  const myst = 'project:\n  github: https://github.com/o/r\nnma:\n  content: [{name: guide, path: docs/guide}]\n';
+  const { tree, messages } = run('docs/guide/setup/Intro.md', { myst });
+  assert.equal(messages.length, 0);
+  assert.ok(JSON.stringify(tree).includes('notebooks/guide/setup/solutions/Intro_Solution_1.py'));
+});
+
 test('pages outside every content dir get a fatal message naming them', () => {
   const { messages } = run('other/X.md');
   assert.equal(messages.length, 1);
   assert.match(messages[0].m, /tutorials\/ or projects\//);
+  assert.match(run('tutorials/D/T.md', { myst: 'project:\n  github: https://github.com/o/r\n' }).messages[0].m, /nma\.content folder/);
 });
 
 test('student: still a link, and the body is not in the tree', () => {

@@ -75,7 +75,7 @@ const solutionLinks = {
         continue;
       }
       if (!location) {
-        fatal(`${kind} is only supported in pages under ${contentRoots().map(([, dir]) => `${dir}/`).join(' or ')}`);
+        fatal(`${kind} is only supported in pages under ${contentRoots().map(([, dir]) => `${dir}/`).join(' or ') || 'an nma.content folder'}`);
         continue;
       }
       counters[kind] = (counters[kind] ?? 0) + 1;

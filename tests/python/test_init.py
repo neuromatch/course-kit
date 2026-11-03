@@ -68,7 +68,8 @@ def test_myst_yml(tmp_path):
     assert [a["name"] for a in data["project"]["authors"]] == ["Ada Lovelace", "Alan Turing"]
     # The feedback block is a comment, and does not point at the Neuromatch project.
     assert "feedback" not in data.get("nma", {})
-    assert "# nma:" in text or "#   feedback:" in text
+    assert "# feedback:" in text
+    assert data["nma"]["content"] == ["tutorials", "projects"]   # explicit, as the kit has no defaults
     assert "neuromatch_cn" not in text and "amazonaws" not in text
 
 

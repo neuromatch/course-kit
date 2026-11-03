@@ -7,11 +7,12 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { loadSettings, readNmaConfig } from '../../js/src/shared/config.mjs';
+import { contentPathProblem, contentRootsFrom, loadSettings, readNmaConfig } from '../../js/src/shared/config.mjs';
 import { pageLocation, notebookDir, notebookPath, notebookUrls, solutionUrl, courseSettings } from '../../js/src/shared/paths.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const { cases } = JSON.parse(readFileSync(join(here, '..', 'fixtures', 'config', 'settings.json'), 'utf8'));
+const contentCases = JSON.parse(readFileSync(join(here, '..', 'fixtures', 'config', 'content.json'), 'utf8')).cases;
 const start = process.cwd();
 
 function inCourse(myst, fn, env = {}) {
@@ -57,8 +58,7 @@ for (const c of cases) {
 test('defaults without an nma block', () => {
   assert.deepEqual(loadSettings('project:\n  github: https://github.com/o/r\n'), {
     githubRepo: 'o/r',
-    tutorialsDir: 'tutorials',
-    projectsDir: 'projects',
+    contentRoots: [],
     notebooksBranch: 'notebooks-branch',
     assetsDataDir: 'data',
     assetsImageDir: 'images',
@@ -66,6 +66,21 @@ test('defaults without an nma block', () => {
     audience: 'student',
     nma: {},
   });
+});
+
+for (const c of contentCases) {
+  test(`shared content cases: ${c.name}`, () => {
+    assert.deepEqual(contentRootsFrom(readNmaConfig(`nma: ${c.nma}\n`)), c.roots);
+    assert.deepEqual(loadSettings(`nma: ${c.nma}\n`).contentRoots, c.roots);
+  });
+}
+
+test('contentPathProblem names why a folder cannot be a root', () => {
+  assert.equal(contentPathProblem('docs/guide'), null);
+  assert.match(contentPathProblem('..'), /inside the course/);
+  assert.match(contentPathProblem('/x'), /relative/);
+  assert.match(contentPathProblem('notebooks/x'), /owns it/);
+  assert.equal(contentPathProblem(''), 'is empty');
 });
 
 test('audience defaults to student and follows NMA_AUDIENCE', () => {

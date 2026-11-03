@@ -9,8 +9,7 @@ from pathlib import Path
 
 _DATA = json.loads((Path(__file__).with_name("constants.json")).read_text(encoding="utf-8"))
 
-DEFAULT_TUTORIALS_DIR: str = _DATA["default_tutorials_dir"]
-DEFAULT_PROJECTS_DIR: str = _DATA["default_projects_dir"]
+RESERVED_CONTENT_DIRS: tuple[str, ...] = tuple(_DATA["reserved_content_dirs"])
 DEFAULT_NOTEBOOKS_BRANCH: str = _DATA["default_notebooks_branch"]
 NOTEBOOKS_BRANCH_ENV: str = _DATA["notebooks_branch_env"]
 AUDIENCE_ENV: str = _DATA["audience_env"]

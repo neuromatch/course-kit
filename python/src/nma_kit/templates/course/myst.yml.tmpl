@@ -27,10 +27,16 @@ site:
     favicon: _nma/favicon.png
 
 # Course kit settings (read by the kit's plugin and the nma-kit CLI).
-# nma:
-#   # Needed only if a page uses {nma-feedback}. Ask the datatops owner for
-#   # your own project and key; do not reuse another course's.
-#   feedback:
-#     url: https://...
-#     project: ...
-#     user_key: ...
+nma:
+  # The folders that hold your pages. A page with a `kernelspec` also gets a
+  # notebook; every other page is a plain site page. Add a folder here to add
+  # a kind of content, or `{name: guide, path: docs/guide}` to name its notebooks.
+  content:
+    - tutorials
+    - projects
+  # Needed only if a page uses {nma-feedback}. Ask the datatops owner for
+  # your own project and key; do not reuse another course's.
+  # feedback:
+  #   url: https://...
+  #   project: ...
+  #   user_key: ...

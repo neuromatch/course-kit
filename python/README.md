@@ -42,9 +42,10 @@ top-level `nma:` block holds the rest.
 
 ```yaml
 nma:
-  paths:
-    tutorials: tutorials          # where the tutorial .md pages live
-    projects: projects            # where the project .md pages live
+  content:                        # required: the folders that hold your pages
+    - tutorials
+    - projects
+    # - {name: guide, path: docs/guide}   # name = first folder under notebooks/ (default: the path)
   notebooks:
     branch: notebooks-branch      # where generated notebooks are published
   feedback:                       # required if any page uses {nma-feedback}

@@ -1,0 +1,118 @@
+{
+  "_doc": "Shared by tests/python/test_config.py and tests/js/config.test.mjs: the `nma:` block of a course's myst.yml and the content roots ([name, path]) both loaders must read from it. Malformed or invalid entries are dropped here; `nma-kit check` reports them (tests/python/test_config.py).",
+  "cases": [
+    {
+      "name": "no content",
+      "nma": "{}",
+      "roots": []
+    },
+    {
+      "name": "content is not a list",
+      "nma": "{content: tutorials}",
+      "roots": []
+    },
+    {
+      "name": "path shorthand",
+      "nma": "{content: [tutorials, projects]}",
+      "roots": [
+        [
+          "tutorials",
+          "tutorials"
+        ],
+        [
+          "projects",
+          "projects"
+        ]
+      ]
+    },
+    {
+      "name": "name and path",
+      "nma": "{content: [{name: guide, path: docs/guide}]}",
+      "roots": [
+        [
+          "guide",
+          "docs/guide"
+        ]
+      ]
+    },
+    {
+      "name": "name defaults to the path",
+      "nma": "{content: [{path: docs/guide}]}",
+      "roots": [
+        [
+          "docs/guide",
+          "docs/guide"
+        ]
+      ]
+    },
+    {
+      "name": "trailing and leading ./ slashes are trimmed",
+      "nma": "{content: ['./tutorials/', 'projects//']}",
+      "roots": [
+        [
+          "tutorials",
+          "tutorials"
+        ],
+        [
+          "projects",
+          "projects"
+        ]
+      ]
+    },
+    {
+      "name": "surrounding blanks are trimmed",
+      "nma": "{content: ['  tutorials ']}",
+      "roots": [
+        [
+          "tutorials",
+          "tutorials"
+        ]
+      ]
+    },
+    {
+      "name": "the course root itself is rejected",
+      "nma": "{content: ['.', './']}",
+      "roots": []
+    },
+    {
+      "name": "parent folders are rejected",
+      "nma": "{content: ['..', '../x', 'a/../b']}",
+      "roots": []
+    },
+    {
+      "name": "absolute paths are rejected",
+      "nma": "{content: ['/tutorials', 'C:/x']}",
+      "roots": []
+    },
+    {
+      "name": "folders owned by the kit or the build are rejected",
+      "nma": "{content: [notebooks, _build/x, _nma, node_modules, .git, ok]}",
+      "roots": [
+        [
+          "ok",
+          "ok"
+        ]
+      ]
+    },
+    {
+      "name": "bad names are rejected",
+      "nma": "{content: [{name: 'a b', path: x}, {name: '/', path: y}, {name: good, path: z}]}",
+      "roots": [
+        [
+          "good",
+          "z"
+        ]
+      ]
+    },
+    {
+      "name": "malformed entries are skipped",
+      "nma": "{content: [1, null, {name: x}, {path: 3}, {path: p, name: 4}, [a], q]}",
+      "roots": [
+        [
+          "q",
+          "q"
+        ]
+      ]
+    }
+  ]
+}

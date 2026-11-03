@@ -27,9 +27,10 @@ is the compatible line. See README.md.
 js/
   biome.json                  # JS lint config
   src/
-    index.mjs                 # merges every feature plugin (transform order: solutions, feedback, assets, scrolly, cells)
+    index.mjs                 # merges every feature plugin (transform order: content, solutions, feedback, assets, scrolly, cells)
     shared/                   # config.mjs (myst.yml settings, YAML), paths.mjs (page location, notebook/solution URLs),
                               # assets.mjs (assetUrl), frontmatter.mjs (isScrolly), tree.mjs (mdast helpers)
+    content/plugin.mjs        # fails the build when myst.yml has no nma.content
     media/plugin.mjs          # {nma-video}, {nma-slides} -> static iframes / tab sets (model.mjs: slide URLs)
     solutions/plugin.mjs      # {nma-solution}, {nma-explanation} -> "Click for ..." links (inline dropdowns when NMA_AUDIENCE=instructor)
     instructor/plugin.mjs     # {nma-instructor} -> "Instructor notes" box on the instructor site, nothing on the student site
@@ -44,7 +45,7 @@ js/
 python/src/nma_kit/
   cli.py                      # nma-kit init | check | notebooks | render-scrolly | sync-assets | prepare-site | publish-notebooks | finalize-site
   constants.json, constants.py  # values shared with the JS plugin (single source, see Rules)
-  config.py                   # Settings from myst.yml (github repo, nma.paths.tutorials, nma.notebooks.branch)
+  config.py                   # Settings from myst.yml (github repo, nma.content, nma.notebooks.branch); content_errors validates nma.content
   convert.py                  # content rules, jupytext conversion, badges, prepare-site
   media.py solutions.py feedback.py scrolly.py cells.py assets.py instructor.py   # Python side of each feature
   site.py                     # finalize-site: robots.txt, no sitemap, noindex header for the instructor site
@@ -144,18 +145,25 @@ templates/wheels.yml          # optional caller for course-wheels.yml
 
 ## Content roots (internals)
 
-- Pages live in **content roots**: `tutorials` (`nma.paths.tutorials`) and
-  `projects` (`nma.paths.projects`). `Settings.content_roots` /
-  `contentRoots()` list `(name, directory)`; the *name* is fixed, the
-  directory is configurable. A missing directory is just empty.
+- Pages live in **content roots**, declared in `nma.content` (required, no defaults): a list of
+  `folder` or `{name, path}`. `Settings.content_roots` / `loadSettings().contentRoots` hold
+  `(name, folder)`; the name defaults to the folder and may differ from it. A folder is relative and
+  strictly inside the course (`content_path_problem`: no `.`/`..`/absolute, not `notebooks`, `_build`,
+  `_nma`, `node_modules`, dot-folders: `reserved_content_dirs` in `constants.json`); roots can't nest and
+  names are unique. Both loaders drop invalid entries (twins, `tests/fixtures/config/content.json`);
+  `content_errors` (Python only) reports them in `nma-kit check`, as it does a missing folder, the old
+  `nma.paths.*` keys, and an absent `nma.content`. The `content` JS feature fails the MyST build when there are none.
+- **A root holds every page; `kernelspec` only decides notebooks.** Pages without one are plain site pages:
+  no notebook, but `{nma-slides} :path:` PDFs are still copied to `notebooks/` (the site embeds them from
+  there) and `check` validates their directives. `{nma-solution}`/`{nma-explanation}` need a `kernelspec`
+  (no solution files otherwise), which `check` enforces.
 - Everything generated is scoped by the root name:
   `notebooks/<root>/<relDir>/<stem>.ipynb` (+ `instructor/`, `solutions/`),
   `_build/scrolly/<root>/<relDir>/<stem>.json`. `page_location` /
   `pageLocation` return the root too, and `PageLocation.notebook_dir` /
-  `notebookDir()` give the folder under `notebooks/`. The deepest matching
-  directory wins when roots are nested.
+  `notebookDir()` give the folder under `notebooks/`.
 - `nma-kit notebooks | prepare-site | render-scrolly | check` all go through
-  `process_content` / the roots, so a feature added to tutorials works in projects.
+  `process_content` / the roots, so a feature added to one root works in all of them.
   The twins are tested with `tests/fixtures/config/settings.json`.
 
 ## Site branding (internals)

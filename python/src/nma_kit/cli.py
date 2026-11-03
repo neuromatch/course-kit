@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 from nma_kit import __version__, branding, convert, scaffold, scrolly
-from nma_kit.config import MYST_CONFIG, MissingConfig, read_settings
+from nma_kit.config import MYST_CONFIG, MissingConfig, content_errors, read_settings
 from nma_kit.constants import AUDIENCE_ENV, AUDIENCES
 from nma_kit.pin import pin_kit_url
 from nma_kit.publish import PublishError, publish_notebooks
@@ -41,8 +41,15 @@ def _validate(check_injected: bool) -> bool:
     return not errors
 
 
+def _require_content(settings):
+    if not settings.content_roots:
+        problems = content_errors(settings.nma)
+        raise UsageError(problems[0] if problems else "nma.content is required")
+    return settings
+
+
 def _settings():
-    settings = read_settings()
+    settings = _require_content(read_settings())
     try:
         convert.require_github_repo(settings)
     except ValueError as exc:
@@ -82,7 +89,7 @@ def cmd_notebooks(args) -> int:
 
 def cmd_render_scrolly(args) -> int:
     """`nma-kit render-scrolly`: run each scrolly page and save its outputs to `_build/scrolly/`."""
-    return scrolly.render_all(read_settings())
+    return scrolly.render_all(_require_content(read_settings()))
 
 
 def cmd_sync_assets(args) -> int:

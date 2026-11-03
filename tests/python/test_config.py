@@ -3,28 +3,86 @@ from pathlib import Path
 
 import pytest
 
-from nma_kit.config import MissingConfig, Settings, load_settings, notebook_rel_path, page_location, read_settings
+from nma_kit.config import (
+    MissingConfig,
+    Settings,
+    content_errors,
+    content_path_problem,
+    content_roots_from,
+    load_settings,
+    notebook_rel_path,
+    page_location,
+    read_nma_block,
+    read_settings,
+)
 from nma_kit.convert import make_badge_html
 from nma_kit.feedback import FORMAT_ERROR, config_errors
 from nma_kit.solutions import solution_url
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 CASES = json.loads((FIXTURES / "config" / "settings.json").read_text())["cases"]
+CONTENT_CASES = json.loads((FIXTURES / "config" / "content.json").read_text())["cases"]
 
 
 def test_defaults_without_nma_block():
     s = load_settings("project:\n  github: https://github.com/o/r\n")
-    assert s.tutorials_dir == "tutorials"
-    assert s.projects_dir == "projects"
-    assert s.content_roots == (("tutorials", "tutorials"), ("projects", "projects"))
+    assert s.content_roots == ()   # no defaults: the course declares its content
     assert s.notebooks_branch == "notebooks-branch"
     assert s.github_repo == "o/r"
 
 
-def test_custom_paths():
-    s = load_settings("nma:\n  paths:\n    tutorials: content\n  notebooks:\n    branch: nb\n")
-    assert (s.tutorials_dir, s.notebooks_branch) == ("content", "nb")
+def test_content_and_notebooks_branch():
+    s = load_settings("nma:\n  content: [content]\n  notebooks:\n    branch: nb\n")
+    assert (s.content_roots, s.notebooks_branch) == ((("content", "content"),), "nb")
     assert s.github_repo is None
+
+
+@pytest.mark.parametrize("case", CONTENT_CASES, ids=lambda c: c["name"])
+def test_shared_content_cases(case):
+    import yaml
+
+    nma = yaml.safe_load(case["nma"])
+    assert [list(r) for r in content_roots_from(nma)] == case["roots"]
+    assert load_settings(f"nma: {case['nma']}\n").content_roots == tuple(tuple(r) for r in case["roots"])
+
+
+def test_content_path_problem():
+    assert content_path_problem("docs/guide") is None
+    assert "inside the course" in content_path_problem("..")
+    assert "relative" in content_path_problem("/x")
+    assert "owns it" in content_path_problem("notebooks/x")
+    assert content_path_problem("") == "is empty"
+
+
+def errors_for(nma_yaml: str) -> list[str]:
+    return content_errors(read_nma_block(f"nma:\n{nma_yaml}"))
+
+
+def test_content_is_required():
+    assert "nma.content is required" in content_errors({})[0]
+    assert "nma.content is required" in errors_for("  content: []\n")[0]
+    assert "must be a list" in errors_for("  content: tutorials\n")[0]
+
+
+def test_content_errors_name_each_problem():
+    assert errors_for("  content: [tutorials, {name: guide, path: docs/guide}]\n") == []
+    assert any("'..'" in e for e in errors_for("  content: ['..']\n"))
+    assert any("'.'" in e for e in errors_for("  content: ['.']\n"))
+    assert any("name 'a b'" in e for e in errors_for("  content: [{name: a b, path: x}]\n"))
+    assert any("must be a folder or" in e for e in errors_for("  content: [3]\n"))
+
+
+def test_content_errors_reject_duplicate_names_and_nested_folders():
+    assert any("used twice" in e for e in errors_for("  content: [{name: a, path: x}, {name: a, path: y}]\n"))
+    assert any("overlap" in e for e in errors_for("  content: [a, a/b]\n"))
+    assert any("overlap" in e for e in errors_for("  content: [a/b, a]\n"))
+    assert errors_for("  content: [a, ab]\n") == []   # a sibling that shares a prefix is not nested
+
+
+def test_old_paths_keys_say_what_to_write_instead():
+    errors = errors_for("  paths:\n    tutorials: content\n")
+    assert len(errors) == 1 and "nma.paths.tutorials" in errors[0] and "nma.content" in errors[0]
+    assert "name: tutorials" in errors[0]
 
 
 def test_asset_dirs_default_and_custom():
@@ -37,11 +95,6 @@ def test_asset_dirs_default_and_custom():
 def test_slides_dir_default_and_custom():
     assert load_settings("").assets_slides_dir == "slides"
     assert load_settings("nma:\n  assets:\n    slides: decks/\n").assets_slides_dir == "decks"
-
-
-def test_custom_projects_dir():
-    s = load_settings("nma:\n  paths:\n    projects: capstone/\n")
-    assert s.content_roots == (("tutorials", "tutorials"), ("projects", "capstone"))
 
 
 def test_nma_block_is_exposed():
@@ -82,9 +135,9 @@ def test_read_settings_missing_file(tmp_path):
 
 
 def test_read_settings_reads_file(tmp_path):
-    (tmp_path / "myst.yml").write_text("nma:\n  paths:\n    tutorials: content\n")
-    assert read_settings(tmp_path / "myst.yml") == Settings(None, "content", "notebooks-branch",
-                                                            {"paths": {"tutorials": "content"}})
+    (tmp_path / "myst.yml").write_text("nma:\n  content: [content]\n")
+    assert read_settings(tmp_path / "myst.yml") == Settings(None, (("content", "content"),), "notebooks-branch",
+                                                            {"content": ["content"]})
 
 
 def test_audience_defaults_to_student_and_follows_the_env():
@@ -95,7 +148,8 @@ def test_audience_defaults_to_student_and_follows_the_env():
 
 
 def _course(tmp_path, monkeypatch, audience):
-    (tmp_path / "myst.yml").write_text("project:\n  github: https://github.com/o/r\n")
+    (tmp_path / "myst.yml").write_text("project:\n  github: https://github.com/o/r\nnma:\n  content: [tutorials]\n")
+    (tmp_path / "tutorials").mkdir()
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("NMA_AUDIENCE", audience)
 

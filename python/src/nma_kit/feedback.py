@@ -63,7 +63,7 @@ FORMAT_ERROR = (
 
 
 def _plain_block(raw) -> bool:
-    """True if `raw` is {section: {key: str}} (sections may not be empty)."""
+    """True if `raw` is {section: {key: str}} (sections may not be empty). `nma.content` is exempt: it is a list."""
     return isinstance(raw, dict) and all(
         isinstance(section, dict) and section
         and all(isinstance(k, str) and isinstance(v, str) for k, v in section.items())
@@ -79,7 +79,8 @@ def config_errors(text: str) -> list[str]:
     raw = data.get("nma") if isinstance(data, dict) else None
     if raw is None:
         return []
-    if not _plain_block(raw):
+    # `content` is a list of folders; nma_kit.config.content_errors checks it.
+    if not _plain_block({k: v for k, v in raw.items() if k != "content"} if isinstance(raw, dict) else raw):
         return [FORMAT_ERROR]
     feedback = raw.get("feedback")
     if feedback is None:

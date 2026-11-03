@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const src = join(here, '..', '..', 'js', 'src');
-const FEATURES = ['media', 'solutions', 'instructor', 'feedback', 'assets', 'scrolly', 'cells'];
+const FEATURES = ['content', 'media', 'solutions', 'instructor', 'feedback', 'assets', 'scrolly', 'cells'];
 
 function files(dir) {
   return readdirSync(dir).flatMap((name) => {
@@ -57,6 +57,6 @@ test('index.mjs bundles every directive and keeps the transform order', async ()
   // feedback widgets), then scrolly, then cells.
   assert.deepEqual(
     kit.transforms.map((t) => t.name),
-    ['nma-solution-links', 'nma-feedback-widgets', 'nma-assets', 'nma-scrolly', 'nma-cells'],
+    ['nma-require-content', 'nma-solution-links', 'nma-feedback-widgets', 'nma-assets', 'nma-scrolly', 'nma-cells'],
   );
 });

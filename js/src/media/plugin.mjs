@@ -120,7 +120,7 @@ const nmaSlides = {
       return fail(
         vfile,
         data.node,
-        'nma-slides :path: needs project.github in myst.yml and a page inside the tutorials or projects folder',
+        'nma-slides :path: needs project.github in myst.yml and a page inside one of the nma.content folders',
       );
     }
     const sources = wanted.map((s) => {

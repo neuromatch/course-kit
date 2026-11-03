@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from nma_kit.config import Settings
 from nma_kit.convert import add_badge_cell, prepare_site_md
 from nma_kit.solutions import FALLBACK_SENTINEL
 
@@ -106,6 +107,9 @@ x = 1
 """
 
 
+TUTORIALS = Settings("org/repo", (("tutorials", "tutorials"),))
+
+
 def test_build_notebooks_expands_feedback(tmp_path, monkeypatch):
     import json
 
@@ -120,7 +124,7 @@ def test_build_notebooks_expands_feedback(tmp_path, monkeypatch):
     config = nma_feedback.FeedbackConfig("https://e.org", "proj", "key")
 
     convert_md_to_notebook(page.relative_to(tmp_path), out, dry_run=False)
-    build_notebooks(page.relative_to(tmp_path), out.relative_to(tmp_path), "org/repo", False, config)
+    build_notebooks(page.relative_to(tmp_path), out.relative_to(tmp_path), "org/repo", False, config, TUTORIALS)
 
     for path in (out, out.parent / "instructor" / out.name):
         cells = json.loads(path.read_text())["cells"]
@@ -185,7 +189,7 @@ def test_build_notebooks_flattens_scrolly_pages(tmp_path, monkeypatch):
     out = tmp_path / "notebooks" / "tutorials" / "D" / "T.ipynb"
 
     convert_md_to_notebook(page.relative_to(tmp_path), out, dry_run=False)
-    build_notebooks(page.relative_to(tmp_path), out.relative_to(tmp_path), "org/repo", False, None)
+    build_notebooks(page.relative_to(tmp_path), out.relative_to(tmp_path), "org/repo", False, None, TUTORIALS)
 
     assert page.read_text() == SCROLLY_PAGE  # source untouched
     student = json.loads(out.read_text())["cells"]
@@ -211,6 +215,7 @@ def test_validate_content_reports_scrolly_errors(tmp_path, monkeypatch):
     from nma_kit.convert import validate_content
 
     monkeypatch.chdir(tmp_path)
+    (tmp_path / "myst.yml").write_text("nma:\n  content: [tutorials]\n")
     (tmp_path / "tutorials").mkdir()
     (tmp_path / "tutorials" / "P.md").write_text("---\ntitle: P\n---\n\n:::{step}\n:::\n")
     errors = validate_content()
@@ -229,6 +234,7 @@ def test_validate_content_reports_runtime_errors(tmp_path, monkeypatch):
     from nma_kit.convert import validate_content
 
     monkeypatch.chdir(tmp_path)
+    (tmp_path / "myst.yml").write_text("nma:\n  content: [tutorials]\n")
     (tmp_path / "tutorials").mkdir()
     (tmp_path / "tutorials" / "P.md").write_text("---\ntitle: P\nruntime: gpu\n---\n")
     assert any("runtime: 'gpu'" in e for e in validate_content())
@@ -259,7 +265,7 @@ arr = np.load("data/a.npz")
 
 def _asset_course(tmp_path, monkeypatch, page_text=ASSET_PAGE, files=("data/a.npz", "images/pic.png")):
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "myst.yml").write_text("project:\n  github: https://github.com/org/repo\n")
+    (tmp_path / "myst.yml").write_text("project:\n  github: https://github.com/org/repo\nnma:\n  content: [tutorials]\n")
     day = tmp_path / "tutorials" / "D"
     day.mkdir(parents=True)
     (day / "T.md").write_text(page_text)
