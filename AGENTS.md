@@ -69,9 +69,10 @@ Makefile, ruff.toml           # contributor tasks (make help); Python lint confi
 .pre-commit-config.yaml       # runs the linters on commit (installed by make setup)
 templates/course.yml          # the workflow courses copy (calls the reusable workflows @v0.4); the source `nma-kit init` renders
 templates/wheels.yml          # optional caller for course-wheels.yml
+templates/nightly.yml         # optional caller for course-nightly.yml
 .github/actions/setup-course/   # shared setup (uv, Node, install the kit) used by the course-*.yml workflows
 .github/actionlint.yaml        # ignores the job.workflow_* property errors (actionlint doesn't know them yet)
-.github/workflows/            # course-check.yml, course-publish.yml, course-preview.yml, course-wheels.yml (reusable), ci.yml, release.yml
+.github/workflows/            # course-check.yml, course-publish.yml, course-preview.yml, course-wheels.yml, course-nightly.yml (reusable), ci.yml, release.yml
 ```
 
 ## Rules

@@ -53,3 +53,14 @@ def test_the_report_job_runs_even_when_notebooks_fail_and_is_the_only_one_with_i
 def test_the_kit_version_comes_from_the_manifest_like_the_other_workflows():
     text = NIGHTLY.read_text()
     assert ".release-please-manifest.json" in text and "KIT_VERSION" not in text
+
+
+def test_the_course_template_calls_this_workflow_on_the_release_line():
+    text = (KIT / "templates" / "nightly.yml").read_text()
+    template = yaml.safe_load(text)
+    job = template["jobs"]["notebooks"]
+    assert job["uses"] == "neuromatch/course-kit/.github/workflows/course-nightly.yml@v0.4"
+    assert job["permissions"] == {"contents": "read", "issues": "write"}
+    crons = [s["cron"] for s in template[True]["schedule"]]
+    assert "0 5 * * 0" in crons, "the weekly cron the runtime expression tests for"
+    assert "workflow_dispatch" in template[True]

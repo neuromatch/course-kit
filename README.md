@@ -220,19 +220,18 @@ git checkout -- tutorials projects myst.yml   # undo prepare-site
 ## Scheduled notebook runs
 
 `course-nightly.yml` runs every generated **instructor** notebook (solutions filled in, so no
-intentional errors) in Google's Colab runtime image and reports what broke. Call it on a schedule:
+intentional errors) in Google's Colab runtime image and reports what broke. It is optional: copy
+[`templates/nightly.yml`](templates/nightly.yml) to `.github/workflows/nightly.yml` in the course
+(new and existing courses alike; `nma-kit init` does not add it). It runs the browser notebooks every
+night and the `runtime: colab` ones every Sunday, and can be started by hand from the Actions tab.
+Scheduled workflows only run from the default branch. The call looks like this:
 
 ```yaml
-on:
-  schedule:
-    - cron: "0 4 * * *"   # every night: the notebooks that run in the browser
-    - cron: "0 5 * * 0"   # every Sunday: the Colab ones
-  workflow_dispatch:
 jobs:
-  nightly:
+  notebooks:
     uses: neuromatch/course-kit/.github/workflows/course-nightly.yml@v0.4
     with:
-      runtime: ${{ github.event.schedule == '0 5 * * 0' && 'colab' || 'browser' }}
+      runtime: browser   # or colab; empty runs them all
     permissions:
       contents: read
       issues: write
