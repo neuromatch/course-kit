@@ -1,4 +1,6 @@
 import json
+import os
+import sys
 
 import nbformat
 import pytest
@@ -73,6 +75,31 @@ def test_run_notebook_times_out(tmp_path):
     nb = write_nb(tmp_path / "slow.ipynb", "import time\ntime.sleep(60)")
     result = runner.run_notebook(nb, "browser", timeout=3)
     assert result.state == "timeout"
+
+
+def test_run_child_kills_a_process_that_outlives_its_deadline_with_its_children(tmp_path):
+    pid_file = tmp_path / "grandchild.pid"
+    code = ("import subprocess, sys, time\n"
+            f"p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+            f"open({str(pid_file)!r}, 'w').write(str(p.pid))\n"
+            "time.sleep(60)")
+    assert runner._run_child([sys.executable, "-c", code], deadline=2) is False
+    with pytest.raises(ProcessLookupError):
+        os.kill(int(pid_file.read_text()), 0)
+
+
+def test_run_child_reports_a_process_that_finishes():
+    assert runner._run_child([sys.executable, "-c", "pass"], deadline=30) is True
+
+
+def test_a_notebook_that_hangs_is_killed_and_names_its_cell(tmp_path, monkeypatch):
+    # nbclient's own timeout is an hour here, so only the supervisor can stop the notebook.
+    original = runner._run_child
+    monkeypatch.setattr(runner, "_run_child", lambda command, deadline: original(command, 15))
+    nb = write_nb(tmp_path / "hang.ipynb", "x = 1", "import time\ntime.sleep(120)")
+    result = runner.run_notebook(nb, "browser", timeout=3600)
+    assert result.state == "timeout" and "cell 2" in result.where
+    assert "import time" in result.message and "hung" in result.message
 
 
 def test_total_budget_spans_cells(tmp_path):

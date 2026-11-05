@@ -368,6 +368,10 @@ downloads); CI retries failed tests once.
 - **States** (`runner.classify`): `passed`, `failed`, `timeout`, `needs-check`. A failure or timeout of a
   `runtime: colab` page becomes `needs-check` (the job has no GPU) and does not fail the build. `--timeout` is the
   budget for a whole notebook, enforced per cell from `on_cell_start`.
+- **Each notebook runs in a child process** (`runner.run_notebook` -> `python -m nma_kit.runner`, own process group),
+  killed with its kernel at `--timeout` + 60 s (`KILL_GRACE`): nbclient's cell timeout cannot fire when something blocks
+  outside a cell (widgets waiting for a front end, kernel shutdown). The child logs each cell as it starts and writes
+  the running cell to a progress file, so a hung or timed-out notebook is reported with its cell and first line.
 - `runner.py` imports the kit's config/cells code only inside `list_targets`: the run job has just nbclient, nbformat
   and the kit, no other dependencies. Keep `run_notebook` and the CLI path of `--notebook` free of them.
 - The workflow's shape is pinned by `tests/python/test_nightly_workflow.py`; the Colab image and the issue calls are
