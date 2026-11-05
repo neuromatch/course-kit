@@ -20,6 +20,8 @@ from pathlib import Path
 PASSED, FAILED, TIMEOUT, NEEDS_CHECK = "passed", "failed", "timeout", "needs-check"
 BREAKING = (FAILED, TIMEOUT)
 DEFAULT_TIMEOUT = 1200  # seconds for one whole notebook
+CELL_TIMEOUT = 300  # seconds for one cell: a stalled cell costs this much, not the whole notebook budget
+RETRIES = 1  # a notebook that timed out is run once more in a fresh kernel (timeouts can be stalls, not slowness)
 KILL_GRACE = 60  # seconds past the timeout before the notebook's process is killed
 
 
@@ -33,6 +35,8 @@ class Result:
     where: str = ""    # "<notebook>, cell N" of the first problem
     message: str = ""  # the last line of the error
     seconds: float = 0.0
+    attempts: int = 1
+    timed_out: bool = False  # also true for a `needs-check` that was a timeout: only timeouts are run again
 
 
 class _OutOfTime(Exception):
@@ -90,9 +94,10 @@ def _title(cell) -> str:
     return "(empty)"
 
 
-def _execute(path: Path, runtime: str, timeout: float, progress: Path | None = None) -> Result:
+def _execute(path: Path, runtime: str, timeout: float, cell_timeout: float = CELL_TIMEOUT,
+             progress: Path | None = None) -> Result:
     """Execute one notebook in this process (a fresh kernel, in the notebook's own folder), within `timeout`
-    seconds in total. `progress` is rewritten at each cell start, so a supervisor can name a cell that hangs."""
+    seconds in total and `cell_timeout` seconds for each cell. `progress` is rewritten at each cell start, so a supervisor can name a cell that hangs."""
     import nbformat
     from nbclient import NotebookClient
     from nbclient.exceptions import CellExecutionError, CellTimeoutError, DeadKernelError
@@ -113,20 +118,22 @@ def _execute(path: Path, runtime: str, timeout: float, progress: Path | None = N
     def on_cell_start(cell, cell_index):
         current["index"] = numbers[cell_index]
         current["title"] = _title(cell)
-        print(f"  cell {current['index']}: {current['title']}", flush=True)
+        if cell.cell_type == "code":
+            print(f"  cell {current['index']}: {current['title']}", flush=True)
         if progress:
             progress.write_text(json.dumps(current), encoding="utf-8")
         remaining = timeout - (time.monotonic() - start)
         if remaining <= 0:
             raise _OutOfTime
-        client.timeout = max(1, math.ceil(remaining))
+        client.timeout = max(1, math.ceil(min(remaining, cell_timeout)))
 
-    client = NotebookClient(nb, timeout=math.ceil(timeout), kernel_name="python3",
+    client = NotebookClient(nb, timeout=math.ceil(min(timeout, cell_timeout)), kernel_name="python3",
                             resources={"metadata": {"path": str(path.resolve().parent)}})
     client.on_cell_start = on_cell_start
 
     def result(state, where="", message=""):
-        return Result(name, runtime, classify(state, runtime), where, message, round(time.monotonic() - start, 1))
+        return Result(name, runtime, classify(state, runtime), where, message, round(time.monotonic() - start, 1),
+                      timed_out=state == TIMEOUT)
 
     try:
         client.execute()
@@ -137,7 +144,7 @@ def _execute(path: Path, runtime: str, timeout: float, progress: Path | None = N
                 return result(FAILED, f"{name}, cell {index}", f"{errors[0]['ename']}: {errors[0]['evalue']}")
         return result(FAILED, name, "a cell failed")
     except (CellTimeoutError, _OutOfTime, TimeoutError):
-        return result(TIMEOUT, f"{name}, cell {current['index']}", f"over {timeout:g} s in: {current['title']}")
+        return result(TIMEOUT, f"{name}, cell {current['index']}", f"over {min(timeout, cell_timeout):g} s in: {current['title']}")
     except DeadKernelError:
         return result(FAILED, f"{name}, cell {current['index']}", "the kernel died (out of memory?)")
     return result(PASSED)
@@ -156,7 +163,7 @@ def _run_child(command: list[str], deadline: float) -> bool:
         return False
 
 
-def run_notebook(path: Path, runtime: str = "browser", timeout: float = DEFAULT_TIMEOUT) -> Result:
+def _attempt(path: Path, runtime: str, timeout: float, cell_timeout: float) -> Result:
     """Run one notebook (see `_execute`) in a child process that is killed if it outlives `timeout` plus a
     grace period. nbclient's own timeout cannot fire when something blocks outside a cell (a widget waiting
     for a front end, the kernel shutting down), and one such notebook would hold the whole job."""
@@ -165,7 +172,8 @@ def run_notebook(path: Path, runtime: str = "browser", timeout: float = DEFAULT_
     start = time.monotonic()
     with tempfile.TemporaryDirectory() as tmp:
         progress, out = Path(tmp) / "progress.json", Path(tmp) / "result.json"
-        command = [sys.executable, "-m", "nma_kit.runner", str(path), runtime, str(timeout), str(progress), str(out)]
+        command = [sys.executable, "-m", "nma_kit.runner", str(path), runtime, str(timeout), str(cell_timeout),
+                   str(progress), str(out)]
         finished = _run_child(command, timeout + KILL_GRACE)
         seconds = round(time.monotonic() - start, 1)
         if out.is_file():
@@ -174,7 +182,26 @@ def run_notebook(path: Path, runtime: str = "browser", timeout: float = DEFAULT_
             return Result(name, runtime, classify(FAILED, runtime), name, "the notebook runner crashed", seconds)
         current = json.loads(progress.read_text(encoding="utf-8")) if progress.is_file() else {"index": 0, "title": ""}
         return Result(name, runtime, classify(TIMEOUT, runtime), f"{name}, cell {current['index']}",
-                      f"hung: killed after {timeout + KILL_GRACE:g} s in: {current['title']}", seconds)
+                      f"hung: killed after {timeout + KILL_GRACE:g} s in: {current['title']}", seconds, timed_out=True)
+
+
+def run_notebook(path: Path, runtime: str = "browser", timeout: float = DEFAULT_TIMEOUT,
+                 cell_timeout: float = CELL_TIMEOUT, retries: int = RETRIES) -> Result:
+    """Run a notebook, and run it again (up to `retries` times, in a fresh kernel) if it timed out: with widgets
+    the kernel sometimes stalls between cells, and a stall is not a notebook problem. A failure is never retried.
+    A pass after a retry stays a pass but says so, so flaky notebooks stay visible."""
+    attempts, earlier = 0, []
+    while True:
+        attempts += 1
+        result = _attempt(Path(path), runtime, timeout, cell_timeout)
+        if result.timed_out and attempts <= retries:
+            earlier.append(f"{result.where}: {result.message}")
+            print(f"  timed out ({earlier[-1]}), trying again", flush=True)
+            continue
+        result.attempts = attempts
+        if result.state == PASSED and earlier:
+            result.message = f"passed on attempt {attempts}; before: {earlier[0]}"
+        return result
 
 
 def summary_markdown(results: list[Result]) -> str:
@@ -194,7 +221,7 @@ def write_report(results: list[Result], path: Path) -> None:
     Path(path).write_text(json.dumps([asdict(r) for r in results], indent=2) + "\n", encoding="utf-8")
 
 
-if __name__ == "__main__":  # the child of `run_notebook`: notebook, runtime, timeout, progress file, result file
-    notebook, runtime_, timeout_, progress_, out_ = sys.argv[1:6]
-    outcome = _execute(Path(notebook), runtime_, float(timeout_), Path(progress_))
+if __name__ == "__main__":  # the child of `_attempt`: notebook, runtime, timeout, cell timeout, progress file, result file
+    notebook, runtime_, timeout_, cell_timeout_, progress_, out_ = sys.argv[1:7]
+    outcome = _execute(Path(notebook), runtime_, float(timeout_), float(cell_timeout_), Path(progress_))
     Path(out_).write_text(json.dumps(asdict(outcome)), encoding="utf-8")

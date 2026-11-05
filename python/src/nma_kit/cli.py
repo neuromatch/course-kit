@@ -121,7 +121,8 @@ def cmd_run_notebooks(args) -> int:
     results = []
     for target in targets:
         print(f"Running {target['notebook']} ...", flush=True)
-        result = runner.run_notebook(Path(target["notebook"]), target["runtime"], args.timeout)
+        result = runner.run_notebook(Path(target["notebook"]), target["runtime"], args.timeout,
+                                         args.cell_timeout, args.retries)
         print(f"  {result.state} in {result.seconds:g} s" + (f": {result.where}: {result.message}" if result.message else ""))
         results.append(result)
         if args.report:  # after every notebook, so a job that is cut off still leaves what it finished
@@ -219,6 +220,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--runtime", choices=["browser", "colab"],
                    help="with --list or no --notebook: only pages with this runtime; with --notebook: its runtime")
     p.add_argument("--timeout", type=float, default=runner.DEFAULT_TIMEOUT, help="seconds for one whole notebook")
+    p.add_argument("--cell-timeout", type=float, default=runner.CELL_TIMEOUT, help="seconds for one cell")
+    p.add_argument("--retries", type=int, default=runner.RETRIES,
+                   help="times to run a notebook again after a timeout (a stalled kernel, not a notebook problem)")
     p.add_argument("--report", help="also write the results to this JSON file")
     p.set_defaults(func=cmd_run_notebooks)
 
