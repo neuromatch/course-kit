@@ -225,14 +225,16 @@ jobs:
             exit 0
           fi
           {
-            echo "Scheduled run of the instructor notebooks${RUNTIME:+ (runtime: $RUNTIME)}: $RUN_URL"
+            echo "Scheduled run of the instructor notebooks${RUNTIME:+ (only \`runtime: $RUNTIME\` pages)}: $RUN_URL"
             echo
             jq -r '
               def rows($s): [.[] | select(.state == $s)] | if length == 0 then empty else
                 "### \($s)\n", (.[] | "- `\(.notebook)` (\(.where)): \(.message)"), "" end;
               rows("failed"), rows("timeout"), rows("needs-check")' all.json
             [ "$missing" -gt 0 ] && echo "$missing notebook(s) left no result: a job crashed or ran out of time. See the run."
-            echo "_needs-check: a \`runtime: colab\` notebook that failed on CPU. Open it in Colab with a GPU to confirm._"
+            if [ "$(jq '[.[] | select(.state == "needs-check")] | length' all.json)" -gt 0 ]; then
+              echo "_needs-check: a \`runtime: colab\` notebook that failed on CPU. Open it in Colab with a GPU to confirm._"
+            fi
           } > body.md
           if [ -n "$number" ]; then
             gh issue comment "$number" --body-file body.md
