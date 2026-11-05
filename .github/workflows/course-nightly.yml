@@ -171,7 +171,8 @@ jobs:
       - name: Add to the job summary
         if: always()
         working-directory: ${{ inputs.working-directory }}
-        run: '[ -f reports/summary.md ] && cat reports/summary.md >> "$GITHUB_STEP_SUMMARY" || true'
+        run: |
+          if [ -f reports/summary.md ]; then cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"; fi
 
       - uses: actions/upload-artifact@v4
         if: always()
