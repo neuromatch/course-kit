@@ -376,6 +376,10 @@ downloads); CI retries failed tests once.
   `widgets.interact`: the next cell never starts and nbclient waits out its timeout). So a cell gets at most
   `--cell-timeout` (300 s), not the whole notebook budget, and a notebook that timed out is run again in a fresh
   kernel (`--retries`, default 1; failures are never retried). A pass after a retry is a pass, with a message saying so.
+- **A stuck cell names itself.** Three seconds before a cell's timeout the runner sends SIGABRT to the kernel
+  (started with `PYTHONFAULTHANDLER=1`), which prints the stack of every thread to the job log; the notebook is then
+  reported as `timeout` (not as a dead kernel). The cell's title is its first line plus the first line of code when
+  that is a `# @title` / `# @markdown` comment.
 - `runner.py` imports the kit's config/cells code only inside `list_targets`: the run job has just nbclient, nbformat
   and the kit, no other dependencies. Keep `run_notebook` and the CLI path of `--notebook` free of them.
 - The workflow's shape is pinned by `tests/python/test_nightly_workflow.py`; the Colab image and the issue calls are

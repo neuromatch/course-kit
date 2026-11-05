@@ -13,6 +13,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -87,11 +88,14 @@ def shard(targets: list[dict], count: int) -> list[list[dict]]:
 
 
 def _title(cell) -> str:
-    """The first non-blank line of a cell, to name it in logs and reports."""
-    for line in "".join(cell.source).splitlines():
-        if line.strip():
-            return line.strip()[:80]
-    return "(empty)"
+    """The first line of a cell, plus its first line of code when that one is a comment (`# @title ...`,
+    `# @markdown ...`), to name the cell in logs and reports."""
+    lines = [line.strip() for line in "".join(cell.source).splitlines() if line.strip()]
+    if not lines:
+        return "(empty)"
+    code = next((line for line in lines if not line.startswith("#")), "")
+    title = f"{lines[0]} | {code}" if lines[0].startswith("#") and code else lines[0]
+    return title[:100]
 
 
 def _execute(path: Path, runtime: str, timeout: float, cell_timeout: float = CELL_TIMEOUT,
@@ -114,8 +118,20 @@ def _execute(path: Path, runtime: str, timeout: float, cell_timeout: float = CEL
     nb.cells = [cell for cell in nb.cells if not is_exercise_cell(cell)]
     start = time.monotonic()
     current = {"index": 0, "title": ""}  # the notebook number and first line of the cell that is running
+    stall = {"timer": None, "dumped": False}
+    os.environ.setdefault("PYTHONFAULTHANDLER", "1")  # the kernel inherits it: SIGABRT then prints every thread's stack
+
+    def dump_stacks():
+        """A cell is about to time out: make the kernel print where it is stuck (to the job log), then give up on it."""
+        pid = getattr(getattr(getattr(client, "km", None), "provisioner", None), "pid", None)
+        if pid:
+            print(f"  cell {current['index']} is stuck; stack of the kernel:", flush=True)
+            stall["dumped"] = True
+            os.kill(pid, signal.SIGABRT)
 
     def on_cell_start(cell, cell_index):
+        if stall["timer"]:
+            stall["timer"].cancel()
         current["index"] = numbers[cell_index]
         current["title"] = _title(cell)
         if cell.cell_type == "code":
@@ -126,6 +142,10 @@ def _execute(path: Path, runtime: str, timeout: float, cell_timeout: float = CEL
         if remaining <= 0:
             raise _OutOfTime
         client.timeout = max(1, math.ceil(min(remaining, cell_timeout)))
+        if cell.cell_type == "code":
+            stall["timer"] = threading.Timer(max(1, client.timeout - 3), dump_stacks)
+            stall["timer"].daemon = True
+            stall["timer"].start()
 
     client = NotebookClient(nb, timeout=math.ceil(min(timeout, cell_timeout)), kernel_name="python3",
                             resources={"metadata": {"path": str(path.resolve().parent)}})
@@ -136,7 +156,11 @@ def _execute(path: Path, runtime: str, timeout: float, cell_timeout: float = CEL
                       timed_out=state == TIMEOUT)
 
     try:
-        client.execute()
+        try:
+            client.execute()
+        finally:
+            if stall["timer"]:
+                stall["timer"].cancel()
     except CellExecutionError:
         for index, cell in zip(numbers, nb.cells, strict=True):
             errors = [o for o in cell.get("outputs", []) if o.get("output_type") == "error"]
@@ -146,6 +170,8 @@ def _execute(path: Path, runtime: str, timeout: float, cell_timeout: float = CEL
     except (CellTimeoutError, _OutOfTime, TimeoutError):
         return result(TIMEOUT, f"{name}, cell {current['index']}", f"over {min(timeout, cell_timeout):g} s in: {current['title']}")
     except DeadKernelError:
+        if stall["dumped"]:  # we aborted the kernel ourselves, to read its stack
+            return result(TIMEOUT, f"{name}, cell {current['index']}", f"over {min(timeout, cell_timeout):g} s in: {current['title']}")
         return result(FAILED, f"{name}, cell {current['index']}", "the kernel died (out of memory?)")
     return result(PASSED)
 

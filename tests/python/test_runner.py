@@ -255,3 +255,18 @@ def test_a_stalled_cell_costs_the_cell_timeout_not_the_notebook_budget(tmp_path)
     start = time.monotonic()
     result = runner.run_notebook(nb, "browser", timeout=3600, cell_timeout=3, retries=0)
     assert result.state == "timeout" and "over 3 s" in result.message and time.monotonic() - start < 30
+
+
+def test_a_stuck_cell_makes_the_kernel_print_its_stack_before_the_timeout(tmp_path, capfd):
+    nb = write_nb(tmp_path / "stuck.ipynb", "import time\ndef hang_here():\n    time.sleep(120)\nhang_here()")
+    result = runner.run_notebook(nb, "browser", timeout=3600, cell_timeout=8, retries=0)
+    assert result.state == "timeout" and "over 8 s" in result.message
+    out = capfd.readouterr()
+    assert "hang_here" in out.err + out.out, "the kernel's stack should name the function it is stuck in"
+
+
+def test_title_names_the_code_behind_a_form_comment():
+    cell = nbformat.v4.new_code_cell("# @markdown Make sure you execute this cell\n\nT = 10\n@widgets.interact()")
+    assert runner._title(cell) == "# @markdown Make sure you execute this cell | T = 10"
+    assert runner._title(nbformat.v4.new_code_cell("x = 1\n")) == "x = 1"
+    assert runner._title(nbformat.v4.new_code_cell("")) == "(empty)"
