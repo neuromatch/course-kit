@@ -52,6 +52,13 @@ LITERAL_DIRECTIVES = {"code-cell", "code", "code-block"}
 # An exercise cell has an uncommented `raise NotImplementedError` line. The
 # site fallback uses the same rule to decide whether a cell is still unfinished.
 EXERCISE_RE = re.compile(r"^\s*raise NotImplementedError\b")
+
+
+def is_exercise_cell(cell: dict) -> bool:
+    """A code cell with an unfinished exercise (a line `raise NotImplementedError`). In the instructor notebook
+    the `# Solution` cell after it defines the same names, so a run skips the exercise cell."""
+    return cell.get("cell_type") == "code" and any(
+        EXERCISE_RE.match(line) for line in text_of_cell(cell).splitlines())
 TO_REMOVE_RE = re.compile(r"^\s*#\s*to_remove\b")
 
 

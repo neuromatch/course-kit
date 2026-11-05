@@ -360,8 +360,11 @@ downloads); CI retries failed tests once.
   list of `{notebook, runtime}`), `run` runs one matrix job per shard (so the big Colab image is pulled once per shard,
   not per notebook) with `--targets`, the notebooks one after another, inside the Colab runtime image (`docker run`, the kit installed `--no-deps` so the image's packages stay as Colab has
   them), `report` opens, updates or closes one issue (label `course-nightly`).
-- **Only instructor notebooks run.** The student notebook differs by exercise stubs (raise `NotImplementedError` on
-  purpose) and solution links, which `nma-kit check` already validates.
+- **Only instructor notebooks run, without their exercise cells.** The instructor notebook keeps each exercise cell
+  (it raises `NotImplementedError` on purpose) and adds a `# Solution` cell after it, so `run_notebook` drops the
+  exercise cells first (`solutions.is_exercise_cell`, shared with `scrolly.execution_notebook`) and keeps the cell
+  numbers of the notebook in its reports. The student notebook differs only by those stubs and the solution links,
+  which `nma-kit check` already validates.
 - **States** (`runner.classify`): `passed`, `failed`, `timeout`, `needs-check`. A failure or timeout of a
   `runtime: colab` page becomes `needs-check` (the job has no GPU) and does not fail the build. `--timeout` is the
   budget for a whole notebook, enforced per cell from `on_cell_start`.
