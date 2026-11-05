@@ -2,6 +2,14 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.4.2](https://github.com/neuromatch/course-kit/compare/v0.4.1...v0.4.2) (2026-11-05)
+
+
+### Bug Fixes
+
+* skip the exercise cells when running instructor notebooks ([4a4671e](https://github.com/neuromatch/course-kit/commit/4a4671e905686469e59e76c55dbad20cf587e65f))
+* skip the exercise cells when running instructor notebooks ([5bb3164](https://github.com/neuromatch/course-kit/commit/5bb3164136842f2760fa9ca9366ddedff0bb06b6))
+
 ## [0.4.1](https://github.com/neuromatch/course-kit/compare/v0.4.0...v0.4.1) (2026-11-05)
 
 
