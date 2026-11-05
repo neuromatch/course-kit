@@ -213,7 +213,7 @@ def fake_attempts(monkeypatch, *results):
     calls = []
     queue = list(results)
 
-    def attempt(path, runtime, timeout, cell_timeout):
+    def attempt(path, runtime, timeout, cell_timeout, headless_widgets):
         calls.append(path)
         return queue.pop(0)
     monkeypatch.setattr(runner, "_attempt", attempt)
@@ -270,3 +270,37 @@ def test_title_names_the_code_behind_a_form_comment():
     assert runner._title(cell) == "# @markdown Make sure you execute this cell | T = 10"
     assert runner._title(nbformat.v4.new_code_cell("x = 1\n")) == "x = 1"
     assert runner._title(nbformat.v4.new_code_cell("")) == "(empty)"
+
+
+INTERACT_CELLS = [
+    "import ipywidgets as widgets\ncalls = {}",
+    "@widgets.interact\ndef a(real=(-2, 2, .2), n=(0, 10), label=['x', 'y'], k=3):\n    calls['a'] = (real, n, label, k)",
+    "@widgets.interact(c=widgets.FloatSlider(value=-0.5, min=-2.5, max=1.5), d=widgets.Dropdown(options=[[1, 2], None], value=None))\n"
+    "def b(c, d):\n    calls['b'] = (c, d)",
+    "widgets.interact(lambda x: calls.__setitem__('c', x), x=(1.0, 3.0))",
+    "assert calls['a'] == (0.0, 5, 'x', 3), calls['a']\nassert calls['b'] == (-0.5, None), calls['b']\nassert calls['c'] == 2.0, calls['c']",
+]
+
+
+def test_interact_cells_run_once_with_the_initial_values_of_their_controls(tmp_path):
+    pytest.importorskip("ipywidgets")
+    nb = write_nb(tmp_path / "w.ipynb", *INTERACT_CELLS)
+    result = runner.run_notebook(nb, "browser", timeout=120, retries=0)
+    assert result.state == "passed", result
+
+
+def test_a_failure_inside_an_interact_function_is_reported_with_the_notebook_cell_number(tmp_path):
+    pytest.importorskip("ipywidgets")
+    nb = write_nb(tmp_path / "w.ipynb", "import ipywidgets as widgets",
+                  "@widgets.interact\ndef f(x=(0, 4)):\n    raise ValueError('bad slider default')")
+    result = runner.run_notebook(nb, "browser", timeout=120, retries=0)
+    assert result.state == "failed" and "cell 2" in result.where and "bad slider default" in result.message
+
+
+def test_the_stand_in_is_only_added_when_the_notebook_uses_interact_and_can_be_turned_off(tmp_path):
+    plain = write_nb(tmp_path / "p.ipynb", "x = 1")
+    assert runner._execute(plain, "browser", 60).state == "passed"
+    nb = write_nb(tmp_path / "w.ipynb", "import ipywidgets as widgets",
+                  "import ipywidgets\nassert ipywidgets.interact.__module__ != 'ipywidgets.widgets.interaction'  # interact(")
+    assert runner._execute(nb, "browser", 60).state == "passed"
+    assert runner._execute(nb, "browser", 60, headless_widgets=False).state == "failed"
