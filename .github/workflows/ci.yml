@@ -145,8 +145,10 @@ jobs:
 
   # The scheduled notebook run on the example course: its one `runtime: colab` page, in the Colab
   # image, so a change to the workflow or the runner is tried before it is released. No issue is opened.
+  # Skipped on the release-please PR, which only changes version strings (like the e2e job).
   nightly:
     needs: [python, js]
+    if: ${{ !startsWith(github.head_ref, 'release-please--') }}
     # The called workflow's report job asks for issues: write, so the caller must allow it.
     permissions:
       contents: read

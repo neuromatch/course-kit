@@ -377,7 +377,8 @@ downloads); CI retries failed tests once.
   to date with `main`), through the Makefile (`make lint | test-py | test-js`): lint; pytest; JS dev + release builds with tests; example
   course build + e2e (skipped on the release-please PR, which only changes
   version strings); the reusable `course-check.yml` run against
-  `tests/example-course` with `kit-source: local`.
+  `tests/example-course` with `kit-source: local`; and `course-nightly.yml` on its `runtime: colab` page
+  (Colab image, no issue opened; also skipped on the release-please PR).
 - `release.yml`: release-please PR -> tag `vX.Y.Z` -> npm (provenance) and
   PyPI (trusted publishing) -> move `vX.Y` and `vX`. The jobs build with
   `make test-js`, `make dist-js` and `make dist-py` (the publish steps stay in Actions). release-please uses the
