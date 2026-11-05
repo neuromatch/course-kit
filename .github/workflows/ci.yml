@@ -142,3 +142,18 @@ jobs:
     with:
       working-directory: tests/example-course
       kit-source: local
+
+  # The scheduled notebook run on the example course: its one `runtime: colab` page, in the Colab
+  # image, so a change to the workflow or the runner is tried before it is released. No issue is opened.
+  nightly:
+    needs: [python, js]
+    # The called workflow's report job asks for issues: write, so the caller must allow it.
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/course-nightly.yml
+    with:
+      working-directory: tests/example-course
+      kit-source: local
+      runtime: colab
+      open-issue: false

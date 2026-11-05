@@ -43,11 +43,13 @@ js/
   build.mjs                   # esbuild: dist/nma.mjs + dist/assets/<feature>/ (+ dist/nma.yml on release)
   nma.yml.tmpl                # the config courses `extend:`
 python/src/nma_kit/
-  cli.py                      # nma-kit init | check | notebooks | render-scrolly | sync-assets | prepare-site | publish-notebooks | finalize-site
+  cli.py                      # nma-kit init | check | notebooks | render-scrolly | run-notebooks | sync-assets | prepare-site | publish-notebooks | finalize-site
   constants.json, constants.py  # values shared with the JS plugin (single source, see Rules)
   config.py                   # Settings from myst.yml (github repo, nma.content, nma.notebooks.branch); content_errors validates nma.content
   convert.py                  # content rules, jupytext conversion, badges, prepare-site
   media.py solutions.py feedback.py scrolly.py cells.py assets.py instructor.py   # Python side of each feature
+  runner.py                   # run-notebooks: runs the instructor notebooks (nbclient), classifies results, summary/report
+  runner.py                   # run-notebooks: runs the instructor notebooks (nbclient), classifies results, report
   site.py                     # finalize-site: robots.txt, no sitemap, noindex header for the instructor site
   scaffold.py                 # init: renders templates/course/ (+ licenses/, workflows/) into a new course
   templates/                  # course/ (starter files; *.tmpl rendered, dot-x -> .x), licenses/, workflows/ (mirror, see Rules)
@@ -67,9 +69,10 @@ Makefile, ruff.toml           # contributor tasks (make help); Python lint confi
 .pre-commit-config.yaml       # runs the linters on commit (installed by make setup)
 templates/course.yml          # the workflow courses copy (calls the reusable workflows @v0.4); the source `nma-kit init` renders
 templates/wheels.yml          # optional caller for course-wheels.yml
+templates/nightly.yml         # optional caller for course-nightly.yml
 .github/actions/setup-course/   # shared setup (uv, Node, install the kit) used by the course-*.yml workflows
 .github/actionlint.yaml        # ignores the job.workflow_* property errors (actionlint doesn't know them yet)
-.github/workflows/            # course-check.yml, course-publish.yml, course-preview.yml, course-wheels.yml (reusable), ci.yml, release.yml
+.github/workflows/            # course-check.yml, course-publish.yml, course-preview.yml, course-wheels.yml, course-nightly.yml (reusable), ci.yml, release.yml
 ```
 
 ## Rules
@@ -349,6 +352,24 @@ downloads); CI retries failed tests once.
   The `Check Cloudflare setup` step outputs `instructor=true|false` and every instructor step is gated on it.
 - Registered with the other reusable workflows (`REUSABLE` in `test_release.py`). The kit version
   comes from the manifest, so there is no version marker in the workflow.
+
+## Scheduled notebook runs (internals)
+
+- `course-nightly.yml` (reusable; the course supplies `schedule`): `plan` generates the notebooks and lists them
+  (`nma-kit run-notebooks --list --shards N`, a matrix `{include: [{shard, targets}]}` where `targets` is a JSON
+  list of `{notebook, runtime}`), `run` runs one matrix job per shard (so the big Colab image is pulled once per shard,
+  not per notebook) with `--targets`, the notebooks one after another, inside the Colab runtime image (`docker run`, the kit installed `--no-deps` so the image's packages stay as Colab has
+  them), `report` opens, updates or closes one issue (label `course-nightly`).
+- **Only instructor notebooks run.** The student notebook differs by exercise stubs (raise `NotImplementedError` on
+  purpose) and solution links, which `nma-kit check` already validates.
+- **States** (`runner.classify`): `passed`, `failed`, `timeout`, `needs-check`. A failure or timeout of a
+  `runtime: colab` page becomes `needs-check` (the job has no GPU) and does not fail the build. `--timeout` is the
+  budget for a whole notebook, enforced per cell from `on_cell_start`.
+- `runner.py` imports the kit's config/cells code only inside `list_targets`: the run job has just nbclient, nbformat
+  and the kit, no other dependencies. Keep `run_notebook` and the CLI path of `--notebook` free of them.
+- The workflow's shape is pinned by `tests/python/test_nightly_workflow.py`; the Colab image and the issue calls are
+  only checked on a real run. The image name (`us-docker.pkg.dev/colab-images/public/runtime`) is from memory of
+  Google's local-runtime docs: confirm it on the first run.
 
 ## CI
 

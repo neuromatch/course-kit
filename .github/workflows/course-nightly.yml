@@ -1,0 +1,241 @@
+# Reusable: run every generated instructor notebook end to end in Google's Colab runtime image, on a
+# schedule, and report what broke. Pages with `runtime: colab` (GPU or ML-library notebooks) only get
+# flagged for a manual check when they fail: this job runs on CPU. Nothing is published.
+#
+#   on:
+#     schedule:
+#       - cron: "0 4 * * *"      # every night: the notebooks that run in the browser
+#       - cron: "0 5 * * 0"      # every Sunday: the Colab ones
+#     workflow_dispatch:
+#   jobs:
+#     nightly:
+#       uses: neuromatch/course-kit/.github/workflows/course-nightly.yml@v0.4
+#       with:
+#         runtime: ${{ github.event.schedule == '0 5 * * 0' && 'colab' || 'browser' }}
+#       permissions:
+#         contents: read
+#         issues: write
+name: Course nightly
+
+on:
+  workflow_call:
+    inputs:
+      runtime:
+        description: "Only run pages with this `runtime:` (`browser` or `colab`). Empty runs them all."
+        type: string
+        default: ""
+      timeout:
+        description: Seconds allowed for one whole notebook.
+        type: number
+        default: 1200
+      shards:
+        description: >-
+          At most this many parallel jobs. Each one pulls the Colab image once and runs its share of the
+          notebooks one after another, so fewer shards mean fewer downloads (1 pulls it once).
+        type: number
+        default: 4
+      colab-image:
+        description: The Colab runtime Docker image. Pin a tag to freeze it; `latest` follows Colab.
+        type: string
+        default: us-docker.pkg.dev/colab-images/public/runtime:latest
+      python-version:
+        description: Python for the generator (not the notebooks). Empty means the kit's pinned version.
+        type: string
+        default: ""
+      requirements:
+        description: The course's own Python packages (relative to working-directory). Skipped if missing.
+        type: string
+        default: requirements.txt
+      kit-version:
+        description: Override the kit version (an exact version or `latest`). Default is this release.
+        type: string
+        default: ""
+      working-directory:
+        description: The course root (the folder with myst.yml).
+        type: string
+        default: "."
+      kit-source:
+        description: "`pypi` (courses) or `local` (the kit's own CI: install ./python and build ./js)."
+        type: string
+        default: pypi
+      open-issue:
+        description: Open or update a GitHub issue with the failures (and close it when everything passes).
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+      count: ${{ steps.list.outputs.count }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch the kit's setup action
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .course-kit
+          sparse-checkout: |
+            .github/actions/setup-course
+            .tool-versions
+            .release-please-manifest.json
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - uses: ./.course-kit/.github/actions/setup-course
+        with:
+          working-directory: ${{ inputs.working-directory }}
+          python-version: ${{ inputs.python-version }}
+          requirements: ${{ inputs.requirements }}
+          kit-source: ${{ inputs.kit-source }}
+          kit-version: ${{ inputs.kit-version }}
+
+      - name: Generate the notebooks
+        run: nma-kit notebooks
+
+      - name: List the notebooks to run
+        id: list
+        env:
+          RUNTIME: ${{ inputs.runtime }}
+          SHARDS: ${{ inputs.shards }}
+        run: |
+          args=(--list --shards "$SHARDS"); [ -n "$RUNTIME" ] && args+=(--runtime "$RUNTIME")
+          matrix=$(nma-kit run-notebooks "${args[@]}")
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "count=$(jq '[.include[].targets | fromjson | length] | add // 0' <<< "$matrix")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: notebooks
+          path: ${{ inputs.working-directory }}/notebooks
+          retention-days: 1
+
+  run:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    # One job runs several notebooks in turn, each within its own --timeout.
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: notebooks
+          path: ${{ inputs.working-directory }}/notebooks
+
+      # Only the kit's version (and, for the kit's own CI, its Python source) is needed here.
+      - name: Fetch the kit's version
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .course-kit
+          sparse-checkout: |
+            python
+            .release-please-manifest.json
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      # One job per shard: the image is pulled once for all the notebooks in it. The notebooks run with
+      # the Colab image's own Python and packages. The kit goes in without its dependencies (nbclient, nbformat and ipykernel are already part of the image) so it cannot
+      # change what the notebooks see.
+      - name: Run the notebooks in the Colab image
+        env:
+          IMAGE: ${{ inputs.colab-image }}
+          TARGETS: ${{ matrix.targets }}
+          TIMEOUT: ${{ inputs.timeout }}
+          KIT_SOURCE: ${{ inputs.kit-source }}
+          REQUESTED: ${{ inputs.kit-version }}
+          WORKDIR: ${{ inputs.working-directory }}
+        run: |
+          if [ "$KIT_SOURCE" = local ]; then
+            spec=/kit/python
+          else
+            version="${REQUESTED:-$(jq -r '.["."]' .course-kit/.release-please-manifest.json)}"
+            if [ "$version" = latest ]; then spec=neuromatch-course-kit; else spec="neuromatch-course-kit==$version"; fi
+          fi
+          mkdir -p "$WORKDIR/reports"
+          docker run --rm --entrypoint bash \
+            -v "$PWD/$WORKDIR:/course" -v "$PWD/.course-kit:/kit:ro" -w /course \
+            -e GITHUB_STEP_SUMMARY=/course/reports/summary.md \
+            "$IMAGE" -c '
+              set -e
+              pip install --quiet --no-deps "$0" pyyaml
+              nma-kit run-notebooks --targets "$1" --timeout "$2" --report reports/report.json
+            ' "$spec" "$TARGETS" "$TIMEOUT"
+
+      - name: Add to the job summary
+        if: always()
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          if [ -f reports/summary.md ]; then cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: report-${{ strategy.job-index }}
+          path: ${{ inputs.working-directory }}/reports/report.json
+          if-no-files-found: ignore
+
+  report:
+    needs: [plan, run]
+    if: always() && needs.plan.result == 'success' && inputs.open-issue
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: report-*
+          path: reports
+          merge-multiple: false
+
+      - name: Open, update or close the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          LABEL: course-nightly
+          RUNTIME: ${{ inputs.runtime }}
+        run: |
+          shopt -s nullglob
+          files=(reports/*/report.json)
+          if [ ${#files[@]} -gt 0 ]; then jq -s 'add' "${files[@]}" > all.json; else echo '[]' > all.json; fi
+          # Notebooks that left no report (the job crashed or hit its time limit) count as problems.
+          expected='${{ needs.plan.outputs.count }}'
+          reported=$(jq length all.json)
+          missing=$(( ${expected:-0} - reported ))
+          [ "$missing" -gt 0 ] && echo "::warning::only $reported of $expected notebooks reported"
+          problems=$(( $(jq '[.[] | select(.state != "passed")] | length' all.json) + missing ))
+          gh label create "$LABEL" --color BFD4F2 --description "Scheduled notebook run" 2>/dev/null || true
+          number=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number // empty')
+          if [ "$problems" = 0 ]; then
+            [ -n "$number" ] && gh issue close "$number" --comment "All notebooks passed in $RUN_URL."
+            exit 0
+          fi
+          {
+            echo "Scheduled run of the instructor notebooks${RUNTIME:+ (runtime: $RUNTIME)}: $RUN_URL"
+            echo
+            jq -r '
+              def rows($s): [.[] | select(.state == $s)] | if length == 0 then empty else
+                "### \($s)\n", (.[] | "- `\(.notebook)` (\(.where)): \(.message)"), "" end;
+              rows("failed"), rows("timeout"), rows("needs-check")' all.json
+            [ "$missing" -gt 0 ] && echo "$missing notebook(s) left no result: a job crashed or ran out of time. See the run."
+            echo "_needs-check: a \`runtime: colab\` notebook that failed on CPU. Open it in Colab with a GPU to confirm._"
+          } > body.md
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body-file body.md
+          else
+            gh issue create --label "$LABEL" --title "Scheduled notebook run: $problems problem(s)" --body-file body.md
+          fi

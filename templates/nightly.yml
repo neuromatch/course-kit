@@ -1,0 +1,28 @@
+# Optional. Copy to .github/workflows/nightly.yml in your course repo to run every generated
+# instructor notebook on a schedule, in Google's Colab runtime image (README, "Scheduled notebook
+# runs"). Scheduled workflows only run from the default branch.
+#
+# It runs on CPU: a failure of a page with `runtime: colab` (GPU or ML-library notebooks) is only
+# listed as "needs-check", so those still need an occasional look in Colab with a GPU.
+# Failures are posted to one GitHub issue (label `course-nightly`), closed when everything passes.
+# @v0.4 = the newest 0.4.x release; pin an exact version (e.g. @v0.4.0) to freeze a finished course.
+name: Nightly notebooks
+
+on:
+  schedule:
+    - cron: "0 4 * * *"   # every night: the notebooks that run in the browser
+    - cron: "0 5 * * 0"   # every Sunday: the notebooks with `runtime: colab`
+  workflow_dispatch:
+    inputs:
+      runtime:
+        description: "Only pages with this runtime (browser or colab); empty runs all of them"
+        default: ""
+
+jobs:
+  notebooks:
+    uses: neuromatch/course-kit/.github/workflows/course-nightly.yml@v0.4
+    with:
+      runtime: ${{ github.event_name == 'workflow_dispatch' && inputs.runtime || (github.event.schedule == '0 5 * * 0' && 'colab' || 'browser') }}
+    permissions:
+      contents: read
+      issues: write
