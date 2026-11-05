@@ -2,6 +2,15 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.4.1](https://github.com/neuromatch/course-kit/compare/v0.4.0...v0.4.1) (2026-11-05)
+
+
+### Features
+
+* optional nightly.yml template for courses ([c4df32c](https://github.com/neuromatch/course-kit/commit/c4df32c1fab4bd6cb9b3dc55c95239074849694b))
+* run the nightly notebooks in shards so the Colab image is pulled once per shard ([03172ce](https://github.com/neuromatch/course-kit/commit/03172ce658f7dc8513ddb55e31f363195d29f628))
+* run-notebooks command and course-nightly workflow ([aaadb26](https://github.com/neuromatch/course-kit/commit/aaadb269cd5b958e3e02d7f09213e03ad90fc51b))
+
 ## [0.4.0](https://github.com/neuromatch/course-kit/compare/v0.3.0...v0.4.0) (2026-11-03)
 
 
