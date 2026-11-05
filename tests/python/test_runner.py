@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import time
+from pathlib import Path
 
 import nbformat
 import pytest
@@ -78,6 +79,20 @@ def test_run_notebook_times_out(tmp_path):
     assert result.state == "timeout"
 
 
+def is_running(pid: int) -> bool:
+    """True if the process exists and is not a zombie (a killed orphan stays a zombie until PID 1 reaps it,
+    and in a container PID 1 often never does)."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    try:
+        state = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0]
+    except OSError:  # no /proc (macOS): the process exists
+        return True
+    return state != "Z"
+
+
 def test_run_child_kills_a_process_that_outlives_its_deadline_with_its_children(tmp_path):
     pid_file = tmp_path / "grandchild.pid"
     code = ("import subprocess, sys, time\n"
@@ -85,8 +100,12 @@ def test_run_child_kills_a_process_that_outlives_its_deadline_with_its_children(
             f"open({str(pid_file)!r}, 'w').write(str(p.pid))\n"
             "time.sleep(60)")
     assert runner._run_child([sys.executable, "-c", code], deadline=2) is False
-    with pytest.raises(ProcessLookupError):
-        os.kill(int(pid_file.read_text()), 0)
+    pid = int(pid_file.read_text())
+    for _ in range(50):  # SIGKILL is delivered asynchronously
+        if not is_running(pid):
+            break
+        time.sleep(0.1)
+    assert not is_running(pid)
 
 
 def test_run_child_reports_a_process_that_finishes():
