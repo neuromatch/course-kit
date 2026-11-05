@@ -2,6 +2,15 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.4.3](https://github.com/neuromatch/course-kit/compare/v0.4.2...v0.4.3) (2026-11-05)
+
+
+### Bug Fixes
+
+* bound a stalled cell by its own timeout and run a timed-out notebook again ([96e14e8](https://github.com/neuromatch/course-kit/commit/96e14e8392597f656a52d05b135917e97f8d05f3))
+* kill a notebook that hangs and name the cell it hung in ([873af5a](https://github.com/neuromatch/course-kit/commit/873af5a80f2952070af6a6b54c48fa788adc4201))
+* only mention needs-check in the nightly issue when there is one ([262fa00](https://github.com/neuromatch/course-kit/commit/262fa009e823d3b5c7d91fb592eb8e0b5046b1cb))
+
 ## [0.4.2](https://github.com/neuromatch/course-kit/compare/v0.4.1...v0.4.2) (2026-11-05)
 
 
