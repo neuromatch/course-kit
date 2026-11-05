@@ -4,6 +4,7 @@
   nma-kit check                  validate content and myst.yml
   nma-kit notebooks [--dry-run]  generate student/instructor notebooks and solution files
   nma-kit render-scrolly         pre-render scrolly page outputs into _build/scrolly/
+  nma-kit run-notebooks          run the generated instructor notebooks (the scheduled course-nightly job)
   nma-kit sync-assets            write the site branding (CSS, logos, favicon) to _nma/
   nma-kit prepare-site           add badges + fallback cells to the .md pages and pin the
                                  kit URL in myst.yml, and run sync-assets (CI only,
@@ -15,11 +16,12 @@ Exit codes: 0 ok, 1 content problems, 2 usage or configuration errors.
 """
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
 
-from nma_kit import __version__, branding, convert, scaffold, scrolly
+from nma_kit import __version__, branding, convert, runner, scaffold, scrolly
 from nma_kit.config import MYST_CONFIG, MissingConfig, content_errors, read_settings
 from nma_kit.constants import AUDIENCE_ENV, AUDIENCES
 from nma_kit.pin import pin_kit_url
@@ -90,6 +92,38 @@ def cmd_notebooks(args) -> int:
 def cmd_render_scrolly(args) -> int:
     """`nma-kit render-scrolly`: run each scrolly page and save its outputs to `_build/scrolly/`."""
     return scrolly.render_all(_require_content(read_settings()))
+
+
+def cmd_run_notebooks(args) -> int:
+    """`nma-kit run-notebooks`: list (`--list`) or run the generated instructor notebooks and report each one's state."""
+    if args.list:
+        settings = _require_content(read_settings())
+        if not Path("notebooks").is_dir():
+            raise UsageError("notebooks/ not found: run `nma-kit notebooks` first")
+        print(json.dumps({"include": runner.list_targets(settings, args.runtime)}))
+        return 0
+    if args.notebook:
+        targets = [{"notebook": args.notebook, "runtime": args.runtime or "browser"}]
+    else:
+        settings = _require_content(read_settings())
+        targets = runner.list_targets(settings, args.runtime)
+    missing = [t["notebook"] for t in targets if not Path(t["notebook"]).is_file()]
+    if missing:
+        raise UsageError(f"notebook not found: {missing[0]} (run `nma-kit notebooks` first)")
+    results = []
+    for target in targets:
+        print(f"Running {target['notebook']} ...", flush=True)
+        result = runner.run_notebook(Path(target["notebook"]), target["runtime"], args.timeout)
+        print(f"  {result.state} in {result.seconds:g} s" + (f": {result.where}: {result.message}" if result.message else ""))
+        results.append(result)
+    if args.report:
+        runner.write_report(results, Path(args.report))
+    summary = runner.summary_markdown(results)
+    print("\n" + summary)
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+            handle.write(summary)
+    return 1 if runner.has_failures(results) else 0
 
 
 def cmd_sync_assets(args) -> int:
@@ -167,6 +201,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_notebooks)
 
     sub.add_parser("render-scrolly", help="pre-render scrolly pages").set_defaults(func=cmd_render_scrolly)
+
+    p = sub.add_parser("run-notebooks", help="run the generated instructor notebooks and report their state")
+    p.add_argument("--list", action="store_true", help="print the notebooks as a GitHub Actions matrix (JSON) and exit")
+    p.add_argument("--notebook", help="run only this notebook (default: all of them)")
+    p.add_argument("--runtime", choices=["browser", "colab"],
+                   help="with --list or no --notebook: only pages with this runtime; with --notebook: its runtime")
+    p.add_argument("--timeout", type=float, default=runner.DEFAULT_TIMEOUT, help="seconds for one whole notebook")
+    p.add_argument("--report", help="also write the results to this JSON file")
+    p.set_defaults(func=cmd_run_notebooks)
 
     sub.add_parser("sync-assets", help="write the site branding to _nma/").set_defaults(func=cmd_sync_assets)
 

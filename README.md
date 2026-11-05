@@ -217,6 +217,33 @@ nma-kit prepare-site && myst build --html && nma-kit finalize-site
 git checkout -- tutorials projects myst.yml   # undo prepare-site
 ```
 
+## Scheduled notebook runs
+
+`course-nightly.yml` runs every generated **instructor** notebook (solutions filled in, so no
+intentional errors) in Google's Colab runtime image and reports what broke. Call it on a schedule:
+
+```yaml
+on:
+  schedule:
+    - cron: "0 4 * * *"   # every night: the notebooks that run in the browser
+    - cron: "0 5 * * 0"   # every Sunday: the Colab ones
+  workflow_dispatch:
+jobs:
+  nightly:
+    uses: neuromatch/course-kit/.github/workflows/course-nightly.yml@v0.4
+    with:
+      runtime: ${{ github.event.schedule == '0 5 * * 0' && 'colab' || 'browser' }}
+    permissions:
+      contents: read
+      issues: write
+```
+
+It runs on CPU. A page with `runtime: colab` (GPU or ML-library notebooks) that fails or times out is
+listed as **needs-check**, to be confirmed by hand in Colab with a GPU, and does not turn the run red;
+any other notebook that fails or times out does. Failures go to the job summary and to one GitHub issue
+(label `course-nightly`) that is updated on each run and closed when everything passes. Locally:
+`nma-kit notebooks && nma-kit run-notebooks`.
+
 ## Site branding
 
 The kit carries the Neuromatch look: the colour palette, the Rubik font
