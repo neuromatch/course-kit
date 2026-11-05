@@ -48,6 +48,21 @@ def test_run_notebook_reports_the_failing_cell(tmp_path):
     assert "cell 2" in result.where and "ValueError: boom" in result.message
 
 
+EXERCISE = "def f(x):\n    raise NotImplementedError('Student exercise')"
+SOLUTION = "# Solution\ndef f(x):\n    return 2 * x"
+
+
+def test_exercise_cells_are_skipped_because_the_solution_cell_after_them_defines_the_same_names(tmp_path):
+    nb = write_nb(tmp_path / "ex.ipynb", EXERCISE, SOLUTION, "assert f(2) == 4")
+    assert runner.run_notebook(nb, "browser", timeout=120).state == "passed"
+
+
+def test_a_failure_after_a_skipped_exercise_reports_the_cell_number_in_the_notebook(tmp_path):
+    nb = write_nb(tmp_path / "ex.ipynb", EXERCISE, SOLUTION, "assert f(2) == 5")
+    result = runner.run_notebook(nb, "browser", timeout=120)
+    assert result.state == "failed" and "cell 3" in result.where
+
+
 def test_failure_of_a_colab_notebook_needs_a_check(tmp_path):
     nb = write_nb(tmp_path / "gpu.ipynb", "raise RuntimeError('no CUDA')")
     result = runner.run_notebook(nb, "colab", timeout=120)

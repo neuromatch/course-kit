@@ -425,9 +425,9 @@ def execution_notebook(page, notebook_dir: str, repo: str = "org/repo") -> dict:
     for cell in instructor["cells"]:
         if cell.get("cell_type") != "code":
             continue
-        source = nma_solutions.text_of_cell(cell)
-        if any(nma_solutions.EXERCISE_RE.match(line) for line in source.splitlines()):
+        if nma_solutions.is_exercise_cell(cell):
             continue
+        source = nma_solutions.text_of_cell(cell)
         cells.append({**cell, "source": source, "outputs": [], "execution_count": None})
     return {**instructor, "cells": cells}
 

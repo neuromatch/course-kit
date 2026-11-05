@@ -84,12 +84,19 @@ def run_notebook(path: Path, runtime: str = "browser", timeout: float = DEFAULT_
 
     path = Path(path)
     name = path.as_posix()
+    from nma_kit.solutions import is_exercise_cell
+
     nb = nbformat.read(path, as_version=4)
+    # The instructor notebook still has each exercise cell (it raises on purpose) right before the
+    # `# Solution` cell that defines the same names: run without the exercise cells, like render-scrolly.
+    # `numbers` keeps the cells' numbers in the notebook, for the error report.
+    numbers = [i for i, cell in enumerate(nb.cells, 1) if not is_exercise_cell(cell)]
+    nb.cells = [cell for cell in nb.cells if not is_exercise_cell(cell)]
     start = time.monotonic()
-    current = {"index": 0}
+    current = {"index": 0}  # the notebook number of the cell that is running
 
     def on_cell_start(cell, cell_index):
-        current["index"] = cell_index + 1
+        current["index"] = numbers[cell_index]
         remaining = timeout - (time.monotonic() - start)
         if remaining <= 0:
             raise _OutOfTime
@@ -105,7 +112,7 @@ def run_notebook(path: Path, runtime: str = "browser", timeout: float = DEFAULT_
     try:
         client.execute()
     except CellExecutionError:
-        for index, cell in enumerate(nb.cells, 1):
+        for index, cell in zip(numbers, nb.cells, strict=True):
             errors = [o for o in cell.get("outputs", []) if o.get("output_type") == "error"]
             if errors:
                 return result(FAILED, f"{name}, cell {index}", f"{errors[0]['ename']}: {errors[0]['evalue']}")
