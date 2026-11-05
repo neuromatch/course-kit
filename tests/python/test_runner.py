@@ -82,8 +82,10 @@ def test_list_targets(tmp_path, monkeypatch, capsys):
     assert main(["notebooks"]) == 0
     capsys.readouterr()
     assert main(["run-notebooks", "--list"]) == 0
-    assert json.loads(capsys.readouterr().out) == {
-        "include": [{"notebook": "notebooks/tutorials/D/instructor/T.ipynb", "runtime": "colab"}]}
+    matrix = json.loads(capsys.readouterr().out)["include"]
+    assert [m["shard"] for m in matrix] == [1]
+    assert json.loads(matrix[0]["targets"]) == [
+        {"notebook": "notebooks/tutorials/D/instructor/T.ipynb", "runtime": "colab"}]
     assert main(["run-notebooks", "--list", "--runtime", "browser"]) == 0
     assert json.loads(capsys.readouterr().out) == {"include": []}
 
@@ -100,3 +102,46 @@ def test_run_one_notebook_writes_report(tmp_path, monkeypatch):
 def test_missing_notebooks_is_a_usage_error(tmp_path, monkeypatch):
     monkeypatch.chdir(course(tmp_path))
     assert main(["run-notebooks", "--list"]) == 2
+
+
+def targets(n):
+    return [{"notebook": f"n{i}.ipynb", "runtime": "browser"} for i in range(n)]
+
+
+def test_shard_deals_notebooks_out_in_turn():
+    groups = runner.shard(targets(5), 2)
+    assert [[t["notebook"] for t in g] for g in groups] == [["n0.ipynb", "n2.ipynb", "n4.ipynb"], ["n1.ipynb", "n3.ipynb"]]
+
+
+def test_shard_never_makes_empty_groups_and_handles_no_notebooks():
+    assert len(runner.shard(targets(2), 4)) == 2
+    assert runner.shard(targets(3), 0) == [targets(3)]
+    assert runner.shard([], 4) == []
+
+
+def test_list_splits_into_shards(tmp_path, monkeypatch, capsys):
+    root = course(tmp_path)
+    for name in ("A", "B", "C"):
+        (root / "tutorials" / "D" / f"{name}.md").write_text((root / "tutorials" / "D" / "T.md").read_text())
+    monkeypatch.chdir(root)
+    assert main(["notebooks"]) == 0
+    capsys.readouterr()
+    assert main(["run-notebooks", "--list", "--shards", "2"]) == 0
+    matrix = json.loads(capsys.readouterr().out)["include"]
+    assert [len(json.loads(m["targets"])) for m in matrix] == [2, 2]
+
+
+def test_run_targets_runs_each_and_keeps_the_report_after_every_notebook(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    write_nb(tmp_path / "a.ipynb", "x = 1")
+    write_nb(tmp_path / "b.ipynb", "raise ValueError('x')")
+    given = json.dumps([{"notebook": "a.ipynb", "runtime": "browser"}, {"notebook": "b.ipynb", "runtime": "browser"}])
+    assert main(["run-notebooks", "--targets", given, "--report", "r.json"]) == 1
+    assert [(r["notebook"], r["state"]) for r in json.loads((tmp_path / "r.json").read_text())] == [
+        ("a.ipynb", "passed"), ("b.ipynb", "failed")]
+
+
+def test_bad_targets_is_a_usage_error(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    assert main(["run-notebooks", "--targets", "not json"]) == 2
+    assert main(["run-notebooks", "--targets", '[{"notebook": "a"}]']) == 2

@@ -67,6 +67,15 @@ def list_targets(settings, runtime: str = "") -> list[dict]:
     return targets
 
 
+def shard(targets: list[dict], count: int) -> list[list[dict]]:
+    """Split the targets into at most `count` groups, dealt out in turn so each group has a similar mix.
+    One CI job runs one group, so the Colab image is pulled once per group, not once per notebook."""
+    if not targets:
+        return []
+    count = max(1, min(count, len(targets)))
+    return [targets[i::count] for i in range(count)]
+
+
 def run_notebook(path: Path, runtime: str = "browser", timeout: float = DEFAULT_TIMEOUT) -> Result:
     """Execute one notebook in a fresh kernel, in the notebook's own folder, within `timeout` seconds in total."""
     import nbformat

@@ -100,9 +100,17 @@ def cmd_run_notebooks(args) -> int:
         settings = _require_content(read_settings())
         if not Path("notebooks").is_dir():
             raise UsageError("notebooks/ not found: run `nma-kit notebooks` first")
-        print(json.dumps({"include": runner.list_targets(settings, args.runtime)}))
+        groups = runner.shard(runner.list_targets(settings, args.runtime), args.shards)
+        matrix = [{"shard": i, "targets": json.dumps(group)} for i, group in enumerate(groups, 1)]
+        print(json.dumps({"include": matrix}))
         return 0
-    if args.notebook:
+    if args.targets:
+        try:
+            targets = json.loads(args.targets)
+            assert all({"notebook", "runtime"} <= set(t) for t in targets)
+        except (ValueError, AssertionError, TypeError) as exc:
+            raise UsageError("--targets must be a JSON list of {notebook, runtime} objects") from exc
+    elif args.notebook:
         targets = [{"notebook": args.notebook, "runtime": args.runtime or "browser"}]
     else:
         settings = _require_content(read_settings())
@@ -116,8 +124,8 @@ def cmd_run_notebooks(args) -> int:
         result = runner.run_notebook(Path(target["notebook"]), target["runtime"], args.timeout)
         print(f"  {result.state} in {result.seconds:g} s" + (f": {result.where}: {result.message}" if result.message else ""))
         results.append(result)
-    if args.report:
-        runner.write_report(results, Path(args.report))
+        if args.report:  # after every notebook, so a job that is cut off still leaves what it finished
+            runner.write_report(results, Path(args.report))
     summary = runner.summary_markdown(results)
     print("\n" + summary)
     if os.environ.get("GITHUB_STEP_SUMMARY"):
@@ -203,8 +211,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("render-scrolly", help="pre-render scrolly pages").set_defaults(func=cmd_render_scrolly)
 
     p = sub.add_parser("run-notebooks", help="run the generated instructor notebooks and report their state")
-    p.add_argument("--list", action="store_true", help="print the notebooks as a GitHub Actions matrix (JSON) and exit")
+    p.add_argument("--list", action="store_true",
+                   help="print the notebooks as a GitHub Actions matrix (JSON), split into --shards groups, and exit")
+    p.add_argument("--shards", type=int, default=4, help="with --list: at most this many groups (one CI job each)")
     p.add_argument("--notebook", help="run only this notebook (default: all of them)")
+    p.add_argument("--targets", help='run these notebooks: a JSON list of {"notebook": ..., "runtime": ...} (one --list group)')
     p.add_argument("--runtime", choices=["browser", "colab"],
                    help="with --list or no --notebook: only pages with this runtime; with --notebook: its runtime")
     p.add_argument("--timeout", type=float, default=runner.DEFAULT_TIMEOUT, help="seconds for one whole notebook")

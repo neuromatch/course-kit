@@ -28,6 +28,12 @@ on:
         description: Seconds allowed for one whole notebook.
         type: number
         default: 1200
+      shards:
+        description: >-
+          At most this many parallel jobs. Each one pulls the Colab image once and runs its share of the
+          notebooks one after another, so fewer shards mean fewer downloads (1 pulls it once).
+        type: number
+        default: 4
       colab-image:
         description: The Colab runtime Docker image. Pin a tag to freeze it; `latest` follows Colab.
         type: string
@@ -100,11 +106,12 @@ jobs:
         id: list
         env:
           RUNTIME: ${{ inputs.runtime }}
+          SHARDS: ${{ inputs.shards }}
         run: |
-          args=(--list); [ -n "$RUNTIME" ] && args+=(--runtime "$RUNTIME")
+          args=(--list --shards "$SHARDS"); [ -n "$RUNTIME" ] && args+=(--runtime "$RUNTIME")
           matrix=$(nma-kit run-notebooks "${args[@]}")
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-          echo "count=$(jq '.include | length' <<< "$matrix")" >> "$GITHUB_OUTPUT"
+          echo "count=$(jq '[.include[].targets | fromjson | length] | add // 0' <<< "$matrix")" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -116,7 +123,8 @@ jobs:
     needs: plan
     if: needs.plan.outputs.count != '0'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # One job runs several notebooks in turn, each within its own --timeout.
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
@@ -139,14 +147,13 @@ jobs:
           sparse-checkout-cone-mode: false
           persist-credentials: false
 
-      # The notebooks run with the Colab image's own Python and packages. The kit goes in without its
-      # dependencies (nbclient, nbformat and ipykernel are already part of the image) so it cannot
+      # One job per shard: the image is pulled once for all the notebooks in it. The notebooks run with
+      # the Colab image's own Python and packages. The kit goes in without its dependencies (nbclient, nbformat and ipykernel are already part of the image) so it cannot
       # change what the notebooks see.
-      - name: Run the notebook in the Colab image
+      - name: Run the notebooks in the Colab image
         env:
           IMAGE: ${{ inputs.colab-image }}
-          NOTEBOOK: ${{ matrix.notebook }}
-          RUNTIME: ${{ matrix.runtime }}
+          TARGETS: ${{ matrix.targets }}
           TIMEOUT: ${{ inputs.timeout }}
           KIT_SOURCE: ${{ inputs.kit-source }}
           REQUESTED: ${{ inputs.kit-version }}
@@ -165,8 +172,8 @@ jobs:
             "$IMAGE" -c '
               set -e
               pip install --quiet --no-deps "$0" pyyaml
-              nma-kit run-notebooks --notebook "$1" --runtime "$2" --timeout "$3" --report reports/report.json
-            ' "$spec" "$NOTEBOOK" "$RUNTIME" "$TIMEOUT"
+              nma-kit run-notebooks --targets "$1" --timeout "$2" --report reports/report.json
+            ' "$spec" "$TARGETS" "$TIMEOUT"
 
       - name: Add to the job summary
         if: always()
@@ -205,15 +212,15 @@ jobs:
           shopt -s nullglob
           files=(reports/*/report.json)
           if [ ${#files[@]} -gt 0 ]; then jq -s 'add' "${files[@]}" > all.json; else echo '[]' > all.json; fi
-          # A notebook that left no report (the runner crashed, or the job hit its time limit) counts as failed.
+          # Notebooks that left no report (the job crashed or hit its time limit) count as problems.
           expected='${{ needs.plan.outputs.count }}'
-          if [ "${#files[@]}" -lt "${expected:-0}" ]; then
-            echo "::warning::only ${#files[@]} of $expected notebooks reported"
-          fi
-          problems=$(jq '[.[] | select(.state != "passed")] | length' all.json)
+          reported=$(jq length all.json)
+          missing=$(( ${expected:-0} - reported ))
+          [ "$missing" -gt 0 ] && echo "::warning::only $reported of $expected notebooks reported"
+          problems=$(( $(jq '[.[] | select(.state != "passed")] | length' all.json) + missing ))
           gh label create "$LABEL" --color BFD4F2 --description "Scheduled notebook run" 2>/dev/null || true
           number=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number // empty')
-          if [ "$problems" = 0 ] && [ "${#files[@]}" -ge "${expected:-0}" ]; then
+          if [ "$problems" = 0 ]; then
             [ -n "$number" ] && gh issue close "$number" --comment "All notebooks passed in $RUN_URL."
             exit 0
           fi
@@ -224,6 +231,7 @@ jobs:
               def rows($s): [.[] | select(.state == $s)] | if length == 0 then empty else
                 "### \($s)\n", (.[] | "- `\(.notebook)` (\(.where)): \(.message)"), "" end;
               rows("failed"), rows("timeout"), rows("needs-check")' all.json
+            [ "$missing" -gt 0 ] && echo "$missing notebook(s) left no result: a job crashed or ran out of time. See the run."
             echo "_needs-check: a \`runtime: colab\` notebook that failed on CPU. Open it in Colab with a GPU to confirm._"
           } > body.md
           if [ -n "$number" ]; then

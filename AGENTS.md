@@ -356,8 +356,9 @@ downloads); CI retries failed tests once.
 ## Scheduled notebook runs (internals)
 
 - `course-nightly.yml` (reusable; the course supplies `schedule`): `plan` generates the notebooks and lists them
-  (`nma-kit run-notebooks --list`, a matrix `{include: [{notebook, runtime}]}`), `run` runs one matrix job per notebook
-  inside the Colab runtime image (`docker run`, the kit installed `--no-deps` so the image's packages stay as Colab has
+  (`nma-kit run-notebooks --list --shards N`, a matrix `{include: [{shard, targets}]}` where `targets` is a JSON
+  list of `{notebook, runtime}`), `run` runs one matrix job per shard (so the big Colab image is pulled once per shard,
+  not per notebook) with `--targets`, the notebooks one after another, inside the Colab runtime image (`docker run`, the kit installed `--no-deps` so the image's packages stay as Colab has
   them), `report` opens, updates or closes one issue (label `course-nightly`).
 - **Only instructor notebooks run.** The student notebook differs by exercise stubs (raise `NotImplementedError` on
   purpose) and solution links, which `nma-kit check` already validates.

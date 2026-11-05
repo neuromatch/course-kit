@@ -224,7 +224,9 @@ intentional errors) in Google's Colab runtime image and reports what broke. It i
 [`templates/nightly.yml`](templates/nightly.yml) to `.github/workflows/nightly.yml` in the course
 (new and existing courses alike; `nma-kit init` does not add it). It runs the browser notebooks every
 night and the `runtime: colab` ones every Sunday, and can be started by hand from the Actions tab.
-Scheduled workflows only run from the default branch. The call looks like this:
+Scheduled workflows only run from the default branch. The Colab image is large, so the notebooks are
+dealt out to at most `shards` jobs (default 4); each job pulls the image once and runs its share in turn.
+The call looks like this:
 
 ```yaml
 jobs:

@@ -34,12 +34,20 @@ def test_notebooks_are_generated_once_and_run_one_job_each():
 
 
 def test_notebooks_run_in_the_colab_image_with_the_kit_installed_without_dependencies():
-    script = run_script("run", "Run the notebook in the Colab image")
+    script = run_script("run", "Run the notebooks in the Colab image")
     assert "docker run" in script and '"$IMAGE"' in script
     assert "--no-deps" in script, "the kit must not change the packages the notebooks see"
-    assert "run-notebooks --notebook" in script
+    assert "run-notebooks --targets" in script
     default = workflow()[True]["workflow_call"]["inputs"]["colab-image"]["default"]
     assert default.startswith("us-docker.pkg.dev/colab-images/public/runtime")
+
+
+def test_one_job_per_shard_not_per_notebook_so_the_image_is_pulled_once_per_shard():
+    inputs = workflow()[True]["workflow_call"]["inputs"]
+    assert inputs["shards"]["default"] >= 1
+    assert "--shards" in run_script("plan", "List the notebooks to run")
+    assert "matrix.targets" in NIGHTLY.read_text() and "matrix.notebook" not in NIGHTLY.read_text()
+    assert run_script("run", "Run the notebooks in the Colab image").count("docker run") == 1
 
 
 def test_the_report_job_runs_even_when_notebooks_fail_and_is_the_only_one_with_issue_rights():
