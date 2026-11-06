@@ -2,6 +2,18 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.4.4](https://github.com/neuromatch/course-kit/compare/v0.4.3...v0.4.4) (2026-11-06)
+
+
+### Features
+
+* print the kernel's stack when a cell is about to time out, and name cells better ([a8ecec4](https://github.com/neuromatch/course-kit/commit/a8ecec4406f67e254deff8ae52478e12f950577c))
+
+
+### Bug Fixes
+
+* run widgets.interact cells headless in the nightly run ([1c3522e](https://github.com/neuromatch/course-kit/commit/1c3522ec942b1b65040ff51eb4b4764db23236c4))
+
 ## [0.4.3](https://github.com/neuromatch/course-kit/compare/v0.4.2...v0.4.3) (2026-11-05)
 
 
