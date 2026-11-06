@@ -376,6 +376,16 @@ downloads); CI retries failed tests once.
   `widgets.interact`: the next cell never starts and nbclient waits out its timeout). So a cell gets at most
   `--cell-timeout` (300 s), not the whole notebook budget, and a notebook that timed out is run again in a fresh
   kernel (`--retries`, default 1; failures are never retried). A pass after a retry is a pass, with a message saying so.
+- **Widgets run headless.** With ipywidgets 7 and ipykernel 6.17 (what the Colab image has) a cell with
+  `widgets.interact` waits out its whole cell timeout when no front end is attached (A/B on the LDS example in a
+  Colab-like venv: 5 s with the stand-in, a timeout without it). When a notebook mentions `interact`, `runner` puts a
+  hidden first cell (`HEADLESS_INTERACT`) that swaps `ipywidgets.interact`/`interactive` for a stand-in calling the
+  function once with the controls' initial values; failures inside it are reported at the notebook's own cell number.
+  It tests the function, not ipywidgets. `--no-headless-widgets` turns it off.
+- **A stuck cell names itself.** Three seconds before a cell's timeout the runner sends SIGABRT to the kernel
+  (started with `PYTHONFAULTHANDLER=1`), which prints the stack of every thread to the job log; the notebook is then
+  reported as `timeout` (not as a dead kernel). The cell's title is its first line plus the first line of code when
+  that is a `# @title` / `# @markdown` comment.
 - `runner.py` imports the kit's config/cells code only inside `list_targets`: the run job has just nbclient, nbformat
   and the kit, no other dependencies. Keep `run_notebook` and the CLI path of `--notebook` free of them.
 - The workflow's shape is pinned by `tests/python/test_nightly_workflow.py`; the Colab image and the issue calls are
