@@ -2,6 +2,16 @@
 
 Maintained by release-please from conventional commit messages.
 
+## [0.4.5](https://github.com/neuromatch/course-kit/compare/v0.4.4...v0.4.5) (2026-11-26)
+
+
+### Bug Fixes
+
+* **scrolly:** bring the hero view back when scrolling up ([1f0d181](https://github.com/neuromatch/course-kit/commit/1f0d18187d2a3b1efe5bae31e875e0f685405e62))
+* **scrolly:** hand over from the hero view early, silence the Agg show() warning ([3b7d129](https://github.com/neuromatch/course-kit/commit/3b7d1297a5605c0c9118eb915172d3e4b7616738))
+* **scrolly:** hero text no longer stays under cards, exercise editor … ([9e1244e](https://github.com/neuromatch/course-kit/commit/9e1244ee157f07311c86659e296f340d4247b877))
+* **scrolly:** hero text no longer stays under cards, exercise editor is editable on every line, clearer run messages ([ceee087](https://github.com/neuromatch/course-kit/commit/ceee087a1d0981f074ed622c72e83e3bdf9554c5))
+
 ## [0.4.4](https://github.com/neuromatch/course-kit/compare/v0.4.3...v0.4.4) (2026-11-06)
 
 
