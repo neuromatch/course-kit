@@ -80,6 +80,9 @@ export function formatValue(v) {
 const PY_SETUP = `
 import os, sys
 os.environ["MPLBACKEND"] = "AGG"
+import warnings
+# plt.show() has nothing to show on the Agg backend; the figures are captured after the cell.
+warnings.filterwarnings("ignore", message=".*FigureCanvasAgg is non-interactive.*")
 
 async def _nma_exec(src):
     from pyodide.code import eval_code_async

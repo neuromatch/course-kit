@@ -89,6 +89,21 @@ function render({ model, el }) {
     barEl.style.width = `${((i + 1) / steps.length) * 100}%`;
   }
 
+  // A hero view hands over to the next step as soon as its step has scrolled
+  // up past this share of the viewport, instead of waiting for the next card
+  // to reach the middle of the screen.
+  const HERO_LEAVE = 0.75;
+  const heroLeaving = (i) => hero[i] && i + 1 < steps.length && steps[i].getBoundingClientRect().bottom < window.innerHeight * HERO_LEAVE;
+  let frame = 0;
+  const onScroll = () => {
+    if (frame || !hero[active]) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      if (heroLeaving(active)) activate(active + 1);
+    });
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+
   let io;
   let lastKey = '';
   function observe() {
@@ -101,7 +116,12 @@ function render({ model, el }) {
     const top = parseFloat(getComputedStyle(container).getPropertyValue('--scrolly-top')) || 0;
     const line = wide ? Math.round(H * 0.5) : Math.round(top + 0.55 * H + 48);
     io = new IntersectionObserver(
-      (entries) => entries.forEach((e) => e.isIntersecting && activate(steps.indexOf(e.target.closest('.scrolly-step')))),
+      (entries) =>
+        entries.forEach((e) => {
+          if (!e.isIntersecting) return;
+          const i = steps.indexOf(e.target.closest('.scrolly-step'));
+          if (!heroLeaving(i)) activate(i);
+        }),
       { rootMargin: `-${line}px 0px -${Math.max(0, H - line - 1)}px 0px`, threshold: 0 },
     );
     steps.forEach((s) => io.observe(s.querySelector('.scrolly-card') || s));
@@ -133,6 +153,7 @@ function render({ model, el }) {
   return () => {
     if (io) io.disconnect();
     window.removeEventListener('resize', observe);
+    window.removeEventListener('scroll', onScroll);
     ro.disconnect();
     window.removeEventListener('nma-py', onPy);
   };
