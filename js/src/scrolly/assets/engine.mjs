@@ -96,10 +96,13 @@ function render({ model, el }) {
   const heroLeaving = (i) => hero[i] && i + 1 < steps.length && steps[i].getBoundingClientRect().bottom < window.innerHeight * HERO_LEAVE;
   let frame = 0;
   const onScroll = () => {
-    if (frame || !hero[active]) return;
+    if (frame || !(hero[active] || hero[active - 1])) return;
     frame = requestAnimationFrame(() => {
       frame = 0;
-      if (heroLeaving(active)) activate(active + 1);
+      if (hero[active] && heroLeaving(active)) activate(active + 1);
+      // Scrolling back up: the hero step is back on screen, but the observer
+      // sees no change (the step still crosses its line), so bring it back here.
+      else if (hero[active - 1] && !heroLeaving(active - 1)) activate(active - 1);
     });
   };
   window.addEventListener('scroll', onScroll, { passive: true });
