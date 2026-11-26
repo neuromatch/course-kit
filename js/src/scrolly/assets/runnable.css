@@ -24,7 +24,7 @@
 .fl-params output { min-width: 4ch; color: var(--sc-accent); text-align: right; }
 .fl-params select { font: inherit; background: var(--sc-code-bg); color: var(--sc-accent); border: 1px solid var(--sc-line); border-radius: 6px; padding: 0.15rem 0.4rem; }
 
-.fl-editor { position: relative; max-height: 46vh; overflow: auto; }
+.fl-editor { display: grid; grid-template-columns: minmax(max-content, 1fr); max-height: 46vh; overflow: auto; }
 .fl-editor .fl-hl, .fl-editor .fl-ta {
   margin: 0;
   padding: 0.9rem 1.1rem;
@@ -32,9 +32,10 @@
   white-space: pre;
   tab-size: 4;
 }
+.fl-editor .fl-hl, .fl-editor .fl-ta { grid-area: 1 / 1; }
 .fl-editor .fl-hl { color: var(--sc-code-text); overflow: hidden; pointer-events: none; }
 .fl-editor .fl-ta {
-  position: absolute; inset: 0; width: 100%; height: 100%;
+  width: 100%; height: 100%; min-height: 0; display: block;
   color: transparent; caret-color: var(--sc-accent); background: transparent; border: 0; outline: 0; resize: none; overflow: hidden;
 }
 .fl-editor .fl-ta::selection { background: color-mix(in srgb, var(--sc-accent) 30%, transparent); }
@@ -55,7 +56,7 @@
 .fl-err { color: var(--sc-warm-text); font-size: 0.86rem; margin-top: 0.3rem; }
 .fl-err details { margin-top: 0.25rem; color: var(--sc-muted); }
 .fl-err pre { font: 0.74rem/1.5 ui-monospace, Consolas, monospace; color: var(--sc-warm-text); }
-.fl-note { margin: 0 0 0.3rem; font-size: 0.78rem; color: var(--sc-warm-text); }
+.fl-note { margin: 0 0 0.5rem; font-size: 0.8rem; color: var(--sc-warm-text); border-left: 3px solid var(--sc-warm); padding: 0.2rem 0.6rem; }
 .fl-empty { margin: 0; font-size: 0.8rem; color: var(--sc-muted); font-style: italic; }
 
 .tk-c { color: var(--sc-tok-comment); font-style: italic; }
