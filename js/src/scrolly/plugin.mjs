@@ -357,7 +357,11 @@ export function buildScrolly(tree, { renders = {}, solutions = {}, config = {}, 
       if (stage.length) views.push(div(`scrolly-view${stageClass}`, stage));
       cards.push(div('scrolly-step', [div('scrolly-card', [...(o.kicker ? [kicker(o.kicker)] : []), ...card])]));
     }
-    map.push(views.length - 1);
+    // A step without stage content keeps the previous view, except after a hero
+    // (title/closing) view: that one must not stay under the cards.
+    const prev = views.length - 1;
+    const prevIsHero = prev >= 0 && views[prev].class.split(' ').includes('is-hero');
+    map.push(!isHero && !stage.length && prevIsHero ? -1 : prev);
     hero.push(isHero);
     sections.push(o.section ? String(o.section) : sections.at(-1) ?? '');
   }

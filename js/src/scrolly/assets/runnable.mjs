@@ -13,7 +13,11 @@
 
 const DEFAULT_PYODIDE_URL = 'https://cdn.jsdelivr.net/pyodide/v314.0.7/full/';
 const UNFINISHED_RE = /^[ \t]*raise NotImplementedError/m;
-const FALLBACK_NOTE = 'An earlier exercise is not finished yet, so its reference solution ran.';
+export const fallbackNote = (cells) =>
+  `${cells.length > 1 ? 'Exercises' : 'Exercise'} in cell${cells.length > 1 ? 's' : ''} ${cells.map((i) => i + 1).join(', ')} ${cells.length > 1 ? 'are' : 'is'} not finished, so the reference solution ran in ${cells.length > 1 ? 'their' : 'its'} place. Your own code is not changed.`;
+
+export const earlierFailure = (index, summary) =>
+  `Cell ${index + 1} runs before this one and failed: ${summary}. Cells run in order, so fix cell ${index + 1} first.`;
 
 // ---------------------------------------------------------------- pure helpers (unit-tested)
 
@@ -175,7 +179,7 @@ function createRuntime() {
         onStatus && onStatus(this.state === 'ready' ? 'Running…' : 'Starting Python…');
         await this.ensure();
         const page = window.NMA_SCROLLY || { cells: [], edits: {} };
-        let usedFallback = false;
+        const fallbackCells = [];
         for (const cell of page.cells) {
           if (cell.index >= index || this.done.has(cell.index)) continue;
           const earlier = codeForEarlierCell(cell, page.edits || {});
@@ -185,15 +189,15 @@ function createRuntime() {
             return {
               stdout: '',
               images: [],
-              error: { summary: `Earlier cell ${cell.index + 1} failed: ${res.error.summary}`, detail: res.error.detail },
+              error: { summary: earlierFailure(cell.index, res.error.summary), detail: res.error.detail },
             };
           }
-          usedFallback ||= earlier.fallback;
+          if (earlier.fallback) fallbackCells.push(cell.index);
           this.done.add(cell.index);
         }
         const res = await this.exec(code, onStatus);
         if (!res.error) this.done.add(index);
-        if (usedFallback) res.note = FALLBACK_NOTE;
+        if (fallbackCells.length) res.note = fallbackNote(fallbackCells);
         return res;
       });
       this.queue = job.catch(() => {});
@@ -233,7 +237,7 @@ function render({ model, el }) {
   box.innerHTML = `
     ${hasEditor ? `<div class="fl-codehead"><span>${exercise ? 'Exercise · fill in, then run' : LABELS[mode]}</span><span>cell ${index + 1}</span></div>` : ''}
     ${params.length ? `<div class="fl-params">${controls}</div>` : ''}
-    ${hasEditor ? '<div class="fl-editor"><pre class="fl-hl" aria-hidden="true"></pre><textarea class="fl-ta" spellcheck="false" wrap="off" aria-label="Python code"></textarea></div>' : ''}
+    ${hasEditor ? '<div class="fl-editor"><pre class="fl-hl" aria-hidden="true"></pre><textarea class="fl-ta" spellcheck="false" wrap="off" rows="1" aria-label="Python code"></textarea></div>' : ''}
     <div class="fl-actions"><button type="button" class="fl-run">▶ Run</button>${hasEditor ? '<button type="button" class="fl-reset">Reset</button>' : ''}${mode === 'collapsed' ? '<button type="button" class="fl-toggle">Show code</button>' : ''}<span class="fl-status"></span></div>
     <div class="fl-out"><p class="fl-note"></p><pre class="fl-stdout"></pre><div class="fl-err"></div><div class="fl-figs"></div><p class="fl-empty">Run to see output</p></div>`;
   el.appendChild(box);
@@ -319,10 +323,6 @@ function render({ model, el }) {
       st.code = ta.value;
       if (window.NMA_SCROLLY) (window.NMA_SCROLLY.edits ||= {})[index] = ta.value;
       syncCode();
-    });
-    ta.addEventListener('scroll', () => {
-      hl.scrollLeft = ta.scrollLeft;
-      hl.scrollTop = ta.scrollTop;
     });
     ta.addEventListener('keydown', (e) => {
       if (e.key === 'Tab') {

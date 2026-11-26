@@ -233,7 +233,7 @@ test('fenced example markers are text, not nodes', () => {
 
 // --- runnable.mjs pure helpers -------------------------------------------------
 
-import { highlight, applyParams, pyLiteral, codeForEarlierCell, formatValue, writeAssets } from '../../js/src/scrolly/assets/runnable.mjs';
+import { highlight, applyParams, pyLiteral, codeForEarlierCell, formatValue, writeAssets, fallbackNote, earlierFailure } from '../../js/src/scrolly/assets/runnable.mjs';
 import { readNmaConfig } from '../../js/src/shared/config.mjs';
 
 test('highlight escapes HTML and marks tokens', () => {
@@ -370,4 +370,34 @@ test('writeAssets creates folders and writes decoded bytes into the Pyodide file
   writeAssets(py, [{ path: 'data/a.bin', b64: Buffer.from([0, 1, 255]).toString('base64') }, { path: 'top.txt', b64: '' }]);
   assert.deepEqual(calls, [['mkdir', 'data'], ['write', 'data/a.bin', [0, 1, 255]], ['write', 'top.txt', []]]);
   writeAssets(py, undefined); // nothing to write
+});
+
+test('a step without stage content does not keep a hero view on screen', () => {
+  const tree = {
+    type: 'root',
+    children: [
+      {
+        type: 'block',
+        children: [
+          step('hero', {}),
+          { type: 'heading', depth: 2, children: [t('Title')] },
+          step(undefined, {}),
+          p('Prose only.'),
+          step(undefined, {}),
+          { type: 'image', url: 'a.png' },
+          step(undefined, {}),
+          p('Prose again.'),
+        ],
+      },
+    ],
+  };
+  buildScrolly(tree);
+  const [engine] = byClass(tree, 'scrolly-engine');
+  assert.deepEqual(engine.model.map, [0, -1, 1, 1]);
+});
+
+test('run messages name the cells involved', () => {
+  assert.match(fallbackNote([2]), /cell 3 is not finished/);
+  assert.match(fallbackNote([0, 2]), /cells 1, 3 are not finished/);
+  assert.match(earlierFailure(1, 'NameError: x'), /^Cell 2 runs before this one and failed: NameError: x/);
 });
